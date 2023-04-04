@@ -1,0 +1,19 @@
+# for web development
+node_modules
+*.log*
+.nuxt
+.nitro
+.cache
+.output
+.env
+dist
+
+# for rust projects
+target
+
+# for macos
+.DS_Store
+
+# for ide
+.idea
+.vscode
