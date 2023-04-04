@@ -5,6 +5,7 @@ import {
   ResponseError,
   VectorOperationsApi,
 } from '@pinecone-database/pinecone/dist/pinecone-generated-ts-fetch';
+import { useTauriFetch } from '~/composables/UseTauriFetch';
 
 class ErrorWithoutStackTrace extends Error {
   constructor(message: string) {
@@ -84,7 +85,7 @@ export class CrossPineconeClient extends PineconeClient {
     const indexConfigurationParameters: ConfigurationParameters = {
       basePath: `https://${index}-${this.projectName}.svc.${this.environment}.pinecone.io`,
       apiKey: this.apiKey,
-      fetchApi: tauri_fetch,
+      fetchApi: useTauriFetch,
     };
 
     const indexConfiguration = new Configuration(indexConfigurationParameters);

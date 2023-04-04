@@ -5,8 +5,7 @@ import { fetch } from '@tauri-apps/api/http';
 /**
  * Fetch by tauri fetch api for cross fetching.
  */
-// noinspection JSUnusedGlobalSymbols
-export async function tauri_fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+export async function useTauriFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const response = await fetch(
     input.toString(),
     init
