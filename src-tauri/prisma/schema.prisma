@@ -1,0 +1,110 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.db"
+}
+
+generator client {
+  // Corresponds to the cargo alias created earlier
+  provider = "cargo prisma"
+  // The location to generate the client. Is relative to the position of the schema
+  output   = "../src/core/db.rs"
+}
+
+model DocumentChunk {
+  document     Document @relation(fields: [documentId], references: [id])
+  no           Int
+  chunkSize    Int
+  chunkOverlap Int
+  content      String
+  meta         Bytes
+
+  documentId Int
+  embeddings EmbeddingsOnDocumentChunks[]
+
+  @@id([documentId, no])
+}
+
+model Document {
+  id         Int      @id @default(autoincrement())
+  filename   String
+  filepath   String
+  md5Hash    String
+  updateTime DateTime
+
+  collections CollectionsOnDocuments[]
+  chunks      DocumentChunk[]
+}
+
+model Collection {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  documents CollectionsOnDocuments[]
+  Session   Session[]
+}
+
+model CollectionsOnDocuments {
+  collection Collection @relation(fields: [collectionId], references: [id])
+  document   Document   @relation(fields: [documentId], references: [id])
+
+  collectionId Int
+  documentId   Int
+
+  @@id([collectionId, documentId])
+}
+
+model Embeddings {
+  id            Int      @id @default(autoincrement())
+  name          String
+  client        String
+  meta          String
+  embeddingTime DateTime
+
+  chunks  EmbeddingsOnDocumentChunks[]
+  indexes IndexesOnEmbeddings[]
+}
+
+model EmbeddingsOnDocumentChunks {
+  embeddings    Embeddings    @relation(fields: [embeddingsId], references: [id])
+  documentChunk DocumentChunk @relation(fields: [documentChunkDocumentId, documentChunkNo], references: [documentId, no])
+  vector        Bytes
+
+  embeddingsId            Int
+  documentChunkDocumentId Int
+  documentChunkNo         Int
+
+  @@id([documentChunkDocumentId, documentChunkNo, embeddingsId])
+}
+
+model Index {
+  id        Int      @id @default(autoincrement())
+  name      String
+  client    String
+  meta      String
+  indexTime DateTime
+
+  embeddings IndexesOnEmbeddings[]
+}
+
+model IndexesOnEmbeddings {
+  index      Index      @relation(fields: [indexId], references: [id])
+  embeddings Embeddings @relation(fields: [embeddingsId], references: [id])
+
+  indexId      Int
+  embeddingsId Int
+  Session      Session[]
+
+  @@id([embeddingsId, indexId])
+}
+
+model Session {
+  id              Int                 @id @default(autoincrement())
+  name            String
+  collection      Collection          @relation(fields: [collectionId], references: [id])
+  indexEmbeddings IndexesOnEmbeddings @relation(fields: [embeddingsId, indexId], references: [embeddingsId, indexId])
+  history         String
+
+  collectionId Int
+  embeddingsId Int
+  indexId      Int
+}

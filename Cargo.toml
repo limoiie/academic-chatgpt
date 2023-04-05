@@ -1,5 +1,5 @@
 [workspace]
-members = ["src-tauri"]
+members = ["src-tauri", "src-tauri/prisma-cli"]
 
 # fix: mac v1.2.0 can not copy/paste
 # https://github.com/tauri-apps/tauri/issues/5669
