@@ -29,6 +29,10 @@ async fn main() {
             db_api::create_index,
             db_api::get_embeddings,
             db_api::create_embeddings,
+            db_api::get_index_on_embeddings,
+            db_api::get_or_create_index_on_embeddings,
+            db_api::get_index_embeddings_by_collection,
+            db_api::create_index_embeddings_collection,
             db_api::get_sessions,
             db_api::create_session
         ],
@@ -49,6 +53,10 @@ async fn main() {
             db_api::create_index,
             db_api::get_embeddings,
             db_api::create_embeddings,
+            db_api::get_index_on_embeddings,
+            db_api::get_or_create_index_on_embeddings,
+            db_api::get_index_embeddings_by_collection,
+            db_api::create_index_embeddings_collection,
             db_api::get_sessions,
             db_api::create_session
         ])

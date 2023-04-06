@@ -39,8 +39,8 @@ model Collection {
   id   Int    @id @default(autoincrement())
   name String
 
-  documents CollectionsOnDocuments[]
-  Session   Session[]
+  documents       CollectionsOnDocuments[]
+  indexEmbeddings IndexEmbeddingsOnCollection[]
 }
 
 model CollectionsOnDocuments {
@@ -66,14 +66,14 @@ model Embeddings {
 
 model EmbeddingsOnDocumentChunks {
   embeddings    Embeddings    @relation(fields: [embeddingsId], references: [id])
-  documentChunk DocumentChunk @relation(fields: [documentChunkDocumentId, documentChunkNo], references: [documentId, no])
+  documentChunk DocumentChunk @relation(fields: [documentId, documentChunkNo], references: [documentId, no])
   vector        Bytes
 
-  embeddingsId            Int
-  documentChunkDocumentId Int
-  documentChunkNo         Int
+  embeddingsId    Int
+  documentId      Int
+  documentChunkNo Int
 
-  @@id([documentChunkDocumentId, documentChunkNo, embeddingsId])
+  @@id([documentId, documentChunkNo, embeddingsId])
 }
 
 model Index {
@@ -92,17 +92,27 @@ model IndexesOnEmbeddings {
 
   indexId      Int
   embeddingsId Int
-  Session      Session[]
+  collections  IndexEmbeddingsOnCollection[]
 
   @@id([embeddingsId, indexId])
 }
 
-model Session {
-  id              Int                 @id @default(autoincrement())
-  name            String
+model IndexEmbeddingsOnCollection {
   collection      Collection          @relation(fields: [collectionId], references: [id])
   indexEmbeddings IndexesOnEmbeddings @relation(fields: [embeddingsId, indexId], references: [embeddingsId, indexId])
-  history         String
+  collectionId    Int
+  embeddingsId    Int
+  indexId         Int
+  sessions        Session[]
+
+  @@id([collectionId, embeddingsId, indexId])
+}
+
+model Session {
+  id                          Int                         @id @default(autoincrement())
+  name                        String
+  indexEmbeddingsOnCollection IndexEmbeddingsOnCollection @relation(fields: [collectionId, embeddingsId, indexId], references: [collectionId, embeddingsId, indexId])
+  history                     String
 
   collectionId Int
   embeddingsId Int

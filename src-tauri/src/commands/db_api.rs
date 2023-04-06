@@ -189,6 +189,109 @@ pub(crate) async fn create_embeddings(
 }
 
 ///
+/// Index-Embeddings operations
+///
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_index_on_embeddings(
+    db: DbState<'_>,
+) -> crate::Result<Vec<indexes_on_embeddings::Data>> {
+    db.indexes_on_embeddings()
+        .find_many(vec![])
+        .exec()
+        .await
+        .map_err(crate::Error::from)
+}
+
+#[derive(Deserialize, Type)]
+pub(crate) struct CreateIndexOnEmbeddingsData {
+    embeddings_id: i32,
+    index_id: i32,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_or_create_index_on_embeddings(
+    db: DbState<'_>,
+    data: CreateIndexOnEmbeddingsData,
+) -> crate::Result<indexes_on_embeddings::Data> {
+    let existing = db
+        .indexes_on_embeddings()
+        .find_first(vec![indexes_on_embeddings::embeddings_id_index_id(
+            data.embeddings_id,
+            data.index_id,
+        )])
+        .exec()
+        .await?;
+
+    if let Some(existing) = existing {
+        Ok(existing)
+    } else {
+        db.indexes_on_embeddings()
+            .create(
+                index::id::equals(data.index_id),
+                embeddings::id::equals(data.embeddings_id),
+                vec![],
+            )
+            .exec()
+            .await
+            .map_err(crate::Error::from)
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_index_embeddings_by_collection(
+    db: DbState<'_>,
+    collection_id: i32,
+) -> crate::Result<Vec<index_embeddings_on_collection::Data>> {
+    db.index_embeddings_on_collection()
+        .find_many(vec![index_embeddings_on_collection::collection_id::equals(
+            collection_id,
+        )])
+        .exec()
+        .await
+        .map_err(crate::Error::from)
+}
+
+#[derive(Deserialize, Type)]
+pub(crate) struct CreateIndexEmbeddingsByCollection {
+    collection_id: i32,
+    embeddings_id: i32,
+    index_id: i32,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn create_index_embeddings_collection(
+    db: DbState<'_>,
+    data: CreateIndexEmbeddingsByCollection,
+) -> crate::Result<index_embeddings_on_collection::Data> {
+    let index_on_embeddings = get_or_create_index_on_embeddings(
+        db.clone(),
+        CreateIndexOnEmbeddingsData {
+            index_id: data.index_id,
+            embeddings_id: data.embeddings_id,
+        },
+    )
+    .await?;
+
+    db.index_embeddings_on_collection()
+        .create(
+            collection::id::equals(data.collection_id),
+            indexes_on_embeddings::embeddings_id_index_id(
+                index_on_embeddings.embeddings_id,
+                index_on_embeddings.index_id,
+            ),
+            vec![],
+        )
+        .exec()
+        .await
+        .map_err(crate::Error::from)
+}
+
+///
 /// Sessions operations
 ///
 
@@ -221,8 +324,11 @@ pub(crate) async fn create_session(
     db.session()
         .create(
             data.name,
-            collection::id::equals(data.collection_id),
-            indexes_on_embeddings::embeddings_id_index_id(data.embeddings_id, data.index_id),
+            index_embeddings_on_collection::collection_id_embeddings_id_index_id(
+                data.collection_id,
+                data.embeddings_id,
+                data.index_id,
+            ),
             history,
             vec![],
         )
