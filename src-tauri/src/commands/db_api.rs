@@ -44,6 +44,31 @@ pub(crate) async fn create_document(
         .map_err(crate::Error::from)
 }
 
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_or_create_document(
+    db: DbState<'_>,
+    data: CreateDocumentData,
+) -> crate::Result<document::Data> {
+    let md5_hash = hash_file_in_md5(&data.filepath).await?;
+    let found = db
+        .document()
+        .find_first(vec![document::md_5_hash::equals(md5_hash.clone())])
+        .exec()
+        .await?;
+
+    if let Some(found) = found {
+        Ok(found)
+    } else {
+        let update_time = prisma_client_rust::chrono::prelude::Local::now().into();
+        db.document()
+            .create(data.filename, data.filepath, md5_hash, update_time, vec![])
+            .exec()
+            .await
+            .map_err(crate::Error::from)
+    }
+}
+
 ///
 /// Collections operations
 ///
@@ -61,6 +86,7 @@ pub(crate) async fn get_collections(db: DbState<'_>) -> crate::Result<Vec<collec
 #[derive(Deserialize, Type)]
 pub(crate) struct CreateCollectionData {
     name: String,
+    documents: Vec<CreateDocumentData>,
 }
 
 #[tauri::command]
@@ -69,11 +95,25 @@ pub(crate) async fn create_collection(
     db: DbState<'_>,
     data: CreateCollectionData,
 ) -> crate::Result<collection::Data> {
-    db.collection()
+    let collection = db
+        .collection()
         .create(data.name, vec![])
         .exec()
         .await
-        .map_err(crate::Error::from)
+        .map_err(crate::Error::from)?;
+
+    for doc_create_data in data.documents {
+        let doc = get_or_create_document(db.clone(), doc_create_data).await?;
+        db.collections_on_documents()
+            .create(
+                collection::id::equals(collection.id),
+                document::id::equals(doc.id),
+                vec![],
+            )
+            .exec()
+            .await?;
+    }
+    Ok(collection)
 }
 
 ///
