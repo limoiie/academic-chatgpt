@@ -9,7 +9,7 @@ use specta::collect_types;
 
 use crate::commands::db_api;
 use crate::core::db::*;
-pub(crate) use crate::core::result::{Error, Result};
+pub(crate) use crate::core::result::Result;
 
 mod commands;
 mod core;
@@ -21,18 +21,28 @@ async fn main() {
     #[cfg(debug_assertions)]
     tauri_specta::ts::export(
         collect_types![
+            db_api::get_or_create_splitting,
             db_api::get_documents,
+            db_api::get_documents_by_collection_id,
             db_api::create_document,
+            db_api::get_collection_by_id,
             db_api::get_collections,
             db_api::create_collection,
-            db_api::get_indexes,
-            db_api::create_index,
-            db_api::get_embeddings,
-            db_api::create_embeddings,
-            db_api::get_index_on_embeddings,
-            db_api::get_or_create_index_on_embeddings,
-            db_api::get_index_embeddings_by_collection,
-            db_api::create_index_embeddings_collection,
+            db_api::get_vector_db_config_by_id,
+            db_api::get_vector_db_configs,
+            db_api::create_vector_db_config,
+            db_api::get_embeddings_clients,
+            db_api::create_embeddings_client,
+            db_api::get_embeddings_configs_by_client_type,
+            db_api::get_embeddings_config_by_id,
+            db_api::get_embeddings_configs,
+            db_api::create_embeddings_config,
+            db_api::get_document_chunks,
+            db_api::create_chunks_by_document,
+            db_api::get_embeddings_on_document_chunk,
+            db_api::upsert_embeddings_on_document_chunk,
+            db_api::get_index_profiles_by_collection_id,
+            db_api::create_collection_index_profile,
             db_api::get_sessions,
             db_api::create_session
         ],
@@ -45,18 +55,28 @@ async fn main() {
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            db_api::create_document,
+            db_api::get_or_create_splitting,
             db_api::get_documents,
+            db_api::get_documents_by_collection_id,
+            db_api::create_document,
+            db_api::get_collection_by_id,
             db_api::get_collections,
             db_api::create_collection,
-            db_api::get_indexes,
-            db_api::create_index,
-            db_api::get_embeddings,
-            db_api::create_embeddings,
-            db_api::get_index_on_embeddings,
-            db_api::get_or_create_index_on_embeddings,
-            db_api::get_index_embeddings_by_collection,
-            db_api::create_index_embeddings_collection,
+            db_api::get_vector_db_config_by_id,
+            db_api::get_vector_db_configs,
+            db_api::create_vector_db_config,
+            db_api::get_embeddings_clients,
+            db_api::create_embeddings_client,
+            db_api::get_embeddings_configs_by_client_type,
+            db_api::get_embeddings_config_by_id,
+            db_api::get_embeddings_configs,
+            db_api::create_embeddings_config,
+            db_api::get_document_chunks,
+            db_api::create_chunks_by_document,
+            db_api::get_embeddings_on_document_chunk,
+            db_api::upsert_embeddings_on_document_chunk,
+            db_api::get_index_profiles_by_collection_id,
+            db_api::create_collection_index_profile,
             db_api::get_sessions,
             db_api::create_session
         ])

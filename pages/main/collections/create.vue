@@ -67,6 +67,7 @@
 </template>
 
 <script setup lang="ts">
+import { createCollection } from '#imports';
 import { ClearOutlined, DeleteOutlined, EditOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
 import { open } from '@tauri-apps/api/dialog';
 import { message } from 'ant-design-vue';

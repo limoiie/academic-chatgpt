@@ -1,27 +1,31 @@
 import { Ref } from "vue";
 
 declare global {
+  interface CreateEmbeddingsClientFormState {
+    name: string;
+    type: string;
+    info: any;
+  }
   interface CreateEmbeddingsConfigFormState {
-    client: string;
-    configName: string;
+    clientType: string;
+    name: string;
     meta: any;
   }
 
-  interface CreateIndexConfigFormState {
-    client: string;
-    configName: string;
+  interface CreateVectorDbConfigFormState {
+    clientType: string;
+    name: string;
     meta: any;
   }
 
   interface OpenAIEmbeddingsConfigMeta {
-    apiKey: string,
+    dimension: number;
   }
 
   interface PineconeVectorstoreConfigMeta {
     apiKey: string,
     indexName: string,
     environment: string,
-    namespace: string,
     dimension: string,
     metric: string,
   }

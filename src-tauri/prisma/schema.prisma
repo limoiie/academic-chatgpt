@@ -1,6 +1,6 @@
 datasource db {
   provider = "sqlite"
-  url      = "file:dev.db"
+  url      = "file:../../dev.db"
 }
 
 generator client {
@@ -11,17 +11,40 @@ generator client {
 }
 
 model DocumentChunk {
-  document     Document @relation(fields: [documentId], references: [id])
-  no           Int
-  chunkSize    Int
-  chunkOverlap Int
-  content      String
-  meta         Bytes
+  document  Document  @relation(fields: [documentId], references: [id])
+  splitting Splitting @relation(fields: [splittingId], references: [id])
+  no        Int
+  content   String
+  meta      String
 
-  documentId Int
+  documentId  Int
+  splittingId Int
+
   embeddings EmbeddingsOnDocumentChunks[]
 
-  @@id([documentId, no])
+  @@id([documentId, splittingId, no])
+}
+
+model Splitting {
+  id           Int @id @default(autoincrement())
+  chunkSize    Int
+  chunkOverlap Int
+
+  documents               SplittingsOnDocuments[]
+  documentChunks          DocumentChunk[]
+  collectionIndexProfiles CollectionIndexProfile[]
+
+  @@unique([chunkOverlap, chunkSize])
+}
+
+model SplittingsOnDocuments {
+  splitting Splitting @relation(fields: [splittingId], references: [id])
+  document  Document  @relation(fields: [documentId], references: [id])
+
+  splittingId Int
+  documentId  Int
+
+  @@id([splittingId, documentId])
 }
 
 model Document {
@@ -31,16 +54,17 @@ model Document {
   md5Hash    String
   updateTime DateTime
 
-  collections CollectionsOnDocuments[]
-  chunks      DocumentChunk[]
+  collections    CollectionsOnDocuments[]
+  splitings      SplittingsOnDocuments[]
+  documentChunks DocumentChunk[]
 }
 
 model Collection {
   id   Int    @id @default(autoincrement())
   name String
 
-  documents       CollectionsOnDocuments[]
-  indexEmbeddings IndexEmbeddingsOnCollection[]
+  documents CollectionsOnDocuments[]
+  profiles  CollectionIndexProfile[]
 }
 
 model CollectionsOnDocuments {
@@ -53,68 +77,71 @@ model CollectionsOnDocuments {
   @@id([collectionId, documentId])
 }
 
-model Embeddings {
-  id            Int      @id @default(autoincrement())
-  name          String
-  client        String
-  meta          String
-  embeddingTime DateTime
+model EmbeddingsClient {
+  id   Int    @id @default(autoincrement())
+  name String
+  type String
+  info String
 
-  chunks  EmbeddingsOnDocumentChunks[]
-  indexes IndexesOnEmbeddings[]
+  @@unique([type, info])
+}
+
+model EmbeddingsConfig {
+  id         Int    @id @default(autoincrement())
+  name       String
+  clientType String
+  meta       String
+
+  chunks                  EmbeddingsOnDocumentChunks[]
+  collectionIndexProfiles CollectionIndexProfile[]
 }
 
 model EmbeddingsOnDocumentChunks {
-  embeddings    Embeddings    @relation(fields: [embeddingsId], references: [id])
-  documentChunk DocumentChunk @relation(fields: [documentId, documentChunkNo], references: [documentId, no])
-  vector        Bytes
+  documentChunk    DocumentChunk    @relation(fields: [documentId, splittingId, documentChunkNo], references: [documentId, splittingId, no])
+  embeddingsConfig EmbeddingsConfig @relation(fields: [embeddingsConfigId], references: [id])
+  vector           Bytes
 
-  embeddingsId    Int
-  documentId      Int
-  documentChunkNo Int
+  documentId         Int
+  splittingId        Int
+  documentChunkNo    Int
+  embeddingsConfigId Int
 
-  @@id([documentId, documentChunkNo, embeddingsId])
+  @@id([documentId, splittingId, documentChunkNo, embeddingsConfigId])
 }
 
-model Index {
-  id        Int      @id @default(autoincrement())
-  name      String
-  client    String
-  meta      String
-  indexTime DateTime
+model VectorDbConfig {
+  id         Int    @id @default(autoincrement())
+  name       String
+  client     String
+  clientInfo String
+  meta       String
 
-  embeddings IndexesOnEmbeddings[]
+  collectionIndexProfiles CollectionIndexProfile[]
 }
 
-model IndexesOnEmbeddings {
-  index      Index      @relation(fields: [indexId], references: [id])
-  embeddings Embeddings @relation(fields: [embeddingsId], references: [id])
+model CollectionIndexProfile {
+  id               Int              @id @default(autoincrement())
+  name             String
+  collection       Collection       @relation(fields: [collectionId], references: [id])
+  splitting        Splitting        @relation(fields: [splittingId], references: [id])
+  embeddingsConfig EmbeddingsConfig @relation(fields: [embeddingsConfigId], references: [id])
+  vectorDbConfig   VectorDbConfig   @relation(fields: [vectordbConfigId], references: [id])
 
-  indexId      Int
-  embeddingsId Int
-  collections  IndexEmbeddingsOnCollection[]
+  collectionId       Int
+  splittingId        Int
+  embeddingsConfigId Int
+  vectordbConfigId   Int
 
-  @@id([embeddingsId, indexId])
-}
+  sessions Session[]
 
-model IndexEmbeddingsOnCollection {
-  collection      Collection          @relation(fields: [collectionId], references: [id])
-  indexEmbeddings IndexesOnEmbeddings @relation(fields: [embeddingsId, indexId], references: [embeddingsId, indexId])
-  collectionId    Int
-  embeddingsId    Int
-  indexId         Int
-  sessions        Session[]
-
-  @@id([collectionId, embeddingsId, indexId])
+  @@unique([collectionId, name])
 }
 
 model Session {
-  id                          Int                         @id @default(autoincrement())
-  name                        String
-  indexEmbeddingsOnCollection IndexEmbeddingsOnCollection @relation(fields: [collectionId, embeddingsId, indexId], references: [collectionId, embeddingsId, indexId])
-  history                     String
+  id                     Int                    @id @default(autoincrement())
+  name                   String
+  collectionIndexProfile CollectionIndexProfile @relation(fields: [collectionProfileId], references: [id])
+  history                String
 
-  collectionId Int
-  embeddingsId Int
-  indexId      Int
+  collectionProfileId Int
 }

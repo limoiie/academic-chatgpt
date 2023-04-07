@@ -6,26 +6,23 @@
       name="configName"
       :rules="[{ required: true, message: 'Please choose an unique name for this config!' }]"
     >
-      <a-input v-model:value="formState.configName" />
+      <a-input v-model:value="formState.config_name" />
     </a-form-item>
     <!-- Index Client -->
     <a-form-item label="Client" name="client" :rules="[{ required: true }]">
       <div class="border px-2 pb-2">
-        <a-tabs v-model:activeKey="formState.client">
+        <a-tabs v-model:activeKey="formState.client_type">
           <!-- Pinecone panel -->
           <a-tab-pane key="pinecone" tab="Pinecone">
             <a-form :model="formState.meta">
               <a-form-item label="Api Key" name="apiKey" :rules="[{ required: true }]">
                 <a-input v-model:value="formState.meta.apiKey" />
               </a-form-item>
-              <a-form-item label="Index Name" name="indexName" :rules="[{ required: true }]">
-                <a-input v-model:value="formState.meta.indexName" />
-              </a-form-item>
               <a-form-item label="Environment" name="environment" :rules="[{ required: true }]">
                 <a-input v-model:value="formState.meta.environment" />
               </a-form-item>
-              <a-form-item label="Namespace" name="namespace" :rules="[{ required: true }]">
-                <a-input v-model:value="formState.meta.namespace" />
+              <a-form-item label="Index Name" name="indexName" :rules="[{ required: true }]">
+                <a-input v-model:value="formState.meta.indexName" />
               </a-form-item>
               <a-tooltip>
                 <template #title>OpenAI only supports 1536 so far</template>
@@ -52,10 +49,10 @@ const pineconeMetrics = [
   },
 ];
 
-const formState = useState<CreateIndexConfigFormState>('creatingIndexConfig', () => {
+const formState = useState<CreateVectorDbConfigFormState>('creatingVectorDbConfig', () => {
   return {
-    client: 'pinecone',
-    configName: '',
+    client_type: 'pinecone',
+    config_name: '',
     meta: {
       metric: 'cosine'
     },
