@@ -6,8 +6,8 @@
         <ChatMessage :value="item.question" :error="undefined" />
       </a-list-item>
       <!--suppress TypeScriptUnresolvedReference -->
-      <a-list-item v-if="item.chosen_answer">
-        <ChatMessage :value="item.chosen_answer" :error="item.error" />
+      <a-list-item v-if="item.chosenAnswer">
+        <ChatMessage :value="item.chosenAnswer" :error="item.error" :answering="item.isAnswering" />
       </a-list-item>
     </template>
 

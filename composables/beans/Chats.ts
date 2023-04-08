@@ -31,7 +31,11 @@ export class UiChatDialogue {
     this.chosen = chosen;
   }
 
-  get chosen_answer() {
+  get isAnswering() {
+    return this.chosen == -1
+  }
+
+  get chosenAnswer() {
     if (this.chosen == -1) {
       return this.answering;
     }
@@ -90,7 +94,7 @@ export class UiChatConversation {
 
   extractHistory(): [string, string][] {
     return this.dialogues.slice(0, -1).map((dialogue) => {
-      return [dialogue.question.message.text, dialogue.chosen_answer.message.text];
+      return [dialogue.question.message.text, dialogue.chosenAnswer.message.text];
     });
   }
 

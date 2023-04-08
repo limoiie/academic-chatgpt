@@ -1,10 +1,23 @@
 <template>
   <div class="bg-white h-full flex flex-col">
     <a-tabs v-model:activeKey="activeSessionId" class="flex flex-1" type="editable-card" @edit="onEdit">
-      <a-tab-pane v-for="session in sessions" :key="session.key" :tab="session.title" :closable="session.closable">
+      <a-tab-pane
+        v-for="session in sessions"
+        :key="session.key"
+        :tab="session.title"
+        :closable="session.closable"
+      >
         <ChatSession v-if="indexProfile" :session="session.origin" :index-profile="indexProfile!" />
       </a-tab-pane>
     </a-tabs>
+    <div class="w-full flex flex-row items-center" v-if="hasNoSession">
+      <a-empty class="w-full mb-32!">
+        <template #description>
+          <span> No session yet </span>
+        </template>
+        <a-button type="primary" @click="add">Create Now</a-button>
+      </a-empty>
+    </div>
   </div>
 </template>
 
@@ -30,9 +43,11 @@ const { data: chatSessions } = useAsyncData('chatSessions', async () => {
       return session.collectionProfileId == indexProfileId;
     });
 });
+const hasNoSession = computed(() => !chatSessions.value?.length);
 watch(chatSessions, (newChatSessions) => {
   if (!newChatSessions?.length) {
-    add();
+    sessions.value = [];
+    activeSessionId.value = undefined;
     return;
   }
   sessions.value =
@@ -94,4 +109,14 @@ const onEdit = (targetSessionId: number | MouseEvent, action: string) => {
 <style lang="sass">
 .ant-tabs-content
   height: 100%
+
+.ant-tabs-nav-wrap
+  height: 42px
+
+.ant-tabs-tab
+  border: 0 !important
+
+button.ant-tabs-tab-remove, .ant-tabs-tab-btn
+  height: 18px
+
 </style>

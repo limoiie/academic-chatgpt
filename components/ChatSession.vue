@@ -1,10 +1,10 @@
 <template>
   <div id="component" class="w-full h-full flex flex-col items-stretch flex-1 relative overflow-hidden">
     <div id="content" class="flex flex-col items-center flex-[1_1_0] overflow-auto">
-      <ChatConversation class="w-5/6 max-w-4xl !m-8" :conversation="conversation" :scroll-to-end="scrollToEnd" />
+      <ChatConversation class="w-full max-w-4xl" :conversation="conversation" :scroll-to-end="scrollToEnd" />
     </div>
     <div id="footer" class="w-full bottom-0 left-0 px-12 py-6 bg-gradient-to-t from-[#FFFFFF_75%] absolute rounded">
-      <div class="p-2 flex flex-row items-center border-1 rounded">
+      <div class="px-2 py-1 flex flex-row items-center border-1 rounded">
         <a-textarea
           v-model:value="input"
           allow-clear
