@@ -29,7 +29,7 @@
         "removeFile": true,
         "removeDir": true,
         "scope": [
-          "$HOME/.academic-chatgpt/**"
+          "**"
         ]
       },
       "http": {
