@@ -630,6 +630,19 @@ pub(crate) async fn create_collection_index_profile(
 
 #[tauri::command]
 #[specta::specta]
+pub(crate) async fn delete_session_by_id(
+    db: DbState<'_>,
+    session_id: i32,
+) -> crate::Result<session::Data> {
+    Ok(db
+        .session()
+        .delete(session::id::equals(session_id))
+        .exec()
+        .await?)
+}
+
+#[tauri::command]
+#[specta::specta]
 pub(crate) async fn get_sessions(db: DbState<'_>) -> crate::Result<Vec<session::Data>> {
     Ok(db.session().find_many(vec![]).exec().await?)
 }

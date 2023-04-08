@@ -46,6 +46,7 @@ async fn main() {
             db_api::get_index_profiles_by_collection_id,
             db_api::get_index_profile_by_id,
             db_api::create_collection_index_profile,
+            db_api::delete_session_by_id,
             db_api::get_sessions,
             db_api::create_session
         ],
@@ -82,6 +83,7 @@ async fn main() {
             db_api::get_index_profiles_by_collection_id,
             db_api::get_index_profile_by_id,
             db_api::create_collection_index_profile,
+            db_api::delete_session_by_id,
             db_api::get_sessions,
             db_api::create_session
         ])
