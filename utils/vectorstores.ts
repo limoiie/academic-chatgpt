@@ -1,13 +1,13 @@
 import { Embeddings } from 'langchain/embeddings';
 import { PineconeStore, VectorStore } from 'langchain/vectorstores';
 import { GetVectorDbConfigData } from '~/utils/bindings';
+import { CrossPineconeClient } from '~/utils/pinecone';
 
 export async function createVectorstore(
   vectorstoreConfig: GetVectorDbConfigData,
   embeddings: Embeddings,
   namespace: string,
 ): Promise<VectorStore> {
-  console.log(vectorstoreConfig.name, 'namespace', namespace);
   switch (vectorstoreConfig.client) {
     case 'pinecone':
       const meta: PineconeVectorstoreConfigMeta = vectorstoreConfig.meta;
@@ -18,7 +18,7 @@ export async function createVectorstore(
       });
       // todo: create index if not exists
       const index = client.Index(meta.indexName);
-      return new PineconeStore(embeddings, {
+      return await PineconeStore.fromExistingIndex(embeddings, {
         pineconeIndex: index,
         namespace: namespace,
         textKey: 'text',

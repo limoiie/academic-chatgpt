@@ -40,7 +40,7 @@
       </div>
     </a-layout-sider>
     <a-layout-content class="overflow-scroll h-screen">
-      <NuxtPage page-key="static" />
+      <NuxtPage />
     </a-layout-content>
   </a-layout>
 </template>
