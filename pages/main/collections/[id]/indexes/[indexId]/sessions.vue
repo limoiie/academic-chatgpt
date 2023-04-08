@@ -2,7 +2,7 @@
   <div class="bg-white h-full flex flex-col">
     <a-tabs v-model:activeKey="activeSessionId" class="flex flex-1" type="editable-card" @edit="onEdit">
       <a-tab-pane v-for="session in sessions" :key="session.key" :tab="session.title" :closable="session.closable">
-        <ChatSession v-if="indexProfile" :session="session.origin" :index-profile="indexProfile" />
+        <ChatSession v-if="indexProfile" :session="session.origin" :index-profile="indexProfile!" />
       </a-tab-pane>
     </a-tabs>
   </div>

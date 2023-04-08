@@ -3,16 +3,16 @@
     <div id="content" class="flex flex-col items-center flex-[1_1_0] overflow-auto">
       <ChatConversation class="w-5/6 max-w-4xl !m-8" :conversation="conversation" :scroll-to-end="scrollToEnd" />
     </div>
-    <div id="placeholder" class="w-full h-24"></div>
-    <div id="footer" class="w-full bottom-0 left-0 px-12 py-6 absolute rounded">
+    <div id="footer" class="w-full bottom-0 left-0 px-12 py-6 bg-gradient-to-t from-[#FFFFFF_75%] absolute rounded">
       <div class="p-2 flex flex-row items-center border-1 rounded">
         <a-textarea
           v-model:value="input"
-          auto-size=""
           allow-clear
           placeholder="Input message"
           class="ant-input-borderless"
           size="large"
+          :auto-size="{ minRows: 1, maxRows: 5 }"
+          @keydown="handleKeydownInTextarea"
         />
         <a-button class="!border-0" :loading="generating" size="large" shape="circle" @click="requestChatCompletion">
           <template #icon>
@@ -101,7 +101,7 @@ async function requestChatCompletion() {
   input.value = '';
 
   if (latestInput) {
-    const vectorstore = toRaw<VectorStore>(contextValue.vectorDb)
+    const vectorstore = toRaw<VectorStore>(contextValue.vectorDb);
     const chain = makeChain(vectorstore, onTokenStream);
 
     // construct the new dialogue
@@ -136,9 +136,17 @@ function intoLoadingMode() {
 function exitLoadingMode() {
   generating.value = false;
 }
+
+function handleKeydownInTextarea(e: KeyboardEvent) {
+  if (!e.shiftKey && e.key === 'Enter') {
+    requestChatCompletion();
+    e.preventDefault();
+  }
+}
 </script>
 
 <style lang="sass">
 .ant-input-clear-icon
   top: 13px !important
+
 </style>
