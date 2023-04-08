@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::State;
 
-use crate::core::db::*;
 use crate::core::fs::hash_file_in_md5;
+use crate::prisma::*;
 
 type DbState<'a> = State<'a, Arc<PrismaClient>>;
 
@@ -287,6 +287,21 @@ pub(crate) async fn get_collection_by_id(
         .await?)
 }
 
+collection::include!(collection_with_profiles { profiles });
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_collections_with_index_profiles(
+    db: DbState<'_>,
+) -> crate::Result<Vec<collection_with_profiles::Data>> {
+    Ok(db
+        .collection()
+        .find_many(vec![])
+        .include(collection_with_profiles::include())
+        .exec()
+        .await?)
+}
+
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn get_collections(db: DbState<'_>) -> crate::Result<Vec<collection::Data>> {
@@ -563,6 +578,19 @@ pub(crate) async fn get_index_profiles_by_collection_id(
         .find_many(vec![collection_index_profile::collection_id::equals(
             collection_id,
         )])
+        .exec()
+        .await?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_index_profile_by_id(
+    db: DbState<'_>,
+    index_profile_id: i32,
+) -> crate::Result<Option<collection_index_profile::Data>> {
+    Ok(db
+        .collection_index_profile()
+        .find_unique(collection_index_profile::id::equals(index_profile_id))
         .exec()
         .await?)
 }

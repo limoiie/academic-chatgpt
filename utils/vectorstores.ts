@@ -1,12 +1,12 @@
 import { Embeddings } from 'langchain/embeddings';
-import { PineconeStore } from 'langchain/vectorstores';
+import { PineconeStore, VectorStore } from 'langchain/vectorstores';
 import { GetVectorDbConfigData } from '~/utils/bindings';
 
 export async function createVectorstore(
   vectorstoreConfig: GetVectorDbConfigData,
   embeddings: Embeddings,
   namespace: string,
-) {
+): Promise<VectorStore> {
   console.log(vectorstoreConfig.name, 'namespace', namespace);
   switch (vectorstoreConfig.client) {
     case 'pinecone':

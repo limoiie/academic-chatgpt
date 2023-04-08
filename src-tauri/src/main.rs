@@ -8,11 +8,12 @@ use std::sync::Arc;
 use specta::collect_types;
 
 use crate::commands::db_api;
-use crate::core::db::*;
 pub(crate) use crate::core::result::Result;
+use crate::prisma::*;
 
 mod commands;
 mod core;
+pub(crate) mod prisma;
 
 #[tokio::main]
 async fn main() {
@@ -26,6 +27,7 @@ async fn main() {
             db_api::get_documents_by_collection_id,
             db_api::create_document,
             db_api::get_collection_by_id,
+            db_api::get_collections_with_index_profiles,
             db_api::get_collections,
             db_api::create_collection,
             db_api::get_vector_db_config_by_id,
@@ -42,6 +44,7 @@ async fn main() {
             db_api::get_embeddings_on_document_chunk,
             db_api::upsert_embeddings_on_document_chunk,
             db_api::get_index_profiles_by_collection_id,
+            db_api::get_index_profile_by_id,
             db_api::create_collection_index_profile,
             db_api::get_sessions,
             db_api::create_session
@@ -60,6 +63,7 @@ async fn main() {
             db_api::get_documents_by_collection_id,
             db_api::create_document,
             db_api::get_collection_by_id,
+            db_api::get_collections_with_index_profiles,
             db_api::get_collections,
             db_api::create_collection,
             db_api::get_vector_db_config_by_id,
@@ -76,6 +80,7 @@ async fn main() {
             db_api::get_embeddings_on_document_chunk,
             db_api::upsert_embeddings_on_document_chunk,
             db_api::get_index_profiles_by_collection_id,
+            db_api::get_index_profile_by_id,
             db_api::create_collection_index_profile,
             db_api::get_sessions,
             db_api::create_session

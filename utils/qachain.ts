@@ -2,7 +2,7 @@ import { CallbackManager } from 'langchain/callbacks';
 import { ChatVectorDBQAChain, LLMChain, loadQAChain } from 'langchain/chains';
 import { OpenAIChat } from 'langchain/llms';
 import { PromptTemplate } from 'langchain/prompts';
-import { PineconeStore } from 'langchain/vectorstores';
+import { VectorStore } from 'langchain/vectorstores';
 
 /**
  * A prompt for compressing question into a compact form.
@@ -31,7 +31,7 @@ Question: {question}
 Answer in Markdown:`,
 );
 
-export const makeChain = (vectorstore: PineconeStore, onTokenStream?: (token: string) => void) => {
+export const makeChain = (vectorstore: VectorStore, onTokenStream?: (token: string) => void) => {
   const questionGenerator = new LLMChain({
     llm: new OpenAIChat({
       openAIApiKey: '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',

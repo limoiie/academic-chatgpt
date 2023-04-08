@@ -1,4 +1,4 @@
-import { Ref } from "vue";
+import { Ref } from 'vue';
 
 declare global {
   interface CreateEmbeddingsClientFormState {
@@ -6,6 +6,7 @@ declare global {
     type: string;
     info: any;
   }
+
   interface CreateEmbeddingsConfigFormState {
     clientType: string;
     name: string;
@@ -23,11 +24,11 @@ declare global {
   }
 
   interface PineconeVectorstoreConfigMeta {
-    apiKey: string,
-    indexName: string,
-    environment: string,
-    dimension: string,
-    metric: string,
+    apiKey: string;
+    indexName: string;
+    environment: string;
+    dimension: string;
+    metric: string;
   }
 
   type LogLevel = 'info' | 'error' | 'warning';
