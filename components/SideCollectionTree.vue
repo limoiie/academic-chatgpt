@@ -22,6 +22,12 @@
           <PlusCircleOutlined />
         </template>
       </a-menu-item>
+      <a-menu-item key="manage" @click="manageDocumentsCollectionProfile(col.id)">
+        Manage
+        <template #icon>
+          <DashboardOutlined />
+        </template>
+      </a-menu-item>
       <!--   Index Profiles   -->
       <a-menu-item
         v-for="profile of col.profiles"
@@ -35,13 +41,17 @@
 </template>
 
 <script setup lang="ts">
-import { FolderAddOutlined, FolderOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
+import { FolderAddOutlined, FolderOutlined, PlusCircleOutlined, DashboardOutlined } from '@ant-design/icons-vue';
 import { CollectionWithProfiles } from '~/utils/bindings';
 
 const { collections } = defineProps<{ collections: CollectionWithProfiles[] }>();
 
 async function navigateToIndexProfile(collectionId: number, indexProfileId: number) {
   navigateTo(`/main/collections/${collectionId}/indexes/${indexProfileId}`);
+}
+
+async function manageDocumentsCollectionProfile(collectionId: number) {
+  navigateTo(`/main/collections/${collectionId}/indexes/manage`);
 }
 
 async function newDocumentsCollectionProfile(collectionId: number) {
