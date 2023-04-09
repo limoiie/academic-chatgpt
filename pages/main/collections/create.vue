@@ -11,7 +11,7 @@
 
       <a-divider orientation="left" orientation-margin="0">Documents</a-divider>
       <a-space class="w-full" direction="vertical">
-        <a-space id="topButtonBar">
+        <a-space>
           <a-button v-if="!hasSelected" @click="addDocuments">
             <template #icon>
               <PlusCircleOutlined />
@@ -27,9 +27,9 @@
         </a-space>
         <a-table
           v-if="formState.documents.length != 0"
-          :row-selection="{ selectedRowKeys: selectedRawKeys.value, onChange: onSelectionChanged }"
-          :columns="columns"
           :data-source="formState.documents"
+          :columns="columns"
+          :row-selection="{ selectedRowKeys: selectedRawKeys.value, onChange: onSelectionChanged }"
         >
           <template #headerCell="{ column }">
             <template v-if="column.key === 'filename'">
@@ -58,7 +58,7 @@
           <template #description>
             <span> No documents yet! </span>
           </template>
-          <a-button type="primary" @click="addDocuments">Add Now</a-button>
+          <a-button class="m-auto" type="primary" @click="addDocuments">Add Now</a-button>
         </a-empty>
       </a-space>
       <a-button type="primary" @click="onCreate" :loading="isCreating">Create</a-button>
@@ -192,10 +192,6 @@ async function removeSelectedDocuments() {
 </script>
 
 <style lang="sass" scoped>
-#topButtonBar .ant-btn
-  display: flex
-  align-items: baseline
-
 .ant-divider
   font-size: 14px
   font-weight: normal

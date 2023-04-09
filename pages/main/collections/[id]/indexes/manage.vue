@@ -3,7 +3,7 @@
     <a-layout-content class="mx-8 mt-2 mb-8">
       <a-divider orientation="left" orientation-margin="0">Manage index profiles</a-divider>
       <a-space class="w-full" direction="vertical">
-        <a-space id="topButtonBar">
+        <a-space>
           <a-button v-if="!hasSelected" @click="add">
             <template #icon>
               <PlusCircleOutlined />
@@ -202,13 +202,6 @@ function handleResizeColumn(w: number, col: TableColumnType) {
 </script>
 
 <style lang="sass" scoped>
-#topButtonBar .ant-btn
-  display: flex
-  align-items: baseline
-
-#topButtonBar .ant-btn-circle
-  display: block
-
 .ant-divider
   font-size: 14px
   font-weight: normal

@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white h-full flex flex-col">
+  <div class="h-full flex flex-col">
     <a-tabs v-model:activeKey="activeSessionId" class="flex flex-1" type="editable-card" @edit="onEdit">
       <a-tab-pane
         v-for="session in sessions"
