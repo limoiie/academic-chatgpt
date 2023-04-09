@@ -569,6 +569,22 @@ pub(crate) async fn create_embeddings_config(
 
 #[tauri::command]
 #[specta::specta]
+pub(crate) async fn delete_index_profiles_by_id(
+    db: DbState<'_>,
+    index_profile_ids: Vec<i32>,
+) -> crate::Result<i32> {
+    delete_sessions_by_index_profile_ids(db.clone(), index_profile_ids.clone()).await?;
+    Ok(db
+        .collection_index_profile()
+        .delete_many(vec![collection_index_profile::id::in_vec(
+            index_profile_ids,
+        )])
+        .exec()
+        .await? as i32)
+}
+
+#[tauri::command]
+#[specta::specta]
 pub(crate) async fn get_index_profiles_by_collection_id(
     db: DbState<'_>,
     collection_id: i32,
@@ -578,6 +594,28 @@ pub(crate) async fn get_index_profiles_by_collection_id(
         .find_many(vec![collection_index_profile::collection_id::equals(
             collection_id,
         )])
+        .exec()
+        .await?)
+}
+
+collection_index_profile::include!(index_profile_with_all {
+    splitting
+    embeddings_config
+    vector_db_config
+});
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_index_profiles_by_collection_id_with_all(
+    db: DbState<'_>,
+    collection_id: i32,
+) -> crate::Result<Vec<index_profile_with_all::Data>> {
+    Ok(db
+        .collection_index_profile()
+        .find_many(vec![collection_index_profile::collection_id::equals(
+            collection_id,
+        )])
+        .include(index_profile_with_all::include())
         .exec()
         .await?)
 }
@@ -627,6 +665,36 @@ pub(crate) async fn create_collection_index_profile(
 ///
 /// Sessions operations
 ///
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn delete_sessions_by_index_profile_id(
+    db: DbState<'_>,
+    index_profile_id: i32,
+) -> crate::Result<i32> {
+    Ok(db
+        .session()
+        .delete_many(vec![session::collection_profile_id::equals(
+            index_profile_id,
+        )])
+        .exec()
+        .await? as i32)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn delete_sessions_by_index_profile_ids(
+    db: DbState<'_>,
+    index_profile_ids: Vec<i32>,
+) -> crate::Result<i32> {
+    Ok(db
+        .session()
+        .delete_many(vec![session::collection_profile_id::in_vec(
+            index_profile_ids,
+        )])
+        .exec()
+        .await? as i32)
+}
 
 #[tauri::command]
 #[specta::specta]
