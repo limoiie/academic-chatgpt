@@ -651,7 +651,7 @@ pub(crate) async fn get_sessions(db: DbState<'_>) -> crate::Result<Vec<session::
 pub(crate) struct CreateSessionsData {
     name: String,
     collection_profile_id: i32,
-    history: serde_json::Value,
+    history: String,
 }
 
 #[tauri::command]
@@ -660,14 +660,42 @@ pub(crate) async fn create_session(
     db: DbState<'_>,
     data: CreateSessionsData,
 ) -> crate::Result<session::Data> {
-    let history = serde_json::to_string(&data.history)?;
     Ok(db
         .session()
         .create(
             data.name,
             collection_index_profile::id::equals(data.collection_profile_id),
-            history,
+            data.history,
             vec![],
+        )
+        .exec()
+        .await?)
+}
+
+#[derive(Deserialize, Type)]
+pub(crate) struct UpdateSessionsData {
+    id: i32,
+    name: Option<String>,
+    history: Option<String>,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn update_session(
+    db: DbState<'_>,
+    data: UpdateSessionsData,
+) -> crate::Result<session::Data> {
+    Ok(db
+        .session()
+        .update(
+            session::id::equals(data.id),
+            vec![
+                data.history.map(session::history::set),
+                data.name.map(session::name::set),
+            ]
+            .into_iter()
+            .flatten()
+            .collect(),
         )
         .exec()
         .await?)

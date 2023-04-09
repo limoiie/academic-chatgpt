@@ -3,8 +3,15 @@
     <div id="content" class="flex flex-col items-center flex-[1_1_0] overflow-auto">
       <ChatConversation class="w-full max-w-4xl" :conversation="conversation" :scroll-to-end="scrollToEnd" />
     </div>
-    <div id="footer" class="w-full bottom-0 left-0 px-12 py-6 bg-gradient-to-t from-[#FFFFFF_75%] absolute rounded">
-      <div class="px-2 py-1 flex flex-row items-center border-1 rounded">
+    <div
+      class="w-full flex flex-row items-center bottom-0 left-0 pr-12 py-6 bg-gradient-to-t from-[#FFFFFF_75%] absolute rounded"
+    >
+      <a-button class="mx-4" type="primary" shape="circle" @click="clearDialogues">
+        <template #icon>
+          <ClearOutlined />
+        </template>
+      </a-button>
+      <div class="px-2 py-1 flex flex-1 flex-row items-center border-1 rounded">
         <a-textarea
           v-model:value="input"
           allow-clear
@@ -25,13 +32,13 @@
 </template>
 
 <script setup lang="ts">
-import { SendOutlined } from '@ant-design/icons-vue';
+import { ClearOutlined, SendOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { Embeddings } from 'langchain/embeddings';
 import { SystemChatMessage } from 'langchain/schema';
 import { VectorStore } from 'langchain/vectorstores';
 import { ref } from 'vue';
-import { UiChatConversation } from '~/composables/beans/Chats';
+import { UiChatConversation, UiChatDialogue } from '~/composables/beans/Chats';
 import {
   CollectionIndexProfile,
   GetEmbeddingsClientData,
@@ -40,6 +47,7 @@ import {
   GetEmbeddingsConfigData,
   GetVectorDbConfigData,
   Session,
+  updateSession,
 } from '~/utils/bindings';
 import { makeChain } from '~/utils/qachain';
 import { createVectorstore } from '~/utils/vectorstores';
@@ -82,6 +90,30 @@ const conversation = ref<UiChatConversation>(
   new UiChatConversation(new SystemChatMessage('You are an assistant and going to help my coding.')),
 );
 
+function loadHistory() {
+  try {
+    conversation.value.dialogues = UiChatDialogue.loadArray(session.history);
+  } catch (e: any) {
+    console.log(`Failed to load dialogues: ${e.toString()}`);
+  }
+}
+
+async function saveHistory() {
+  session.history = UiChatDialogue.dumpArray(conversation.value.dialogues);
+  await updateSession({
+    id: session.id,
+    history: session.history,
+    name: session.name,
+  });
+}
+
+async function clearDialogues() {
+  conversation.value.dialogues = [];
+  await saveHistory();
+}
+
+loadHistory();
+
 async function onTokenStream(token: string) {
   // get the latest dialogue and update the AI message
   const dialogue = conversation.value.dialogues.at(-1);
@@ -119,8 +151,10 @@ async function requestChatCompletion() {
         chat_history: conversation.value.extractHistory(),
       });
       await dialogue.answerChainValues(response);
+      await saveHistory();
     } catch (e) {
       await dialogue.failedToAnswer(e);
+      console.log('Failed to complement:', e);
     }
 
     exitLoadingMode();
@@ -148,5 +182,4 @@ function handleKeydownInTextarea(e: KeyboardEvent) {
 <style lang="sass">
 .ant-input-clear-icon
   top: 13px !important
-
 </style>

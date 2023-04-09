@@ -17,8 +17,6 @@
   </a-list>
 </template>
 
-<script lang="ts"></script>
-
 <script setup lang="ts">
 import { Ref } from 'vue';
 import { UiChatConversation } from '~/composables/beans/Chats';

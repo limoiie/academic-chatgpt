@@ -48,7 +48,8 @@ async fn main() {
             db_api::create_collection_index_profile,
             db_api::delete_session_by_id,
             db_api::get_sessions,
-            db_api::create_session
+            db_api::create_session,
+            db_api::update_session
         ],
         "../utils/bindings.ts",
     )
@@ -85,7 +86,8 @@ async fn main() {
             db_api::create_collection_index_profile,
             db_api::delete_session_by_id,
             db_api::get_sessions,
-            db_api::create_session
+            db_api::create_session,
+            db_api::update_session
         ])
         .manage(Arc::new(db))
         .run(tauri::generate_context!())
