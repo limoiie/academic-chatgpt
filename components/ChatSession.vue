@@ -1,36 +1,38 @@
 <template>
   <div id="component" class="w-full h-full flex flex-col items-stretch flex-1 relative overflow-hidden">
+    <div class="w-full h-2 z-10 absolute top-0 bg-gradient-to-b from-white"></div>
     <div id="content" class="flex flex-col items-center flex-[1_1_0] overflow-auto">
       <ChatConversation class="w-full max-w-4xl" :conversation="conversation" :scroll-to-end="scrollToEnd" />
     </div>
-    <div class="absolute bottom-21 right-12 z-10 hover:shadow-lg duration-300">
-      <a-tooltip title="Chat Mode">
-        <a-select v-model:value="currentChainMode" :options="availableChainModeOptions"></a-select>
-      </a-tooltip>
-    </div>
-    <div
-      class="w-full flex flex-row items-center bottom-0 left-0 pr-12 py-6 bg-gradient-to-t from-[#FFFFFF_75%] absolute rounded"
-    >
-      <a-button class="mx-4" type="primary" shape="circle" @click="clearDialogues">
-        <template #icon>
-          <ClearOutlined />
-        </template>
-      </a-button>
-      <div class="px-2 py-1 flex flex-1 flex-row items-center border-1 rounded">
-        <a-textarea
-          v-model:value="input"
-          allow-clear
-          placeholder="Input message"
-          class="ant-input-borderless"
-          size="large"
-          :auto-size="{ minRows: 1, maxRows: 5 }"
-          @keydown="handleKeydownInTextarea"
-        />
-        <a-button class="!border-0" :loading="generating" size="large" shape="circle" @click="requestChatCompletion">
+    <div class="w-full flex flex-col items-center absolute bottom-0 left-0">
+      <div class="mr-12 self-end hover:shadow-lg duration-300">
+        <a-tooltip title="Chat Mode">
+          <a-select v-model:value="currentChainMode" :options="availableChainModeOptions"></a-select>
+        </a-tooltip>
+      </div>
+      <div class="w-full h-2 z-10 bg-gradient-to-t from-[#FFFFFF]" />
+      <div class="w-full flex flex-row items-center bg-white pr-12 pb-6 rounded">
+        <a-button class="mx-4" type="primary" shape="circle" @click="clearDialogues">
           <template #icon>
-            <SendOutlined />
+            <ClearOutlined />
           </template>
         </a-button>
+        <div class="px-2 py-1 flex flex-1 flex-row items-center border-1 rounded">
+          <a-textarea
+            v-model:value="input"
+            allow-clear
+            placeholder="Input message"
+            class="ant-input-borderless"
+            size="large"
+            :auto-size="{ minRows: 1, maxRows: 5 }"
+            @keydown="handleKeydownInTextarea"
+          />
+          <a-button class="!border-0" :loading="generating" size="large" shape="circle" @click="requestChatCompletion">
+            <template #icon>
+              <SendOutlined />
+            </template>
+          </a-button>
+        </div>
       </div>
     </div>
   </div>
@@ -110,13 +112,13 @@ const { data: context } = useAsyncData('context', async () => {
   return { indexProfile, embeddingsClient, embeddingsConfig, vectorDbConfig, vectorDb, embeddings } as Context;
 });
 
-const availableChainModes = ref(['RephraseHistory+VectorDbQA', 'ChatWithoutHistory+VectorDbQA']);
+const availableChainModes = ref(['RephraseHistory', 'WithoutHistory']);
 const availableChainModeOptions = computed(() => {
   return availableChainModes.value.map((m) => {
     return { label: m, value: m };
   });
 });
-const currentChainMode = ref('RephraseHistory+VectorDbQA');
+const currentChainMode = ref('RephraseHistory');
 
 async function buildChain(latestInput: string) {
   const contextValue = context.value;
@@ -138,13 +140,13 @@ async function buildChain(latestInput: string) {
   switch (currentAIClient.value) {
     case 'openai':
       switch (currentChainMode.value) {
-        case 'RephraseHistory+VectorDbQA':
+        case 'RephraseHistory':
           const chain1 = rephraseVectorDbQA(apiKey, model, vectorstore, onTokenStream);
           return await chain1.call({
             question: latestInput,
             chat_history: conversation.value.extractHistory(),
           });
-        case 'ChatWithoutHistory+VectorDbQA':
+        case 'WithoutHistory':
           const chain2 = noHistoryVectorDbQA(apiKey, model, vectorstore, onTokenStream);
           return await chain2.call({
             query: latestInput,
@@ -188,6 +190,7 @@ async function onTokenStream(token: string) {
   const dialogue = conversation.value.dialogues.at(-1);
   if (dialogue?.answering) {
     dialogue.answering.message.text += token;
+    scrollToEnd.value = !scrollToEnd.value;
   }
 }
 
@@ -212,7 +215,6 @@ async function requestChatCompletion() {
         conversation.value.dialogues.pop();
       }
     } catch (e: any) {
-      console.log('error stack', e.stack)
       await dialogue.failedToAnswer(e.toString());
       await saveConversationHistory();
     }

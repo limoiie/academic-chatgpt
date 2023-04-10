@@ -1,12 +1,18 @@
 <template>
   <div class="h-full flex flex-col">
-    <a-tabs v-model:activeKey="activeSessionId" class="flex flex-1" type="editable-card" @edit="onEdit">
+    <a-tabs
+      v-if="activeSessionId"
+      v-model:activeKey="activeSessionId"
+      class="flex flex-1"
+      type="editable-card"
+      @edit="onEdit"
+    >
       <a-tab-pane v-for="session in sessions" :key="session.key" :tab="session.title" :closable="session.closable">
         <ChatSession v-if="indexProfile" :session="session.origin" :index-profile="indexProfile!" />
       </a-tab-pane>
     </a-tabs>
-    <div class="w-full flex flex-row items-center" v-if="hasNoSession">
-      <a-empty class="w-full mb-32!">
+    <div class="w-full h-full flex flex-row items-center" v-if="hasNoSession">
+      <a-empty class="w-full mb-24! flex flex-col items-center">
         <template #description>
           <span> No session yet </span>
         </template>
@@ -26,17 +32,11 @@ const { data: indexProfile } = useAsyncData('indexProfile', async () => {
   return await getIndexProfileById(indexProfileId);
 });
 
-const newTabIndex = ref(0);
 const activeSessionId = ref<number | undefined>(undefined);
 
 const sessions = ref<{ title: string; key: number }[]>([]);
 const { data: chatSessions } = useAsyncData('chatSessions', async () => {
-  return (await getSessions())
-    .filter((session) => session.collectionProfileId === indexProfileId)
-    .filter((session) => {
-      newTabIndex.value = Math.max(newTabIndex.value, parseTabIndex(session.name));
-      return session.collectionProfileId == indexProfileId;
-    });
+  return (await getSessions()).filter((session) => session.collectionProfileId === indexProfileId);
 });
 const hasNoSession = computed(() => !chatSessions.value?.length);
 watch(chatSessions, (newChatSessions) => {
@@ -54,10 +54,6 @@ watch(chatSessions, (newChatSessions) => {
   }
 });
 
-function parseTabIndex(tabName: string) {
-  return tabName.startsWith('Chat-') ? parseInt(tabName.substring(5)) : 0;
-}
-
 async function switchTo(tabIndex: number) {
   const sessions = chatSessions.value;
   if (sessions && sessions.length) {
@@ -66,8 +62,16 @@ async function switchTo(tabIndex: number) {
   }
 }
 
+function parseTabIndex(tabName: string) {
+  return tabName == 'Chat' ? 1 : tabName.startsWith('Chat-') ? parseInt(tabName.substring(5)) : 0;
+}
+
+function currentMaxTabIndex() {
+  return sessions.value.map((s) => parseTabIndex(s.title)).reduce((prev, curr) => Math.max(prev, curr), 0);
+}
+
 async function add() {
-  const tabIndex = ++newTabIndex.value;
+  const tabIndex = currentMaxTabIndex() + 1;
   const title = tabIndex == 1 ? 'Chat' : 'Chat-' + tabIndex.toString();
   const chatSession = await createSession({
     collection_profile_id: indexProfileId,
@@ -106,7 +110,7 @@ const onEdit = (targetSessionId: number | MouseEvent, action: string) => {
   height: 100%
 
 .ant-tabs-nav
-  margin-bottom: 2px !important
+  margin-bottom: 0 !important
 
 .ant-tabs-nav-wrap
   height: 42px
