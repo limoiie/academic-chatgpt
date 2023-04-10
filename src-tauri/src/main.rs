@@ -96,6 +96,7 @@ async fn main() {
             db_api::update_session
         ])
         .manage(Arc::new(db))
+        .plugin(tauri_plugin_store::Builder::default().build())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

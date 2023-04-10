@@ -26,6 +26,7 @@ specta = "1.0.0"
 tauri = { version = "1.2.4", features = ["dialog-all", "fs-create-dir", "fs-exists", "fs-read-dir", "fs-read-file", "fs-remove-dir", "fs-remove-file", "fs-write-file", "global-shortcut-all", "http-all", "os-all", "path-all", "process-all", "window-all"] }
 tauri-specta = { version = "1.0.0", features = ["typescript"] }
 tokio = { version = "1.25.0", features = ["full"] }
+tauri-plugin-store = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "dev" }
 
 [features]
 # by default Tauri runs in production mode

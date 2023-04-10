@@ -37,6 +37,7 @@
     "openai": "^3.2.1",
     "pdfjs-dist": "^3.4.120",
     "pinecone-client": "^1.1.0",
-    "pinia": "^2.0.33"
+    "pinia": "^2.0.33",
+    "tauri-plugin-store-api": "github:tauri-apps/tauri-plugin-store"
   }
 }
