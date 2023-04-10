@@ -1,12 +1,7 @@
 <template>
   <div class="h-full flex flex-col">
     <a-tabs v-model:activeKey="activeSessionId" class="flex flex-1" type="editable-card" @edit="onEdit">
-      <a-tab-pane
-        v-for="session in sessions"
-        :key="session.key"
-        :tab="session.title"
-        :closable="session.closable"
-      >
+      <a-tab-pane v-for="session in sessions" :key="session.key" :tab="session.title" :closable="session.closable">
         <ChatSession v-if="indexProfile" :session="session.origin" :index-profile="indexProfile!" />
       </a-tab-pane>
     </a-tabs>
@@ -110,6 +105,9 @@ const onEdit = (targetSessionId: number | MouseEvent, action: string) => {
 .ant-tabs-content
   height: 100%
 
+.ant-tabs-nav
+  margin-bottom: 2px !important
+
 .ant-tabs-nav-wrap
   height: 42px
 
@@ -118,5 +116,4 @@ const onEdit = (targetSessionId: number | MouseEvent, action: string) => {
 
 button.ant-tabs-tab-remove, .ant-tabs-tab-btn
   height: 18px
-
 </style>

@@ -3,6 +3,11 @@
     <div id="content" class="flex flex-col items-center flex-[1_1_0] overflow-auto">
       <ChatConversation class="w-full max-w-4xl" :conversation="conversation" :scroll-to-end="scrollToEnd" />
     </div>
+    <div class="absolute bottom-21 right-12 z-10 hover:shadow-lg duration-300">
+      <a-tooltip title="Chat Mode">
+        <a-select v-model:value="currentChainMode" :options="availableChainModeOptions"></a-select>
+      </a-tooltip>
+    </div>
     <div
       class="w-full flex flex-row items-center bottom-0 left-0 pr-12 py-6 bg-gradient-to-t from-[#FFFFFF_75%] absolute rounded"
     >
@@ -37,8 +42,12 @@ import { message } from 'ant-design-vue';
 import { Embeddings } from 'langchain/embeddings';
 import { SystemChatMessage } from 'langchain/schema';
 import { VectorStore } from 'langchain/vectorstores';
+import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { UiChatConversation, UiChatDialogue } from '~/composables/beans/Chats';
+import { useDefaultAIStore } from '~/store/defaultAI';
+import { noHistoryVectorDbQA } from '~/utils/aichains/noHistoryVectorDbQA';
+import { rephraseVectorDbQA } from '~/utils/aichains/rephraseVectorDbQA';
 import {
   CollectionIndexProfile,
   GetEmbeddingsClientData,
@@ -49,10 +58,30 @@ import {
   Session,
   updateSession,
 } from '~/utils/bindings';
-import { makeChain } from '~/utils/qachain';
 import { createVectorstore } from '~/utils/vectorstores';
 
 const { indexProfile, session } = defineProps<{ indexProfile: CollectionIndexProfile; session: Session }>();
+
+const input = ref('');
+const generating = ref(false);
+const scrollToEnd = ref(false);
+
+const conversation = ref<UiChatConversation>(
+  new UiChatConversation(new SystemChatMessage('You are an assistant and going to help my coding.')),
+);
+
+const defaultAIStore = useDefaultAIStore();
+const { defaultAIClient, defaultAIApiKey, defaultAIModel } = storeToRefs(defaultAIStore);
+await defaultAIStore.loadFromLocalStore();
+console.log('default', defaultAIClient.value, defaultAIApiKey.value, defaultAIModel.value);
+
+const specifiedAIClient = ref<string | undefined>(undefined);
+const specifiedAIApiKey = ref<string | undefined>(undefined);
+const specifiedAIModel = ref<string | undefined>(undefined);
+
+const currentAIClient = computed(() => specifiedAIClient.value || defaultAIClient.value);
+const currentAIApiKey = computed(() => specifiedAIApiKey.value || defaultAIApiKey.value);
+const currentAIModel = computed(() => specifiedAIModel.value || defaultAIModel.value);
 
 interface Context {
   indexProfile: CollectionIndexProfile;
@@ -81,24 +110,64 @@ const { data: context } = useAsyncData('context', async () => {
   return { indexProfile, embeddingsClient, embeddingsConfig, vectorDbConfig, vectorDb, embeddings } as Context;
 });
 
-/// State variables
-const input = ref('');
-const generating = ref(false);
-const scrollToEnd = ref(false);
+const availableChainModes = ref(['RephraseHistory+VectorDbQA', 'ChatWithoutHistory+VectorDbQA']);
+const availableChainModeOptions = computed(() => {
+  return availableChainModes.value.map((m) => {
+    return { label: m, value: m };
+  });
+});
+const currentChainMode = ref('RephraseHistory+VectorDbQA');
 
-const conversation = ref<UiChatConversation>(
-  new UiChatConversation(new SystemChatMessage('You are an assistant and going to help my coding.')),
-);
+async function buildChain(latestInput: string) {
+  const contextValue = context.value;
+  if (!contextValue) {
+    message.error('Profile not load: maybe reload would solve the problem');
+    return;
+  }
 
-function loadHistory() {
-  try {
-    conversation.value.dialogues = UiChatDialogue.loadArray(session.history);
-  } catch (e: any) {
-    console.log(`Failed to load dialogues: ${e.toString()}`);
+  const [client, apiKey, model] = [currentAIClient.value, currentAIApiKey.value, currentAIModel.value];
+  if (!client || !apiKey || !model) {
+    console.log('client', client, defaultAIClient.value);
+    console.log('apiKey', apiKey, defaultAIApiKey.value, specifiedAIApiKey.value);
+    console.log('model', model);
+    message.error('Invalid AI client: please specify a client');
+    return;
+  }
+
+  const vectorstore = toRaw<VectorStore>(contextValue.vectorDb);
+  switch (currentAIClient.value) {
+    case 'openai':
+      switch (currentChainMode.value) {
+        case 'RephraseHistory+VectorDbQA':
+          const chain1 = rephraseVectorDbQA(apiKey, model, vectorstore, onTokenStream);
+          return await chain1.call({
+            question: latestInput,
+            chat_history: conversation.value.extractHistory(),
+          });
+        case 'ChatWithoutHistory+VectorDbQA':
+          const chain2 = noHistoryVectorDbQA(apiKey, model, vectorstore, onTokenStream);
+          return await chain2.call({
+            query: latestInput,
+          });
+        default:
+          message.error(`Unsupported chain mode for ${currentAIClient.value}: ${currentChainMode.value}`);
+      }
+      break;
+    default:
+      message.error(`Unsupported ai client: ${currentAIClient.value}`);
+      return;
   }
 }
 
-async function saveHistory() {
+function loadConversationHistory() {
+  try {
+    conversation.value.dialogues = UiChatDialogue.loadArray(session.history);
+  } catch (e: any) {
+    message.error(`Failed to load dialogues: ${e.toString()}`);
+  }
+}
+
+async function saveConversationHistory() {
   session.history = UiChatDialogue.dumpArray(conversation.value.dialogues);
   await updateSession({
     id: session.id,
@@ -109,33 +178,24 @@ async function saveHistory() {
 
 async function clearDialogues() {
   conversation.value.dialogues = [];
-  await saveHistory();
+  await saveConversationHistory();
 }
 
-loadHistory();
+loadConversationHistory();
 
 async function onTokenStream(token: string) {
   // get the latest dialogue and update the AI message
   const dialogue = conversation.value.dialogues.at(-1);
-  if (dialogue) {
+  if (dialogue?.answering) {
     dialogue.answering.message.text += token;
   }
 }
 
 async function requestChatCompletion() {
-  const contextValue = context.value;
-  if (!contextValue) {
-    message.warn('Profile not load: maybe reload would solve the problem');
-    return;
-  }
-
   const latestInput = input.value;
   input.value = '';
 
   if (latestInput) {
-    const vectorstore = toRaw<VectorStore>(contextValue.vectorDb);
-    const chain = makeChain(vectorstore, onTokenStream);
-
     // construct the new dialogue
     const dialogue = await conversation.value.question(latestInput);
 
@@ -144,17 +204,17 @@ async function requestChatCompletion() {
 
     // update the memory by extracting from ui
     try {
-      // const llmResult = await chat.generate([conversation.value.extractMessages()]);
-      // await dialogue.answer(llmResult);
-      const response = await chain.call({
-        question: latestInput,
-        chat_history: conversation.value.extractHistory(),
-      });
-      await dialogue.answerChainValues(response);
-      await saveHistory();
-    } catch (e) {
-      await dialogue.failedToAnswer(e);
-      console.log('Failed to complement:', e);
+      const response = await buildChain(latestInput);
+      if (response) {
+        await dialogue.answerChainValues(response);
+        await saveConversationHistory();
+      } else {
+        conversation.value.dialogues.pop();
+      }
+    } catch (e: any) {
+      console.log('error stack', e.stack)
+      await dialogue.failedToAnswer(e.toString());
+      await saveConversationHistory();
     }
 
     exitLoadingMode();

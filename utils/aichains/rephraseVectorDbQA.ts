@@ -31,19 +31,27 @@ Question: {question}
 Answer in Markdown:`,
 );
 
-export const makeChain = (vectorstore: VectorStore, onTokenStream?: (token: string) => void) => {
+export const rephraseVectorDbQA = (
+  apiKey: string,
+  model: string,
+  vectorstore: VectorStore,
+  onTokenStream?: (token: string) => void,
+) => {
+  // for rephrasing the question according to the conversation history
   const questionGenerator = new LLMChain({
     llm: new OpenAIChat({
-      openAIApiKey: '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',
+      openAIApiKey: apiKey,
       temperature: 0,
+      modelName: model,
     }),
     prompt: CONDENSE_PROMPT,
   });
+  // for asking the rephrased question on the related documents
   const docChain = loadQAChain(
     new OpenAIChat({
-      openAIApiKey: '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',
+      openAIApiKey: apiKey,
       temperature: 0,
-      modelName: 'gpt-3.5-turbo',
+      modelName: model,
       streaming: Boolean(onTokenStream),
       callbackManager: onTokenStream
         ? CallbackManager.fromHandlers({
