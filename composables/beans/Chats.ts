@@ -7,47 +7,53 @@ import {
   LLMResult,
   SystemChatMessage,
 } from 'langchain/schema';
-import { stringify } from 'yaml';
 import { objectToOpenaiChatMessage, openaiChatMessageToObject } from '~/utils/serde';
 
 export class UiChatMessage {
-  constructor(public message: BaseChatMessage, public username: string) {}
+  constructor(
+    public message: BaseChatMessage,
+    public username: string,
+    public error: string | undefined = undefined,
+    public meta: Record<string, any> = {},
+  ) {}
 
   static load(serialized: string) {
     const data = JSON.parse(serialized);
-    return new UiChatMessage(objectToOpenaiChatMessage(data.message), data.username);
+    return new UiChatMessage(objectToOpenaiChatMessage(data.message), data.username, data.error, data.meta || {});
   }
 
   dump() {
     const data = {
       message: openaiChatMessageToObject(this.message),
       username: this.username,
+      error: this.error,
+      meta: this.meta,
     };
     return JSON.stringify(data);
   }
 }
 
 export class UiChatDialogue {
-  answering: UiChatMessage;
+  answering: UiChatMessage | undefined = undefined;
 
   constructor(
     public question: UiChatMessage,
-    answering: UiChatMessage | undefined = undefined,
     public answers: UiChatMessage[] = [],
     public chosen: number = -1,
     public error: any | undefined = undefined,
   ) {
-    this.answering = answering || new UiChatMessage(new AIChatMessage(''), 'GhatGPT');
+    this.chosen = Math.min(this.chosen, answers.length - 1);
+    if (this.chosen == -1) {
+      this.chosen = answers.length;
+      this.answering = answers[this.chosen] = new UiChatMessage(new AIChatMessage(''), 'GhatGPT');
+    }
   }
 
-  get isAnswering() {
-    return this.chosen == -1;
+  get inAnswering() {
+    return this.answering != null;
   }
 
   get chosenAnswer() {
-    if (this.chosen == -1) {
-      return this.answering;
-    }
     return this.answers[this.chosen];
   }
 
@@ -66,15 +72,13 @@ export class UiChatDialogue {
   static load(serialized: string) {
     const data = JSON.parse(serialized);
     const question = UiChatMessage.load(data.question);
-    const answering = UiChatMessage.load(data.answering);
     const answers = data.answers.map(UiChatMessage.load);
-    return new UiChatDialogue(question, answering, answers, data.chosen, data.error);
+    return new UiChatDialogue(question, answers, data.chosen, data.error);
   }
 
   dump() {
     return JSON.stringify({
       question: this.question.dump(),
-      answering: this.answering.dump(),
       answers: this.answers.map((answer) => answer.dump()),
       chosen: this.chosen,
       error: this.error,
@@ -82,7 +86,7 @@ export class UiChatDialogue {
   }
 
   async answer(llmResult: LLMResult) {
-    this.chosen = 0;
+    this.answering = undefined;
     this.answers = await Promise.all(
       (llmResult.generations[0] as ChatGeneration[])
         .flatMap((choice) => (choice.message ? [choice.message] : []))
@@ -93,12 +97,13 @@ export class UiChatDialogue {
   }
 
   async answerChainValues(result: ChainValues) {
-    this.chosen = 0;
-    this.answers = [new UiChatMessage(new AIChatMessage(stringify(result)), 'ChatGPT')];
+    this.answering = undefined;
+    this.chosenAnswer.message.text = result.text;
   }
 
-  async failedToAnswer(error: unknown) {
-    this.error = error;
+  async failedToAnswer(error: string) {
+    this.answering = undefined;
+    this.chosenAnswer.error = error;
   }
 }
 

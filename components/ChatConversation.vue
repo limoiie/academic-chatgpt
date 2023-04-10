@@ -7,12 +7,12 @@
       </a-list-item>
       <!--suppress TypeScriptUnresolvedReference -->
       <a-list-item v-if="item.chosenAnswer">
-        <ChatMessage :value="item.chosenAnswer" :error="item.error" :answering="item.isAnswering" />
+        <ChatMessage :value="item.chosenAnswer" :error="item.error" :answering="item.inAnswering" />
       </a-list-item>
     </template>
 
     <template #footer>
-      <div ref="chatBottom" class="h-12" />
+      <div ref="chatBottom" class="h-42" />
     </template>
   </a-list>
 </template>
