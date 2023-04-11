@@ -48,28 +48,25 @@
 <script setup lang="ts">
 import { BgColorsOutlined, CheckOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
+import { storeToRefs } from 'pinia';
 import { upperFirst } from 'scule';
 import { ref } from 'vue';
-import { CollectionWithProfiles, getCollectionsWithIndexProfiles } from '~/utils/bindings';
+import { useCollectionStore } from '~/store/collections';
+import { CollectionWithProfiles } from '~/utils/bindings';
 
 const colorMode = useColorMode();
 const collapsed = ref<boolean>(false);
 const selectedKeys = ref([]);
 const isLoading = ref<boolean>(false);
 
-const { data: collections } = useAsyncData('allCollections', async () => {
-  isLoading.value = true;
-  let collections: CollectionWithProfiles[] = [];
-  try {
-    collections = (await getCollectionsWithIndexProfiles()) || [];
-  } catch (e) {
-    message.error(`Failed to load profiles: ${e}`);
-  }
-  isLoading.value = false;
+const collectionStore = useCollectionStore();
+const { collections } = storeToRefs(collectionStore);
 
-  navigate(collections);
-  return collections;
+isLoading.value = true;
+await collectionStore.loadFromDb().catch((e) => {
+  message.error(`Failed to load profiles: ${e}`);
 });
+isLoading.value = false;
 
 function navigate(collections: CollectionWithProfiles[]) {
   const collection = collections[0];
@@ -91,6 +88,8 @@ function handleMenuClick(e: { key: string; keyPath: string[] }) {
       break;
   }
 }
+
+navigate(collections.value);
 </script>
 
 <style lang="sass">

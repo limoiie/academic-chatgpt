@@ -16,7 +16,7 @@
             </template>
             Remove
           </a-button>
-          <a-button v-if="!hasSelected" :loading="loading" @click="refreshIndexProfiles">
+          <a-button v-if="!hasSelected" :loading="loading" @click="collectionStore.loadIndexProfilesFromDb">
             <template #icon>
               <ReloadOutlined />
             </template>
@@ -62,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAsyncData, useRoute } from '#app';
+import { useRoute } from '#app';
 import {
   ClearOutlined,
   CommentOutlined,
@@ -71,16 +71,11 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons-vue';
 import { message, TableColumnsType, TableColumnType } from 'ant-design-vue';
+import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { stringify } from 'yaml';
-import { deleteIndexProfilesById, getIndexProfilesByCollectionIdWithAll, IndexProfileWithAll } from '~/utils/bindings';
-
-const route = useRoute();
-const collectionId = parseInt(route.params['id'] as string);
-
-const loading = ref<boolean>(false);
-const selectedRawKeys = ref<number[]>([]);
-const hasSelected = computed(() => selectedRawKeys.value.length != 0);
+import { useCollectionStore } from '~/store/collections';
+import { deleteIndexProfilesById, IndexProfileWithAll } from '~/utils/bindings';
 
 const columns = ref<TableColumnsType>([
   {
@@ -119,20 +114,24 @@ const columns = ref<TableColumnsType>([
   },
 ]);
 
-const { data: indexProfiles, refresh: refreshIndexProfiles } = useAsyncData(
-  `profilesOfCollection${collectionId}`,
-  async () => {
-    loading.value = true;
-    let data: IndexProfileWithAll[] = [];
-    try {
-      data = await getIndexProfilesByCollectionIdWithAll(collectionId);
-    } catch (e: any) {
-      message.error(`Failed to load: ${e.toString()}`);
-    }
-    loading.value = false;
-    return data;
-  },
-);
+const route = useRoute();
+const collectionStore = useCollectionStore();
+const collectionId = parseInt(route.params['id'] as string);
+
+const loading = ref<boolean>(false);
+const selectedRawKeys = ref<number[]>([]);
+const hasSelected = computed(() => selectedRawKeys.value.length != 0);
+
+const { indexProfilesByCollectionId } = storeToRefs(collectionStore);
+const indexProfiles = computed(() => {
+  return indexProfilesByCollectionId.value.get(collectionId) || [];
+});
+
+loading.value = true;
+await collectionStore.loadIndexProfilesFromDb();
+loading.value = false;
+
+const indexProfilesUiData = computed(() => indexProfiles.value.map(dbDataToUi));
 
 interface IndexProfileUiData {
   id: number;
@@ -154,34 +153,19 @@ function dbDataToUi(indexProfile: IndexProfileWithAll) {
   } as IndexProfileUiData;
 }
 
-const indexProfilesUiData = ref<IndexProfileUiData[]>([]);
-watch(indexProfiles, (newIndexProfiles) => {
-  indexProfilesUiData.value = (newIndexProfiles || []).map(dbDataToUi);
-});
-
 async function open(id: number) {
   const targetIndexPageUrl = route.path.replace(/\/manage$/, `/${id}`);
   navigateTo(targetIndexPageUrl);
 }
 
 async function add() {
-  message.warn('Not implemented yet')
+  message.warn('Not implemented yet');
+  await collectionStore.reloadCollectionById(collectionId);
 }
 
 async function remove(id: number) {
   await removeIndexProfiles([id]);
-}
-
-async function removeIndexProfiles(indexProfileIds: number[]) {
-  if (indexProfileIds.length > 0) {
-    const deleted = await deleteIndexProfilesById(indexProfileIds);
-    if (deleted != indexProfileIds.length) {
-      message.warn(`Failed to delete: ${indexProfileIds.length} to delete, only ${deleted} deleted`);
-      await refreshIndexProfiles();
-    } else {
-      indexProfiles.value = indexProfiles.value?.filter((e) => !indexProfileIds.includes(e.id)) || null;
-    }
-  }
+  await collectionStore.reloadCollectionById(collectionId);
 }
 
 async function removeSelected() {
@@ -189,6 +173,16 @@ async function removeSelected() {
   if (selected.length > 0) {
     await removeIndexProfiles(selected);
     selectedRawKeys.value = [];
+  }
+  await collectionStore.reloadCollectionById(collectionId);
+}
+
+async function removeIndexProfiles(indexProfileIds: number[]) {
+  if (indexProfileIds.length > 0) {
+    const deleted = await deleteIndexProfilesById(indexProfileIds);
+    if (deleted != indexProfileIds.length) {
+      message.warn(`Failed to delete: ${indexProfileIds.length} to delete, only ${deleted} deleted`);
+    }
   }
 }
 

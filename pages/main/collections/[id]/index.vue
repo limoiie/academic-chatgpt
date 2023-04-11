@@ -1,16 +1,31 @@
-<template>Collection {{ route.path }}</template>
+<template>
+  Collection {{ route.path }}
+  <a-spin :spinning="loading" />
+</template>
 
 <script setup lang="ts">
-import { useAsyncData, useRoute } from '#app';
+import { useRoute } from '#app';
+import { storeToRefs } from 'pinia';
+import { useCollectionStore } from '~/store/collections';
 import { CollectionIndexProfile } from '~/utils/bindings';
+
+const loading = ref(false);
 
 const route = useRoute();
 const collectionId = parseInt(route.params['id'] as string);
+const collectionStore = useCollectionStore();
 
-useAsyncData(`profilesOfCollection${collectionId}`, async () => {
-  const indexProfiles = await getIndexProfilesByCollectionId(collectionId);
-  navigate(indexProfiles);
-  return indexProfiles;
+loading.value = true;
+await collectionStore.loadFromDb();
+await collectionStore.loadIndexProfilesFromDb();
+loading.value = false;
+
+const { collections } = storeToRefs(collectionStore);
+const collection = computed(() => collections.value[collectionId]);
+const indexProfiles = computed(() => collection.value.profiles);
+const handler = watch(indexProfiles, () => {
+  navigate(indexProfiles.value);
+  handler();
 });
 
 function navigate(indexProfiles: CollectionIndexProfile[]) {
