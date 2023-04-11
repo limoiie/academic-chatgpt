@@ -16,11 +16,10 @@ model DocumentChunk {
   no        Int
   content   String
   meta      String
+  md5Hash   String
 
   documentId  Int
   splittingId Int
-
-  embeddings EmbeddingsOnDocumentChunks[]
 
   @@id([documentId, splittingId, no])
 }
@@ -92,28 +91,24 @@ model EmbeddingsConfig {
   clientType String
   meta       String
 
-  chunks                  EmbeddingsOnDocumentChunks[]
-  collectionIndexProfiles CollectionIndexProfile[]
+  collectionIndexProfiles          CollectionIndexProfile[]
+  EmbeddingVectorsOnDocumentChunks EmbeddingVectorsOnDocumentChunks[]
 }
 
-model EmbeddingsOnDocumentChunks {
-  documentChunk    DocumentChunk    @relation(fields: [documentId, splittingId, documentChunkNo], references: [documentId, splittingId, no])
+model EmbeddingVectorsOnDocumentChunks {
+  md5Hash          String
   embeddingsConfig EmbeddingsConfig @relation(fields: [embeddingsConfigId], references: [id])
   vector           Bytes
 
-  documentId         Int
-  splittingId        Int
-  documentChunkNo    Int
   embeddingsConfigId Int
 
-  @@id([documentId, splittingId, documentChunkNo, embeddingsConfigId])
+  @@id([embeddingsConfigId, md5Hash])
 }
 
 model VectorDbConfig {
   id         Int    @id @default(autoincrement())
   name       String
   client     String
-  clientInfo String
   meta       String
 
   collectionIndexProfiles CollectionIndexProfile[]

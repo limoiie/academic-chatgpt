@@ -1,3 +1,4 @@
+#![feature(slice_as_chunks)]
 #![cfg_attr(
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
@@ -41,8 +42,9 @@ async fn main() {
             db_api::create_embeddings_config,
             db_api::get_document_chunks,
             db_api::create_chunks_by_document,
-            db_api::get_embeddings_on_document_chunk,
-            db_api::upsert_embeddings_on_document_chunk,
+            db_api::get_embedding_vector_by_md5hash,
+            db_api::upsert_embedding_vector_by_md5hash,
+            db_api::upsert_embedding_vector_by_md5hash_in_batch,
             db_api::delete_index_profiles_by_id,
             db_api::get_index_profiles_by_collection_id,
             db_api::get_index_profiles_by_collection_id_with_all,
@@ -82,8 +84,9 @@ async fn main() {
             db_api::create_embeddings_config,
             db_api::get_document_chunks,
             db_api::create_chunks_by_document,
-            db_api::get_embeddings_on_document_chunk,
-            db_api::upsert_embeddings_on_document_chunk,
+            db_api::get_embedding_vector_by_md5hash,
+            db_api::upsert_embedding_vector_by_md5hash,
+            db_api::upsert_embedding_vector_by_md5hash_in_batch,
             db_api::delete_index_profiles_by_id,
             db_api::get_index_profiles_by_collection_id,
             db_api::get_index_profiles_by_collection_id_with_all,

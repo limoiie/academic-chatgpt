@@ -64,6 +64,7 @@ pub(crate) async fn get_or_create_splitting_id(
 
 #[derive(Deserialize, Type)]
 pub(crate) struct GetDocumentChunkData {
+    #[serde(rename = "documentId")]
     document_id: i32,
     splitting: SplittingData,
 }
@@ -94,7 +95,8 @@ pub(crate) struct CreateChunkData {
 
 #[derive(Deserialize, Type)]
 pub(crate) struct CreateChunksByDocumentData {
-    data: GetDocumentChunkData,
+    document_id: i32,
+    splitting: SplittingData,
     chunks: Vec<CreateChunkData>,
 }
 
@@ -104,16 +106,18 @@ pub(crate) async fn create_chunks_by_document(
     db: DbState<'_>,
     data: CreateChunksByDocumentData,
 ) -> crate::Result<Vec<document_chunk::Data>> {
-    let splitting_id = get_or_create_splitting_id(db.clone(), data.data.splitting).await?;
+    let splitting_id = get_or_create_splitting_id(db.clone(), data.splitting).await?;
 
     Ok(db
         ._batch(data.chunks.into_iter().enumerate().map(|(no, chunk_data)| {
+            let digest = md5::compute(chunk_data.content.as_str());
             db.document_chunk().create(
-                document::id::equals(data.data.document_id),
+                document::id::equals(data.document_id),
                 splitting::id::equals(splitting_id),
                 no as i32,
                 chunk_data.content,
                 chunk_data.metadata,
+                format!("{:x}", digest),
                 vec![],
             )
         }))
@@ -123,68 +127,115 @@ pub(crate) async fn create_chunks_by_document(
 ///
 /// Embeddings on Document Chunk operations
 ///
+
+#[derive(Serialize, Type)]
+pub(crate) struct EmbeddingVectorData {
+    #[serde(rename = "md5Hash")]
+    pub md_5_hash: String,
+    #[serde(rename = "vector")]
+    pub vector: Vec<f32>,
+    #[serde(rename = "embeddingsConfigId")]
+    pub embeddings_config_id: i32,
+}
+
 #[derive(Deserialize, Type)]
-pub(crate) struct GetEmbeddingsOnDocumentChunkData {
-    document_id: i32,
-    splitting_id: i32,
-    document_chunk_no: i32,
+pub(crate) struct GetEmbeddingVectorByMD5Hash {
     embeddings_config_id: i32,
+    md5_hash: String,
 }
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_embeddings_on_document_chunk(
+pub(crate) async fn get_embedding_vector_by_md5hash(
     db: DbState<'_>,
-    data: GetEmbeddingsOnDocumentChunkData,
-) -> crate::Result<Option<embeddings_on_document_chunks::Data>> {
-    Ok(db.embeddings_on_document_chunks()
+    data: GetEmbeddingVectorByMD5Hash,
+) -> crate::Result<Option<EmbeddingVectorData>> {
+    Ok(db
+        .embedding_vectors_on_document_chunks()
         .find_unique(
-            embeddings_on_document_chunks::document_id_splitting_id_document_chunk_no_embeddings_config_id(
-                data.document_id,
-                data.splitting_id,
-                data.document_chunk_no,
+            embedding_vectors_on_document_chunks::embeddings_config_id_md_5_hash(
                 data.embeddings_config_id,
-            )
+                data.md5_hash,
+            ),
         )
         .exec()
-        .await
-        ?)
+        .await?
+        .map(|data| EmbeddingVectorData {
+            md_5_hash: data.md_5_hash,
+            vector: data
+                .vector
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|b| f32::from_be_bytes(*b))
+                .collect(),
+            embeddings_config_id: data.embeddings_config_id,
+        }))
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct UpsertEmbeddingsOnDocumentChunkData {
-    identity: GetEmbeddingsOnDocumentChunkData,
-    vector: Vec<u8>,
+pub(crate) struct UpsertEmbeddingVectorByMD5Hash {
+    identity: GetEmbeddingVectorByMD5Hash,
+    vector: Vec<f32>,
 }
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn upsert_embeddings_on_document_chunk(
+pub(crate) async fn upsert_embedding_vector_by_md5hash(
     db: DbState<'_>,
-    data: UpsertEmbeddingsOnDocumentChunkData,
-) -> crate::Result<embeddings_on_document_chunks::Data> {
-    Ok(db.embeddings_on_document_chunks()
+    data: UpsertEmbeddingVectorByMD5Hash,
+) -> crate::Result<embedding_vectors_on_document_chunks::Data> {
+    let vector = data
+        .vector
+        .into_iter()
+        .flat_map(|tensor| tensor.to_be_bytes())
+        .collect::<Vec<_>>();
+    Ok(db
+        .embedding_vectors_on_document_chunks()
         .upsert(
-            embeddings_on_document_chunks::document_id_splitting_id_document_chunk_no_embeddings_config_id(
-                data.identity.document_id,
-                data.identity.splitting_id,
-                data.identity.document_chunk_no,
+            embedding_vectors_on_document_chunks::embeddings_config_id_md_5_hash(
                 data.identity.embeddings_config_id,
+                data.identity.md5_hash.clone(),
             ),
             (
-                document_chunk::document_id_splitting_id_no(
-                    data.identity.document_id,
-                    data.identity.splitting_id,
-                    data.identity.document_chunk_no,
-                ),
+                data.identity.md5_hash,
                 embeddings_config::id::equals(data.identity.embeddings_config_id),
-                data.vector,
+                vector,
                 vec![],
             ),
             vec![],
         )
         .exec()
         .await?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn upsert_embedding_vector_by_md5hash_in_batch(
+    db: DbState<'_>,
+    data: Vec<UpsertEmbeddingVectorByMD5Hash>,
+) -> crate::Result<i32> {
+    Ok(db
+        ._batch(data.into_iter().map(|data| {
+            db.embedding_vectors_on_document_chunks().upsert(
+                embedding_vectors_on_document_chunks::embeddings_config_id_md_5_hash(
+                    data.identity.embeddings_config_id,
+                    data.identity.md5_hash.clone(),
+                ),
+                (
+                    data.identity.md5_hash,
+                    embeddings_config::id::equals(data.identity.embeddings_config_id),
+                    data.vector
+                        .into_iter()
+                        .flat_map(|tensor| tensor.to_be_bytes())
+                        .collect(),
+                    vec![],
+                ),
+                vec![],
+            )
+        }))
+        .await?
+        .len() as i32)
 }
 
 ///
@@ -345,7 +396,6 @@ pub(crate) struct GetVectorDbConfigData {
     id: i32,
     name: String,
     client: String,
-    client_info: serde_json::Value,
     meta: serde_json::Value,
 }
 
@@ -355,7 +405,6 @@ impl GetVectorDbConfigData {
             id: data.id,
             name: data.name,
             client: data.client,
-            client_info: serde_json::from_str(data.client_info.as_str())?,
             meta: serde_json::from_str(data.meta.as_str())?,
         })
     }
@@ -394,7 +443,6 @@ pub(crate) async fn get_vector_db_configs(
 pub(crate) struct CreateVectorDbData {
     name: String,
     client: String,
-    client_info: serde_json::Value,
     meta: serde_json::Value,
 }
 
@@ -404,10 +452,9 @@ pub(crate) async fn create_vector_db_config(
     db: DbState<'_>,
     data: CreateVectorDbData,
 ) -> crate::Result<GetVectorDbConfigData> {
-    let client_info = serde_json::to_string(&data.client_info)?;
     let meta = serde_json::to_string(&data.meta)?;
     db.vector_db_config()
-        .create(data.name, data.client, client_info, meta, vec![])
+        .create(data.name, data.client, meta, vec![])
         .exec()
         .await
         .map(GetVectorDbConfigData::from_data)?
