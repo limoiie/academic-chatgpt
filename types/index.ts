@@ -36,6 +36,7 @@ declare global {
   interface LogMessage {
     level: LogLevel;
     message: string;
+    timestamp: Date;
   }
 }
 
@@ -50,6 +51,7 @@ export class ProgressLogger {
     public totalNum: Ref<number | null> = ref(100),
     public percentage: Ref<number> = ref(0),
     public logs: Ref<LogMessage[]> = ref([]),
+    public updated: Ref<number> = ref(0),
   ) {
     this.status = ref('ready');
     this.step = computed(() => (this.totalNum.value ? 100 / this.totalNum.value : 0));
@@ -64,7 +66,9 @@ export class ProgressLogger {
   }
 
   log(level: LogLevel, message: string) {
-    this.logs.value.push({ level, message });
+    ++this.updated.value;
+    const timestamp = new Date()
+    this.logs.value.push({ level, message, timestamp });
   }
 
   info(message: string) {
@@ -80,22 +84,26 @@ export class ProgressLogger {
   }
 
   start() {
+    ++this.updated.value;
     this.status.value = 'processing';
   }
 
-  advance(log: LogMessage | undefined = undefined, delta: number = 1) {
+  advance(log: {level: LogLevel | undefined, message: string } | undefined = undefined, delta: number = 1) {
+    ++this.updated.value;
     this.completedNum.value += delta;
     this.percentage.value += delta * this.step.value;
     if (log) {
-      this.logs.value.push(log);
+      this.log(log.level || 'info', log.message);
     }
   }
 
   fail() {
+    ++this.updated.value;
     this.status.value = 'error';
   }
 
   finish() {
+    ++this.updated.value;
     this.totalNum.value = this.totalNum.value || this.completedNum.value;
     this.completedNum.value = this.totalNum.value;
     this.percentage.value = 100;
@@ -103,6 +111,7 @@ export class ProgressLogger {
   }
 
   reset() {
+    this.updated.value = 0;
     this.logs.value = [];
     this.percentage.value = 0;
     this.status.value = 'ready';

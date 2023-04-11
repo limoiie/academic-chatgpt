@@ -11,6 +11,7 @@ export class Indexer {
     public vectorstore: VectorStore,
     public embeddingsConfigId: number,
     public splitting: Splitting,
+    public onProgress = (..._: any []) => {},
   ) {}
 
   /**
@@ -22,12 +23,9 @@ export class Indexer {
    */
   async *indexDocuments(...documents: Document[]) {
     for (const document of documents) {
-      console.log('one document indexing');
       await this.indexOneDocument(document);
-      console.log('one document index done');
       yield document;
     }
-    console.log('index done');
   }
 
   /**
@@ -38,17 +36,17 @@ export class Indexer {
    * @param document An array of documents.
    */
   async indexOneDocument(document: Document) {
+    this.onProgress(`Fetching chunks of ${document.filename} from database...`);
     const existingChunks = await this.fetchChunksFromDb(document);
-    console.log('Found existing chunks:', existingChunks.length);
+    this.onProgress('Found existing chunks:', existingChunks.length);
     if (existingChunks.length == 0) {
+      this.onProgress(`Splitting ${document.filename} into chunks...`);
       existingChunks.push(...(await this.splitChunksIntoDb(document)));
-      console.log('Split chunks:', existingChunks.length);
+      this.onProgress('Got split chunks:', existingChunks.length);
     }
 
     const chunksBeingIndexed = await this.filterAndUploadEmbeddedChunks(existingChunks);
-    console.log('Going to be indexed chunks:', chunksBeingIndexed.length);
     const vectors = await this.embeddingChunksAndStoreIntoDb(chunksBeingIndexed);
-    console.log('Embedded:', vectors.length);
     await this.uploadEmbeddingVectors(vectors, chunksBeingIndexed);
   }
 
@@ -69,6 +67,8 @@ export class Indexer {
    * @param chunks The chunks going to be indexed.
    */
   private async filterAndUploadEmbeddedChunks(chunks: DocumentChunk[]) {
+    this.onProgress('Filtering and uploading embedding vectors if there were...');
+
     const vectors: number[][] = [];
     const chunksBeingUploaded: DocumentChunk[] = [];
     const chunksBeingIndexed = await asyncFilter(chunks, async (chunk) => {
@@ -88,7 +88,10 @@ export class Indexer {
   }
 
   private async embeddingChunksAndStoreIntoDb(chunks: DocumentChunk[]) {
+    this.onProgress(`Embedding ${chunks.length} chunks...`)
     const vectors = await this.embeddings.embedDocuments(chunks.map((c) => c.content));
+
+    this.onProgress(`Storing embedding vectors into database...`)
     await upsertEmbeddingVectorByMd5hashInBatch(
       chunks
         .map((chunk, i) => {
@@ -108,18 +111,17 @@ export class Indexer {
   }
 
   private async uploadEmbeddingVectors(vectors: number[][], chunks: DocumentChunk[]) {
+    this.onProgress('Storing vectors into vectorstore...');
     if (this.vectorstore instanceof PineconeStore) {
-      console.log('start store vectors into pinecone');
       await this.vectorstore.addVectors(
         vectors,
         chunks.map(dbDocumentChunk2Ui),
         chunks.map((e) => e.md5Hash),
       );
     } else {
-      console.log('start store vectors into vectorstore');
       await this.vectorstore.addVectors(vectors, chunks.map(dbDocumentChunk2Ui));
     }
-    console.log('store done');
+    this.onProgress('store done');
   }
 
   private async splitChunksIntoDb(document: Document) {
