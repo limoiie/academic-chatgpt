@@ -244,6 +244,21 @@ pub(crate) async fn upsert_embedding_vector_by_md5hash_in_batch(
 
 #[tauri::command]
 #[specta::specta]
+pub(crate) async fn delete_collection_on_documents(
+    db: DbState<'_>,
+    collection_id: i32,
+) -> crate::Result<i32> {
+    Ok(db
+        .collections_on_documents()
+        .delete_many(vec![collections_on_documents::collection_id::equals(
+            collection_id,
+        )])
+        .exec()
+        .await? as i32)
+}
+
+#[tauri::command]
+#[specta::specta]
 pub(crate) async fn get_documents(db: DbState<'_>) -> crate::Result<Vec<document::Data>> {
     Ok(db.document().find_many(vec![]).exec().await?)
 }
@@ -324,6 +339,28 @@ pub(crate) async fn get_or_create_document(
 ///
 /// Collections operations
 ///
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn delete_collection_by_id(
+    db: DbState<'_>,
+    collection_id: i32,
+) -> crate::Result<collection::Data> {
+    delete_collection_on_documents(db.clone(), collection_id).await?;
+    delete_index_profiles_by_id(
+        db.clone(),
+        get_index_profiles_by_collection_id(db.clone(), collection_id)
+            .await?
+            .into_iter()
+            .map(|p| p.id)
+            .collect(),
+    )
+    .await?;
+    Ok(db
+        .collection()
+        .delete(collection::id::equals(collection_id))
+        .exec()
+        .await?)
+}
 
 #[tauri::command]
 #[specta::specta]

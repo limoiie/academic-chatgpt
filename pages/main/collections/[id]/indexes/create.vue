@@ -6,13 +6,19 @@
           <p class="whitespace-nowrap overflow-scroll">Working on {{ workingOn }}...</p>
           <a-progress :percent="progress.percentage.value" />
           <p class="whitespace-nowrap overflow-scroll">{{ progress.inlineMessage.value }}</p>
-          <a-button type="dashed" size="small" round @click="toggleDetails">Details</a-button>
-          <LogConsole
-            v-if="showDetails"
-            class="border-0 max-h-32 overflow-scroll"
-            :scroll-to-end="progress.updated.value % 2 == 1"
-            :logs="progress.logs.value"
-          />
+          <a-collapse v-model:activeKey="showDetails" ghost>
+            <template #expandIcon></template>
+            <a-collapse-panel key="1">
+              <template #header>
+                <a-button :type="showDetails == '1' ? 'primary' : 'dashed'" size="small" round>Details</a-button>
+              </template>
+              <LogConsole
+                class="border-0 max-h-32 overflow-scroll"
+                :scroll-to-end="progress.updated.value % 2 == 1"
+                :logs="progress.logs.value"
+              />
+            </a-collapse-panel>
+          </a-collapse>
         </a-space>
       </a-modal>
 
@@ -106,6 +112,7 @@
 </template>
 
 <script setup lang="ts">
+import { CaretRightOutlined } from '@ant-design/icons';
 import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { reactive, ref } from 'vue';
@@ -135,7 +142,7 @@ import { createVectorstore } from '~/utils/vectorstores';
 const quickDefaultMode = ref<boolean>(true);
 const workingOn = ref<string | null>(null);
 const showProcessing = ref<boolean>(false);
-const showDetails = ref<boolean>(false);
+const showDetails = ref<string>('1');
 const progress = new ProgressLogger();
 
 interface FormState {
@@ -184,10 +191,6 @@ await defaultVectorDbStore.loadFromLocalStore();
 
 const { defaultAIApiKey, defaultAIClient, defaultAIModel } = storeToRefs(defaultAIStore);
 const { defaultVectorDbClient, defaultVectorDbApiKey, defaultVectorDbMeta } = storeToRefs(defaultVectorDbStore);
-
-function toggleDetails() {
-  showDetails.value = !showDetails.value;
-}
 
 async function prepareDefaultEmbeddingsConfig() {
   if (!defaultAIClient.value || !defaultAIModel.value || !defaultAIApiKey.value) {
@@ -364,4 +367,9 @@ async function reset() {
 <style lang="sass">
 .form
   max-width: 600px
+
+.ant-collapse
+  .ant-collapse-item
+    .ant-collapse-header
+      padding: 0
 </style>

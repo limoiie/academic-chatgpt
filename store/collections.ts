@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia';
 import { Ref } from 'vue';
-import { CollectionWithProfiles, IndexProfileWithAll } from '~/utils/bindings';
+import {
+  CollectionWithProfiles,
+  deleteCollectionById as removeCollectionById,
+  IndexProfileWithAll,
+} from '~/utils/bindings';
 
 export const useCollectionStore = defineStore('collections', () => {
   const collections: Ref<CollectionWithProfiles[]> = ref([]);
@@ -29,5 +33,18 @@ export const useCollectionStore = defineStore('collections', () => {
     indexProfilesByCollectionId.value.set(id, indexProfiles);
   }
 
-  return { collections, indexProfilesByCollectionId, loadFromDb, reloadCollectionById, loadIndexProfilesFromDb };
+  async function deleteCollectionById(id: number) {
+    await removeCollectionById(id);
+    collections.value = collections.value.filter((c) => c.id != id);
+    indexProfilesByCollectionId.value.delete(id);
+  }
+
+  return {
+    collections,
+    indexProfilesByCollectionId,
+    loadFromDb,
+    reloadCollectionById,
+    deleteCollectionById,
+    loadIndexProfilesFromDb,
+  };
 });
