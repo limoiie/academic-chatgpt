@@ -1,119 +1,126 @@
 <template>
-  <a-layout>
-    <a-layout-content class="mx-8 mt-2 mb-8">
-      <a-space v-if="step == 'config'" class="w-full" direction="vertical">
-        <a-divider orientation="left" orientation-margin="0"> New Index Profile</a-divider>
-        <a-form class="form" :model="formState" v-bind="formItemLayout">
-          <a-form-item
-            label="Index Profile Name"
-            name="name"
-            :rules="[{ required: true, message: 'Missing profile name.' }]"
+  <a-layout class="h-full">
+    <a-layout-content class="h-full flex flex-row items-center mx-8 mt-2 mb-8">
+      <a-modal title="Indexing..." :visible="showProcessing" :closable="false" @cancel="cancelIndex">
+        <a-space class="w-full" direction="vertical">
+          <a-progress :percent="progress.percentage.value" />
+          <p class="whitespace-nowrap overflow-scroll">{{ progress.inlineMessage.value }}</p>
+          <LogConsole :logs="progress.logs.value" />
+        </a-space>
+      </a-modal>
+
+      <a-empty v-if="quickDefaultMode" class="w-full mb-24! flex flex-col items-center">
+        <template #description>
+          <span> No index yet </span>
+        </template>
+        <a-button-group>
+          <a-button type="primary" @click="createIndexDefault" :loading="progress.processing.value">
+            Quick Index Now
+          </a-button>
+          <a-button type="dashed" @click="quickDefaultMode = false">Advanced</a-button>
+        </a-button-group>
+      </a-empty>
+      <div v-else class="w-full">
+        <a-space v-if="progress.status.value == 'ready'" class="w-full" direction="vertical">
+          <a-divider orientation="left" orientation-margin="0"> New Index Profile</a-divider>
+          <a-form class="form" :model="formState" :label-col="{ span: 8 }">
+            <a-form-item
+              label="Index Profile Name"
+              name="name"
+              :rules="[
+                { required: true, message: 'Missing profile name.', trigger: ['blur', 'change'] },
+                {
+                  validator: notInValidate(existingIndexProfileNames),
+                  message: 'Name already exists',
+                  trigger: ['blur', 'change'],
+                },
+              ]"
+            >
+              <a-input v-model:value="formState.name" />
+            </a-form-item>
+            <a-form-item label="Chunk Size / Overlap">
+              <a-input-group>
+                <a-input-number v-model:value="formState.chunkSize" />
+                <span> / </span>
+                <a-input-number v-model:value="formState.chunkOverlap" />
+              </a-input-group>
+            </a-form-item>
+            <a-form-item label="Embeddings Client">
+              <SelectOrCreateEmbeddingsClient class="flex" v-model:value="formState.embeddingsClient" />
+            </a-form-item>
+            <a-form-item label="Embeddings Config">
+              <SelectOrCreateEmbeddingsConfig
+                class="flex"
+                :client-type="formState.embeddingsClient?.type"
+                v-model:value="formState.embeddingsConfig"
+              />
+            </a-form-item>
+            <a-form-item label="Vector Db Config">
+              <SelectOrCreateVectorDbConfig class="flex" v-model:value="formState.vectorDbConfig" />
+            </a-form-item>
+          </a-form>
+
+          <a-button
+            type="primary"
+            @click="createIndexAdvanced"
+            :loading="progress.processing.value"
+            :disabled="!isFormValid"
           >
-            <a-input v-model:value="formState.name" />
-          </a-form-item>
-          <a-form-item label="Chunk Size / Overlap">
-            <a-input-group>
-              <a-input-number v-model:value="formState.chunkSize" />
-              <span> / </span>
-              <a-input-number v-model:value="formState.chunkOverlap" />
-            </a-input-group>
-          </a-form-item>
-          <a-form-item label="Embeddings Client">
-            <SelectOrCreateEmbeddingsClient class="flex" v-model:value="formState.embeddingsClient" />
-          </a-form-item>
-          <a-form-item label="Embeddings Config">
-            <SelectOrCreateEmbeddingsConfig
-              class="flex"
-              :client-type="formState.embeddingsClient?.type"
-              v-model:value="formState.embeddingsConfig"
-            />
-          </a-form-item>
-          <a-form-item label="Vector Db Config">
-            <SelectOrCreateVectorDbConfig class="flex" v-model:value="formState.vectorDbConfig" />
-          </a-form-item>
-        </a-form>
+            Create
+          </a-button>
+        </a-space>
 
-        <a-button type="primary" @click="onCreate" :loading="step == 'processing'" :disabled="!isFormValid"
-          >Create
-        </a-button>
-        <pre>{{ stringify(formState.embeddingsClient) }}</pre>
-        <pre>{{ stringify(formState.embeddingsConfig) }}</pre>
-        <pre>{{ stringify(formState.vectorDbConfig) }}</pre>
-      </a-space>
+        <a-result
+          v-else-if="progress.status.value == 'done'"
+          status="success"
+          title="Collection has been indexed successfully!"
+        >
+          <template #extra>
+            <a-button key="console" type="primary">Go Console</a-button>
+            <a-button key="buy" @click="reset">Create again</a-button>
+          </template>
+        </a-result>
 
-      <a-space v-else-if="step == 'process'" class="w-full" direction="vertical">
-        <a-divider orientation="left" orientation-margin="0"> Processing...</a-divider>
-        <a-progress :percent="progressPercent"></a-progress>
-      </a-space>
-
-      <a-result v-else-if="step == 'done'" status="success" title="Collection has been indexed successfully!">
-        <template #extra>
-          <a-button key="console" type="primary">Go Console</a-button>
-          <a-button key="buy" @click="reset">Create again</a-button>
-        </template>
-      </a-result>
-
-      <a-result v-else-if="step == 'error'" status="error" title="Something went wrong">
-        <template #extra>
-          <a-button key="console" type="primary">Go Console</a-button>
-          <a-button key="buy" @click="reset">Create again</a-button>
-        </template>
-      </a-result>
-
-      <LogConsole v-if="hasLogs" :logs="logger.logs.value" class="h-60 overflow-scroll" />
+        <a-result v-else-if="progress.status.value == 'error'" status="error" title="Something went wrong">
+          <template #extra>
+            <a-button key="console" type="primary">Go Console</a-button>
+            <a-button key="buy" @click="reset">Create again</a-button>
+          </template>
+        </a-result>
+      </div>
     </a-layout-content>
   </a-layout>
 </template>
 
 <script setup lang="ts">
-import { sleep } from '@antfu/utils';
 import { message } from 'ant-design-vue';
-import { Embeddings } from 'langchain/embeddings';
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { VectorStore } from 'langchain/vectorstores';
+import { storeToRefs } from 'pinia';
 import { reactive, ref } from 'vue';
 import { stringify } from 'yaml';
 import SelectOrCreateEmbeddingsClient from '~/components/SelectOrCreateEmbeddingsClient.vue';
 import SelectOrCreateEmbeddingsConfig from '~/components/SelectOrCreateEmbeddingsConfig.vue';
 import SelectOrCreateVectorDbConfig from '~/components/SelectOrCreateVectorDbConfig.vue';
-import { Logger } from '~/types';
+import { useDefaultAIStore } from '~/store/defaultAI';
+import { useDefaultVectorDbStore } from '~/store/defaultVectorDb';
+import { ProgressLogger } from '~/types';
 import {
+  CollectionIndexProfile,
   createCollectionIndexProfile,
-  Document,
-  DocumentChunk,
-  GetDocumentChunkData,
   GetEmbeddingsClientData,
+  getEmbeddingsClients,
   GetEmbeddingsConfigData,
   GetVectorDbConfigData,
-  Splitting,
+  getVectorDbConfigs,
 } from '~/utils/bindings';
-import { dbDocumentChunk2Ui, uiDocumentChunks2Db } from '~/utils/db';
 import { createEmbeddings } from '~/utils/embeddings';
 import { namespaceOfProfile } from '~/utils/index_profiles';
+import { Indexer } from '~/utils/indexer';
+import { notInValidate } from '~/utils/validates';
 import { createVectorstore } from '~/utils/vectorstores';
 
-// noinspection JSUnusedGlobalSymbols
-const { $pinecone, $openaiEmbeddings } = useNuxtApp();
-const route = useRoute();
-
-const step = ref<'config' | 'process' | 'done' | 'error'>('config');
-const progressPercent = ref<number>(0);
-
-const logger = new Logger(ref([]));
-const hasLogs = computed(() => {
-  return logger.logs.value.length > 0;
-});
-
-const formItemLayout = {
-  labelCol: {
-    xs: { span: 16 },
-    sm: { span: 6 },
-  },
-  wrapperCol: {
-    xs: { span: 24 },
-    sm: { span: 16 },
-  },
-};
+const quickDefaultMode = ref<boolean>(true);
+const showProcessing = ref<boolean>(false);
+const progress = new ProgressLogger();
 
 interface FormState {
   name: string;
@@ -126,10 +133,10 @@ interface FormState {
 }
 
 const formState = reactive<FormState>({
-  name: '',
+  name: 'default',
   chunkSize: 1000,
   chunkOverlap: 200,
-  collectionId: parseInt(route.params['id'] as string),
+  collectionId: parseInt(useRoute().params['id'] as string),
   embeddingsClient: undefined,
   embeddingsConfig: undefined,
   vectorDbConfig: undefined,
@@ -145,144 +152,191 @@ const isFormValid = computed(() => {
   );
 });
 
-const { data: currentCollection } = useAsyncData('currentCollection', async () => {
-  const data = await getCollectionById(formState.collectionId);
-  if (data == null) {
+const { data } = useAsyncData('currentCollection', async () => {
+  const collection = await getCollectionById(formState.collectionId);
+  if (collection == null) {
     message.error(`No such collection with id: ${formState.collectionId}`);
+    navigateTo('/main/collections');
   }
-  return data;
+  const indexProfiles = await getIndexProfilesByCollectionId(formState.collectionId);
+  return { collection, indexProfiles };
+});
+const existingIndexProfileNames = computed(() => {
+  return data.value?.indexProfiles.map((p) => p.name);
 });
 
-async function splitDocuments(document: Document) {
-  // todo: choose different loader according to the document type
-  const loader = new PDFBytesLoader(document.filepath);
-  return await loader.loadAndSplit(
-    new RecursiveCharacterTextSplitter({
-      chunkOverlap: formState.chunkOverlap,
-      chunkSize: formState.chunkSize,
-    }),
+const defaultAIStore = useDefaultAIStore();
+const defaultVectorDbStore = useDefaultVectorDbStore();
+
+await defaultAIStore.loadFromLocalStore();
+await defaultVectorDbStore.loadFromLocalStore();
+
+const { defaultAIApiKey, defaultAIClient, defaultAIModel } = storeToRefs(defaultAIStore);
+const { defaultVectorDbClient, defaultVectorDbApiKey, defaultVectorDbMeta } = storeToRefs(defaultVectorDbStore);
+
+async function prepareDefaultEmbeddingsConfig() {
+  if (!defaultAIClient.value || !defaultAIModel.value || !defaultAIApiKey.value) {
+    return;
+  }
+
+  const clients = await getEmbeddingsClients();
+  let client = clients.find((client) => {
+    return client.type == defaultAIClient.value && client.info.apiKey == defaultAIApiKey.value;
+  });
+  if (!client) {
+    client = await createEmbeddingsClient({
+      type: defaultAIClient.value,
+      name: defaultAIClient.value + '-default',
+      info: {
+        apiKey: defaultAIApiKey.value,
+      },
+    });
+  }
+
+  const configs = await getEmbeddingsConfigsByClientType(client.type);
+  let config = configs.find((config) => {
+    return config.meta.model == defaultAIModel.value;
+  });
+  if (!config) {
+    config = await createEmbeddingsConfig({
+      name: client.type + '-' + defaultAIModel.value,
+      client_type: client.type,
+      meta: {
+        model: defaultAIModel.value,
+      },
+    });
+  }
+
+  return { client, config };
+}
+
+async function prepareDefaultVectorDbConfig() {
+  if (!defaultVectorDbClient.value || !defaultVectorDbApiKey.value || !defaultVectorDbMeta.value) {
+    return;
+  }
+
+  const meta = {
+    apiKey: defaultVectorDbApiKey.value,
+    ...defaultVectorDbMeta.value,
+  };
+
+  const configs = await getVectorDbConfigs();
+  let config = configs.find((config) => {
+    return config.client == defaultVectorDbClient.value && config.meta == meta;
+  });
+  if (!config) {
+    config = await createVectorDbConfig({
+      name: defaultVectorDbClient.value + '-default',
+      client: defaultVectorDbClient.value,
+      meta: meta,
+    });
+  }
+  return { config };
+}
+
+async function createIndexDefault() {
+  const defaultEmbeddingsData = await prepareDefaultEmbeddingsConfig();
+  const defaultVectorDbData = await prepareDefaultVectorDbConfig();
+  if (!defaultEmbeddingsData || !defaultVectorDbData) {
+    message.error(`Failed to create default index: default presets not found`);
+    return;
+  }
+  const { config: aiEmbeddingsConfig, client: aiEmbeddingsClient } = defaultEmbeddingsData;
+  const { config: vectorDbConfig } = defaultVectorDbData;
+
+  await createIndex(
+    formState.name,
+    formState.chunkOverlap,
+    formState.chunkSize,
+    aiEmbeddingsConfig,
+    aiEmbeddingsClient,
+    vectorDbConfig,
   );
 }
 
-class Indexer {
-  embeddings: Embeddings;
-  vectorstore: VectorStore;
-  splitting: Splitting;
-
-  constructor(embeddings: Embeddings, vectorstore: VectorStore, splitting: Splitting) {
-    this.embeddings = embeddings;
-    this.vectorstore = vectorstore;
-    this.splitting = splitting;
-  }
-
-  async indexOneDocument(document: Document) {
-    const doc_splitting = {
-      document_id: document.id,
-      splitting: { Id: this.splitting.id },
-    } as GetDocumentChunkData;
-
-    // fetch documents chunks first
-    const notIndexedChunks = [];
-    logger.info('try loading chunks from database...');
-    const chunks = await getDocumentChunks(doc_splitting);
-    if (chunks && chunks.length > 0) {
-      logger.info(`  loaded ${chunks.length} chunks`);
-      notIndexedChunks.push(...(await this.filterIndexedChunks(chunks)).map(dbDocumentChunk2Ui));
-    } else {
-      logger.info(`  not found, try splitting...`);
-      notIndexedChunks.push(...(await splitDocuments(document)));
-      logger.info(`  storing ${notIndexedChunks.length} chunks into db...`);
-      // stores chunks into db
-      await createChunksByDocument({
-        chunks: notIndexedChunks.map(uiDocumentChunks2Db),
-        data: doc_splitting,
-      });
-      logger.info(`  done`);
-    }
-
+async function createIndexAdvanced() {
+  const { embeddingsConfig, vectorDbConfig, embeddingsClient } = formState;
+  if (!isFormValid.value) {
+    progress.fail();
+    showProcessing.value = false;
+    message.error(`Failed to create advanced index: invalid form data.`);
     return;
-
-    // 1. embedding
-    const vectors = await this.embeddings.embedDocuments(notIndexedChunks.map((c) => c.pageContent));
-    // todo: vectors store into db
-
-    // 2. add embedding to vector database
-    await this.vectorstore.addVectors(vectors, notIndexedChunks);
   }
 
-  async filterIndexedChunks(chunks: DocumentChunk[]) {
-    // todo: if in vector database, skip
-    // todo: if in local database, upload and skip
-    return chunks;
-  }
+  await createIndex(
+    formState.name,
+    formState.chunkOverlap,
+    formState.chunkSize,
+    embeddingsConfig!,
+    embeddingsClient!,
+    vectorDbConfig!,
+  );
 }
 
-async function onCreate() {
-  step.value = 'process';
+async function createIndex(
+  name: string,
+  chunkOverlap: number,
+  chunkSize: number,
+  embeddingsConfig: GetEmbeddingsConfigData,
+  embeddingsClient: GetEmbeddingsClientData,
+  vectorDbConfig: GetVectorDbConfigData,
+) {
+  progress.start();
+  showProcessing.value = true;
 
-  const { name, chunkOverlap, chunkSize, embeddingsConfig, vectorDbConfig, embeddingsClient } = formState;
-  const colConfig = currentCollection.value;
-
-  if (
-    embeddingsClient == undefined ||
-    embeddingsConfig == undefined ||
-    vectorDbConfig == undefined ||
-    colConfig == null
-  ) {
-    step.value = 'error';
-    message.error(`Failed to index: runtime error.`);
-    return;
-  }
+  let indexProfile: CollectionIndexProfile | null = null;
 
   await nextTick(async () => {
     try {
-      logger.info('fetch documents of collection...');
+      progress.info('fetch documents of collection...');
       const documents = await getDocumentsByCollectionId(formState.collectionId);
-      logger.info(`  fetched ${documents.length} documents`);
-      if (documents.length == 0) {
-        return;
-      }
+      progress.totalNum.value = documents.length;
+
       const splitting = await getOrCreateSplitting({
         chunk_overlap: chunkOverlap,
         chunk_size: chunkSize,
       });
-      const profile = await createCollectionIndexProfile({
+      indexProfile = await createCollectionIndexProfile({
         name: name,
         splitting_id: splitting.id,
-        collection_id: colConfig.id,
+        collection_id: formState.collectionId,
         embeddings_config_id: embeddingsConfig.id,
         vector_db_config_id: vectorDbConfig.id,
       });
 
-      const namespace = namespaceOfProfile(profile);
+      const namespace = namespaceOfProfile(indexProfile);
       const embeddings = await createEmbeddings(embeddingsClient, embeddingsConfig);
       const vectorstore = await createVectorstore(vectorDbConfig, embeddings, namespace);
-      const indexer = new Indexer(embeddings, vectorstore, splitting);
+      const indexer = new Indexer(embeddings, vectorstore, embeddingsConfig.id, splitting);
 
-      logger.info('start processing...');
-
-      progressPercent.value = 0;
-      const progressStep = 100 / documents.length;
-      for (const document of documents) {
-        logger.info(`processing document ${document.filename}`);
-        await indexer.indexOneDocument(document);
-        progressPercent.value += progressStep;
+      progress.info('start processing...');
+      for await (const document of indexer.indexDocuments(...documents)) {
+        progress.advance({ level: 'info', message: `processing document ${document.filename}` });
       }
-      progressPercent.value = 100;
-      await sleep(1000);
+      progress.info('done...');
 
-      step.value = 'done';
-    } catch (e) {
-      logger.error(`Failed to index: ${stringify(e)}`);
-      step.value = 'error';
+      progress.finish();
+      showProcessing.value = false;
+    } catch (e: any) {
+      if (indexProfile) {
+        progress.info(`Cleaning indexProfile ${indexProfile.id}`);
+        await deleteIndexProfilesById([indexProfile?.id]).catch((e) =>
+          progress.error(`Failed to clean: ${e.toString()}`),
+        );
+      }
+      progress.error(`Failed to index: ${stringify(e)} ${e.toString()}`);
+      progress.fail();
     }
   });
 }
 
+async function cancelIndex() {
+  showProcessing.value = false;
+}
+
 async function reset() {
-  step.value = 'config';
-  progressPercent.value = 0;
-  logger.reset();
+  showProcessing.value = false;
+  progress.reset();
 }
 </script>
 

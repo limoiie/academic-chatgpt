@@ -103,9 +103,7 @@ const { data: context } = useAsyncData('context', async () => {
     return null;
   }
 
-  // fixme: correct following
-  // const namespace = namespaceOfProfile(indexProfile);
-  const namespace = 'debug-dojo';
+  const namespace = namespaceOfProfile(indexProfile);
   const embeddings = await createEmbeddings(embeddingsClient, embeddingsConfig);
   const vectorDb = await createVectorstore(vectorDbConfig, embeddings, namespace);
 

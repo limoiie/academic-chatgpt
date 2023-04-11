@@ -7,7 +7,7 @@ export const allVectorDbClients = ['pinecone'];
 interface DefaultVectorDbStore {
   defaultClient: VectorDbClientType;
   defaultApiKey: string;
-  defaultMeta: any;
+  defaultMeta: Record<string, any>;
 }
 
 export const useDefaultVectorDbStore = defineStore('defaultVectorDb', () => {

@@ -29,6 +29,11 @@ button.ant-btn {
   align-items: baseline !important;
 }
 
+.ant-modal-footer button.ant-btn,
+.ant-result-extra button.ant-btn {
+  display: inline-block !important;
+}
+
 button.ant-btn-circle {
   display: block !important;
 }

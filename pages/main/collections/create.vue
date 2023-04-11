@@ -4,7 +4,7 @@
       <a-divider orientation="left" orientation-margin="0">Config</a-divider>
       <a-space direction="vertical">
         <div class="w-80 flex flex-row items-baseline">
-          <a-input v-model:value="formState.collectionName" placeholder="Collection Name" />
+          <a-input ref="vCollectionName" v-model:value="formState.collectionName" placeholder="Collection Name" />
           <EditOutlined class="px-2" />
         </div>
       </a-space>
@@ -29,7 +29,7 @@
           v-if="formState.documents.length != 0"
           :data-source="formState.documents"
           :columns="columns"
-          :row-selection="{ selectedRowKeys: selectedRawKeys.value, onChange: onSelectionChanged }"
+          :row-selection="{ selectedRowKeys: selectedRawKeys, onChange: onSelectionChanged }"
         >
           <template #headerCell="{ column }">
             <template v-if="column.key === 'filename'">
@@ -40,7 +40,7 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
               <a-space>
-                <a-button size="small" shape="circle" danger>
+                <a-button size="small" shape="circle" @click="removeDocument(record.key)" danger>
                   <template #icon>
                     <DeleteOutlined />
                   </template>
@@ -61,7 +61,7 @@
           <a-button class="m-auto" type="primary" @click="addDocuments">Add Now</a-button>
         </a-empty>
       </a-space>
-      <a-button type="primary" @click="onCreate" :loading="isCreating">Create</a-button>
+      <a-button type="primary" :disabled="!isFormStateValid" :loading="isCreating" @click="addCollection">Create</a-button>
     </a-layout-content>
   </a-layout>
 </template>
@@ -72,7 +72,12 @@ import { ClearOutlined, DeleteOutlined, EditOutlined, PlusCircleOutlined } from 
 import { open } from '@tauri-apps/api/dialog';
 import { message } from 'ant-design-vue';
 import { basename } from 'pathe';
-import { reactive } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
+
+const vCollectionName = ref<any | null>(null);
+onMounted(() => {
+  vCollectionName.value.focus();
+});
 
 const selectedRawKeys = ref<Key[]>([]);
 const isCreating = ref<boolean>(false);
@@ -103,7 +108,7 @@ const columns = [
 
 type Key = string | number;
 
-interface DocumentEntry {
+interface DocumentUiData {
   key: Key;
   filename: string;
   filepath: string;
@@ -114,19 +119,22 @@ interface DocumentEntry {
 
 interface FormState {
   collectionName: string;
-  documents: DocumentEntry[];
+  documents: DocumentUiData[];
 }
 
 const formState = reactive<FormState>({
   collectionName: '',
   documents: [],
 });
+const isFormStateValid = computed(() => {
+  return formState.collectionName && formState.documents.length;
+});
 
 function onSelectionChanged(selected: Key[]) {
   selectedRawKeys.value = selected;
 }
 
-async function onCreate() {
+async function addCollection() {
   isCreating.value = true;
   try {
     const documents = formState.documents.map((d) => {
@@ -141,6 +149,7 @@ async function onCreate() {
       name: formState.collectionName,
     });
     message.info(`New collection ${collection.name}#${collection.id}`);
+    navigateTo(`/main/collections/${collection.id}`);
   } catch (e) {
     message.error(`Failed to create collection: ${e}`);
   }
@@ -184,10 +193,17 @@ async function addDocuments() {
   message.info(`Selected ${newDocuments.length} files`);
 }
 
+async function removeDocuments(keys: Key[]) {
+  formState.documents = formState.documents.filter((e) => !keys.includes(e.key));
+}
+
+async function removeDocument(key: Key) {
+  await removeDocuments([key])
+}
+
 async function removeSelectedDocuments() {
-  // todo: remove from the database.
-  // todo: remove related chunks, vectors, etc.
-  formState.documents = formState.documents.filter((e) => !selectedRawKeys.value.includes(e.key));
+  await removeDocuments(selectedRawKeys.value)
+  selectedRawKeys.value = []
 }
 </script>
 
