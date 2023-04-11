@@ -5,7 +5,7 @@ export function dbDocumentChunk2Ui(document: DocumentChunk) {
   const metadata = JSON.parse(document.meta);
   return new DocumentPart({
     pageContent: document.content,
-    metadata: metadata,
+    metadata: recCleanNoneProperty(metadata),
   });
 }
 

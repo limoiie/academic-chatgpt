@@ -6,7 +6,7 @@ export function recCleanNoneProperty(obj: object): object {
   return Object.entries(obj)
     .map(([k, v]) => [k, v && typeof v === 'object' ? recCleanNoneProperty(v) : v])
     .reduce((a, [k, v]) => {
-      if (v != null) {
+      if (v != null && Object.keys(v).length > 0) {
         a[k] = v;
       }
       return a;
