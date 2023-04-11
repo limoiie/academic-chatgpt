@@ -60,7 +60,7 @@ import { GetVectorDbConfigData, getVectorDbConfigs } from '~/utils/bindings';
 const isLoadingConfigs = ref(false);
 const isCreatingConfig = ref(false);
 
-const { id = undefined, value } = defineProps<{ id: number | undefined; value: GetVectorDbConfigData | undefined }>();
+const { id = null, value } = defineProps<{ id?: number; value: GetVectorDbConfigData | undefined }>();
 const emits = defineEmits(['update:id', 'update:value']);
 
 const pineconeMetrics = [
@@ -79,7 +79,7 @@ const formState = ref<CreateVectorDbConfigFormState>({
   },
 });
 
-const selectedConfigId = ref<number | undefined>(id);
+const selectedConfigId = ref<number | null>(id);
 watch(selectedConfigId, (newConfigId) => {
   emits('update:id', newConfigId);
   const value = availableConfigs.value?.find((config) => config.id == newConfigId);
@@ -115,7 +115,6 @@ async function onCreate() {
       // update db
       const newDbConf = await createVectorDbConfig({
         client: formState.value.clientType,
-        client_info: 'todo', // todo
         name: formState.value.name,
         meta: formState.value.meta,
       });

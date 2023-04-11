@@ -36,10 +36,10 @@ import { message } from 'ant-design-vue';
 import { ref } from 'vue';
 import { GetEmbeddingsClientData } from '~/utils/bindings';
 
-const { id = undefined, value } = defineProps<{ id: number | undefined; value: GetEmbeddingsClientData | undefined }>();
+const { id = null, value } = defineProps<{ id?: number; value: GetEmbeddingsClientData | undefined }>();
 const emits = defineEmits(['update:id', 'update:value']);
 
-const selectedId = ref<number | undefined>(id);
+const selectedId = ref<number | null>(id);
 watch(selectedId, async (newId) => {
   emits('update:id', newId);
   const value = availableClients.value?.find((client) => client.id == newId);

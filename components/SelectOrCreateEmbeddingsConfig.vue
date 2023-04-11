@@ -41,17 +41,17 @@ const isLoadingConfigs = ref<boolean>(false);
 const isCreatingConfig = ref<boolean>(false);
 
 const {
-  id = undefined,
-  clientType,
+  id = null,
+  clientType = null,
   value,
 } = defineProps<{
-  id: number | undefined;
+  id?: number;
   value: GetEmbeddingsConfigData | undefined;
-  clientType: string | undefined;
+  clientType?: string;
 }>();
 const emits = defineEmits(['update:id', 'update:value']);
 
-const selectedConfigId = ref<number | undefined>(id);
+const selectedConfigId = ref<number | null>(id);
 watch(selectedConfigId, (newConfigId) => {
   emits('update:id', newConfigId);
   const value = availableConfigs.value?.find((config) => config.id == newConfigId);
