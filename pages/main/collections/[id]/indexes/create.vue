@@ -96,15 +96,14 @@
         title="Collection has been indexed successfully!"
       >
         <template #extra>
-          <a-button key="console" type="primary">Go Console</a-button>
-          <a-button key="buy" @click="reset">Create again</a-button>
+          <a-button key="console" type="primary" @click="chatNow">Chat now</a-button>
+          <a-button key="create-again" @click="reset">Create again</a-button>
         </template>
       </a-result>
 
       <a-result v-if="progress.status.value == 'error'" class="w-full" status="error" title="Something went wrong">
         <template #extra>
-          <a-button key="console" type="primary">Go Console</a-button>
-          <a-button key="buy" @click="reset">Create again</a-button>
+          <a-button key="backward" @click="reset">Back to config</a-button>
         </template>
       </a-result>
     </a-layout-content>
@@ -112,7 +111,6 @@
 </template>
 
 <script setup lang="ts">
-import { CaretRightOutlined } from '@ant-design/icons';
 import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { reactive, ref } from 'vue';
@@ -121,17 +119,15 @@ import SelectOrCreateEmbeddingsClient from '~/components/SelectOrCreateEmbedding
 import SelectOrCreateEmbeddingsConfig from '~/components/SelectOrCreateEmbeddingsConfig.vue';
 import SelectOrCreateVectorDbConfig from '~/components/SelectOrCreateVectorDbConfig.vue';
 import { useCollectionStore } from '~/store/collections';
-import { useDefaultAIStore } from '~/store/defaultAI';
+import { useDefaultEmbeddingsStore } from '~/store/defaultEmbeddings';
 import { useDefaultVectorDbStore } from '~/store/defaultVectorDb';
 import { ProgressLogger } from '~/types';
 import {
   CollectionIndexProfile,
   createCollectionIndexProfile,
   GetEmbeddingsClientData,
-  getEmbeddingsClients,
   GetEmbeddingsConfigData,
   GetVectorDbConfigData,
-  getVectorDbConfigs,
 } from '~/utils/bindings';
 import { createEmbeddings } from '~/utils/embeddings';
 import { namespaceOfProfile } from '~/utils/index_profiles';
@@ -142,7 +138,7 @@ import { createVectorstore } from '~/utils/vectorstores';
 const quickDefaultMode = ref<boolean>(true);
 const workingOn = ref<string | null>(null);
 const showProcessing = ref<boolean>(false);
-const showDetails = ref<string>('1');
+const showDetails = ref<string>('0');
 const progress = new ProgressLogger();
 
 interface FormState {
@@ -173,102 +169,39 @@ const isFormValid = computed(() => {
   );
 });
 
-const collectionId = parseInt(useRoute().params['id'] as string);
+const route = useRoute();
+const collectionId = parseInt(route.params['id'] as string);
 const collectionStores = useCollectionStore();
 const { collections, indexProfilesByCollectionId } = storeToRefs(collectionStores);
 collectionStores.loadFromDb();
 collectionStores.loadIndexProfilesFromDb();
 
+const indexProfile = ref<CollectionIndexProfile | null>(null);
 const collection = computed(() => collections.value.find((c) => c.id == collectionId));
 const indexProfiles = computed(() => indexProfilesByCollectionId.value.get(collectionId) || []);
 const existingIndexProfileNames = computed(() => indexProfiles.value.map((p) => p.name));
 
-const defaultAIStore = useDefaultAIStore();
+const defaultEmbeddingsStore = useDefaultEmbeddingsStore();
 const defaultVectorDbStore = useDefaultVectorDbStore();
+const { defaultEmbeddingsClient, defaultEmbeddingsConfig } = storeToRefs(defaultEmbeddingsStore);
+const { defaultVectorDbConfig } = storeToRefs(defaultVectorDbStore);
 
-await defaultAIStore.loadFromLocalStore();
+await defaultEmbeddingsStore.loadFromLocalStore();
 await defaultVectorDbStore.loadFromLocalStore();
 
-const { defaultAIApiKey, defaultAIClient, defaultAIModel } = storeToRefs(defaultAIStore);
-const { defaultVectorDbClient, defaultVectorDbApiKey, defaultVectorDbMeta } = storeToRefs(defaultVectorDbStore);
-
-async function prepareDefaultEmbeddingsConfig() {
-  if (!defaultAIClient.value || !defaultAIModel.value || !defaultAIApiKey.value) {
-    return;
-  }
-
-  const clients = await getEmbeddingsClients();
-  let client = clients.find((client) => {
-    return client.type == defaultAIClient.value && client.info.apiKey == defaultAIApiKey.value;
-  });
-  if (!client) {
-    client = await createEmbeddingsClient({
-      type: defaultAIClient.value,
-      name: defaultAIClient.value + '-default',
-      info: {
-        apiKey: defaultAIApiKey.value,
-      },
-    });
-  }
-
-  const configs = await getEmbeddingsConfigsByClientType(client.type);
-  let config = configs.find((config) => {
-    return config.meta.model == defaultAIModel.value;
-  });
-  if (!config) {
-    config = await createEmbeddingsConfig({
-      name: client.type + '-' + defaultAIModel.value,
-      client_type: client.type,
-      meta: {
-        model: defaultAIModel.value,
-      },
-    });
-  }
-
-  return { client, config };
-}
-
-async function prepareDefaultVectorDbConfig() {
-  if (!defaultVectorDbClient.value || !defaultVectorDbApiKey.value || !defaultVectorDbMeta.value) {
-    return;
-  }
-
-  const meta = {
-    apiKey: defaultVectorDbApiKey.value,
-    ...defaultVectorDbMeta.value,
-  };
-
-  const configs = await getVectorDbConfigs();
-  let config = configs.find((config) => {
-    return config.client == defaultVectorDbClient.value && config.meta == meta;
-  });
-  if (!config) {
-    config = await createVectorDbConfig({
-      name: defaultVectorDbClient.value + '-default',
-      client: defaultVectorDbClient.value,
-      meta: meta,
-    });
-  }
-  return { config };
-}
-
 async function createIndexDefault() {
-  const defaultEmbeddingsData = await prepareDefaultEmbeddingsConfig();
-  const defaultVectorDbData = await prepareDefaultVectorDbConfig();
-  if (!defaultEmbeddingsData || !defaultVectorDbData) {
-    message.error(`Failed to create default index: default presets not found`);
+  if (defaultEmbeddingsClient.value.id == -1 || defaultEmbeddingsConfig.value.id == -1) {
+    message.error(`Failed to create default index: no default presets for embeddings`);
     return;
   }
-  const { config: aiEmbeddingsConfig, client: aiEmbeddingsClient } = defaultEmbeddingsData;
-  const { config: vectorDbConfig } = defaultVectorDbData;
 
   await createIndex(
     formState.name,
     formState.chunkOverlap,
     formState.chunkSize,
-    aiEmbeddingsConfig,
-    aiEmbeddingsClient,
-    vectorDbConfig,
+    defaultEmbeddingsConfig.value,
+    defaultEmbeddingsClient.value,
+    defaultVectorDbConfig.value,
   );
 }
 
@@ -301,8 +234,7 @@ async function createIndex(
 ) {
   progress.start();
   showProcessing.value = true;
-
-  let indexProfile: CollectionIndexProfile | null = null;
+  indexProfile.value = null;
 
   await nextTick(async () => {
     try {
@@ -314,7 +246,7 @@ async function createIndex(
         chunk_overlap: chunkOverlap,
         chunk_size: chunkSize,
       });
-      indexProfile = await createCollectionIndexProfile({
+      indexProfile.value = await createCollectionIndexProfile({
         name: name,
         splitting_id: splitting.id,
         collection_id: collectionId,
@@ -322,7 +254,7 @@ async function createIndex(
         vector_db_config_id: vectorDbConfig.id,
       });
 
-      const namespace = namespaceOfProfile(indexProfile);
+      const namespace = namespaceOfProfile(indexProfile.value);
       const embeddings = await createEmbeddings(embeddingsClient, embeddingsConfig);
       const vectorstore = await createVectorstore(vectorDbConfig, embeddings, namespace);
       const indexer = new Indexer(embeddings, vectorstore, embeddingsConfig.id, splitting, (...messages: any[]) => {
@@ -339,9 +271,9 @@ async function createIndex(
       progress.finish();
       showProcessing.value = false;
     } catch (e: any) {
-      if (indexProfile) {
-        progress.info(`Cleaning indexProfile ${indexProfile.id}`);
-        await deleteIndexProfilesById([indexProfile?.id]).catch((e) =>
+      if (indexProfile.value) {
+        progress.info(`Cleaning indexProfile ${indexProfile.value?.id}`);
+        await deleteIndexProfilesById([indexProfile.value?.id]).catch((e) =>
           progress.error(`Failed to clean: ${e.toString()}`),
         );
       }
@@ -355,6 +287,13 @@ async function createIndex(
 
 async function cancelIndex() {
   showProcessing.value = false;
+}
+
+async function chatNow() {
+  if (indexProfile.value) {
+    const url = route.path.replace(/\/create/, `/indexes/${indexProfile.value.id}`);
+    navigateTo(url);
+  }
 }
 
 async function reset() {

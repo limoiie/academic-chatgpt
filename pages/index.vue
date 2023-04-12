@@ -5,15 +5,15 @@
 </template>
 
 <script setup lang="ts">
-import { useDefaultAIStore } from '~/store/defaultAI';
+import { useDefaultCompleteStore } from '~/store/defaultComplete';
 import { useDefaultVectorDbStore } from '~/store/defaultVectorDb';
 
-const defaultAIStore = useDefaultAIStore();
+const defaultCompleteStore = useDefaultCompleteStore();
 const defaultVectorDbStore = useDefaultVectorDbStore();
 
-if ((await defaultAIStore.loadFromLocalStore()) && (await defaultVectorDbStore.loadFromLocalStore())) {
+if ((await defaultCompleteStore.loadFromLocalStore()) && (await defaultVectorDbStore.loadFromLocalStore())) {
   navigateTo('/main');
 } else {
-  navigateTo('/default');
+  navigateTo('/presets');
 }
 </script>

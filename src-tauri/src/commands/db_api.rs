@@ -497,6 +497,29 @@ pub(crate) async fn create_vector_db_config(
         .map(GetVectorDbConfigData::from_data)?
 }
 
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn upsert_vector_db_config(
+    db: DbState<'_>,
+    config_id: i32,
+    data: CreateVectorDbData,
+) -> crate::Result<GetVectorDbConfigData> {
+    let meta = serde_json::to_string(&data.meta)?;
+    db.vector_db_config()
+        .upsert(
+            vector_db_config::id::equals(config_id),
+            (data.name.clone(), data.client.clone(), meta.clone(), vec![]),
+            vec![
+                vector_db_config::name::set(data.name),
+                vector_db_config::client::set(data.client),
+                vector_db_config::meta::set(meta),
+            ],
+        )
+        .exec()
+        .await
+        .map(GetVectorDbConfigData::from_data)?
+}
+
 ///
 /// Embeddings Client operations
 ///
@@ -536,6 +559,20 @@ pub(crate) async fn get_embeddings_clients(
         })?
 }
 
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_embeddings_client_by_id(
+    db: DbState<'_>,
+    client_id: i32,
+) -> crate::Result<Option<GetEmbeddingsClientData>> {
+    db.embeddings_client()
+        .find_unique(embeddings_client::id::equals(client_id))
+        .exec()
+        .await?
+        .map(GetEmbeddingsClientData::from_data)
+        .transpose()
+}
+
 #[derive(Deserialize, Type)]
 pub(crate) struct CreateEmbeddingsClientData {
     name: String,
@@ -552,6 +589,29 @@ pub(crate) async fn create_embeddings_client(
     let info = serde_json::to_string(&data.info)?;
     db.embeddings_client()
         .create(data.name, data.r#type, info, vec![])
+        .exec()
+        .await
+        .map(GetEmbeddingsClientData::from_data)?
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn upsert_embeddings_client(
+    db: DbState<'_>,
+    client_id: i32,
+    data: CreateEmbeddingsClientData,
+) -> crate::Result<GetEmbeddingsClientData> {
+    let info = serde_json::to_string(&data.info)?;
+    db.embeddings_client()
+        .upsert(
+            embeddings_client::id::equals(client_id),
+            (data.name.clone(), data.r#type.clone(), info.clone(), vec![]),
+            vec![
+                embeddings_client::name::set(data.name),
+                embeddings_client::r#type::set(data.r#type),
+                embeddings_client::r#type::set(info),
+            ],
+        )
         .exec()
         .await
         .map(GetEmbeddingsClientData::from_data)?
@@ -642,6 +702,34 @@ pub(crate) async fn create_embeddings_config(
     let meta = serde_json::to_string(&data.meta)?;
     db.embeddings_config()
         .create(data.name, data.client_type, meta, vec![])
+        .exec()
+        .await
+        .map(GetEmbeddingsConfigData::from_data)?
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn upsert_embeddings_config(
+    db: DbState<'_>,
+    config_id: i32,
+    data: CreateEmbeddingsConfigData,
+) -> crate::Result<GetEmbeddingsConfigData> {
+    let meta = serde_json::to_string(&data.meta)?;
+    db.embeddings_config()
+        .upsert(
+            embeddings_config::id::equals(config_id),
+            (
+                data.name.clone(),
+                data.client_type.clone(),
+                meta.clone(),
+                vec![],
+            ),
+            vec![
+                embeddings_config::name::set(data.name),
+                embeddings_config::client_type::set(data.client_type),
+                embeddings_config::meta::set(meta),
+            ],
+        )
         .exec()
         .await
         .map(GetEmbeddingsConfigData::from_data)?

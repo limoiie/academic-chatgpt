@@ -21,8 +21,8 @@ await collectionStore.loadIndexProfilesFromDb();
 loading.value = false;
 
 const { collections } = storeToRefs(collectionStore);
-const collection = computed(() => collections.value[collectionId]);
-const indexProfiles = computed(() => collection.value.profiles);
+const collection = computed(() => collections.value.find((c) => c.id == collectionId));
+const indexProfiles = computed(() => collection.value?.profiles || []);
 const handler = watch(indexProfiles, () => {
   navigate(indexProfiles.value);
   handler();

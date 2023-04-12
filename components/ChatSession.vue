@@ -47,7 +47,7 @@ import { VectorStore } from 'langchain/vectorstores';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { UiChatConversation, UiChatDialogue } from '~/composables/beans/Chats';
-import { useDefaultAIStore } from '~/store/defaultAI';
+import { useDefaultCompleteStore } from '~/store/defaultComplete';
 import { noHistoryVectorDbQA } from '~/utils/aichains/noHistoryVectorDbQA';
 import { rephraseVectorDbQA } from '~/utils/aichains/rephraseVectorDbQA';
 import {
@@ -72,18 +72,17 @@ const conversation = ref<UiChatConversation>(
   new UiChatConversation(new SystemChatMessage('You are an assistant and going to help my coding.')),
 );
 
-const defaultAIStore = useDefaultAIStore();
-const { defaultAIClient, defaultAIApiKey, defaultAIModel } = storeToRefs(defaultAIStore);
-await defaultAIStore.loadFromLocalStore();
-console.log('default', defaultAIClient.value, defaultAIApiKey.value, defaultAIModel.value);
+const defaultCompleteStore = useDefaultCompleteStore();
+const { defaultCompleteConfig } = storeToRefs(defaultCompleteStore);
+await defaultCompleteStore.loadFromLocalStore();
 
 const specifiedAIClient = ref<string | undefined>(undefined);
 const specifiedAIApiKey = ref<string | undefined>(undefined);
 const specifiedAIModel = ref<string | undefined>(undefined);
 
-const currentAIClient = computed(() => specifiedAIClient.value || defaultAIClient.value);
-const currentAIApiKey = computed(() => specifiedAIApiKey.value || defaultAIApiKey.value);
-const currentAIModel = computed(() => specifiedAIModel.value || defaultAIModel.value);
+const currentAIClient = computed(() => specifiedAIClient.value || defaultCompleteConfig.value.client);
+const currentAIApiKey = computed(() => specifiedAIApiKey.value || defaultCompleteConfig.value.meta.apiKey);
+const currentAIModel = computed(() => specifiedAIModel.value || defaultCompleteConfig.value.meta.model);
 
 interface Context {
   indexProfile: CollectionIndexProfile;
@@ -127,8 +126,8 @@ async function buildChain(latestInput: string) {
 
   const [client, apiKey, model] = [currentAIClient.value, currentAIApiKey.value, currentAIModel.value];
   if (!client || !apiKey || !model) {
-    console.log('client', client, defaultAIClient.value);
-    console.log('apiKey', apiKey, defaultAIApiKey.value, specifiedAIApiKey.value);
+    console.log('client', client, defaultCompleteConfig.value.client);
+    console.log('apiKey', apiKey, defaultCompleteConfig.value.meta.apiKey, specifiedAIApiKey.value);
     console.log('model', model);
     message.error('Invalid AI client: please specify a client');
     return;

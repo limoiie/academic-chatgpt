@@ -23,11 +23,18 @@
             @click="handleMenuClick"
             @focusout="handleMenuBlur"
           >
+            <a-menu-item key="preset" @click="navigateToPresetsPage">
+              Presets
+              <template #icon>
+                <SettingOutlined />
+              </template>
+            </a-menu-item>
+
             <a-sub-menu key="theme">
               <template #icon>
                 <BgColorsOutlined />
               </template>
-              <template #title> On {{ upperFirst($colorMode.value) }} Theme</template>
+              <template #title>On {{ upperFirst($colorMode.value) }} Theme</template>
               <a-menu-item v-for="key of ['light', 'dark', 'system']" :key="key">
                 {{ key }}
                 <template #icon v-if="$colorMode.preference == key">
@@ -46,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { BgColorsOutlined, CheckOutlined } from '@ant-design/icons-vue';
+import { BgColorsOutlined, CheckOutlined, SettingOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { upperFirst } from 'scule';
@@ -75,6 +82,10 @@ function navigate(collections: CollectionWithProfiles[]) {
   } else {
     navigateTo(`/main/collections/create`);
   }
+}
+
+function navigateToPresetsPage() {
+  navigateTo('/presets');
 }
 
 function handleMenuBlur() {
