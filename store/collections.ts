@@ -7,11 +7,17 @@ import {
 } from '~/utils/bindings';
 
 export const useCollectionStore = defineStore('collections', () => {
+  const loaded = ref(false);
+
   const collections: Ref<CollectionWithProfiles[]> = ref([]);
+  const collectionNames = computed(() => collections.value.map((c) => c.name));
   const indexProfilesByCollectionId: Ref<Map<number, IndexProfileWithAll[]>> = ref(new Map());
 
   async function loadFromDb() {
-    collections.value = (await getCollectionsWithIndexProfiles()) || [];
+    if (!loaded.value) {
+      collections.value = (await getCollectionsWithIndexProfiles()) || [];
+      loaded.value = true;
+    }
   }
 
   async function loadIndexProfilesFromDb() {
@@ -25,9 +31,19 @@ export const useCollectionStore = defineStore('collections', () => {
 
   async function reloadCollectionById(id: number) {
     const all = await getCollectionsWithIndexProfiles();
-    const i = all.findIndex((c) => c.id == id);
+    const freshCollection = all.find((c) => c.id == id);
     const k = collections.value.findIndex((c) => c.id == id);
-    collections.value[k] = all[i];
+    if (k == -1) {
+      if (freshCollection) {
+        collections.value.push(freshCollection);
+      }
+    } else {
+      if (freshCollection) {
+        collections.value[k] = freshCollection;
+      } else {
+        collections.value = [...collections.value.slice(0, k), ...collections.value.slice(k + 1)];
+      }
+    }
 
     const indexProfiles = await getIndexProfilesByCollectionIdWithAll(id);
     indexProfilesByCollectionId.value.set(id, indexProfiles);
@@ -41,6 +57,7 @@ export const useCollectionStore = defineStore('collections', () => {
 
   return {
     collections,
+    collectionNames,
     indexProfilesByCollectionId,
     loadFromDb,
     reloadCollectionById,

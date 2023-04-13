@@ -8,43 +8,38 @@
       </template>
     </a-menu-item>
     <a-menu-divider />
-    <a-sub-menu :key="col.id" v-for="col in collections">
+    <a-menu-item :key="col.id" v-for="col in collections" @click="navigateToDefaultIndexProfile(col.id)">
       <template #icon>
         <FolderOutlined />
       </template>
-      <template #title>
-        <div class="flex flex-row items-center">
-          {{ col.name }}
+      <div class="flex flex-row group">
+        <div class="flex flex-grow overflow-scroll">{{ col.name }}</div>
+        <div class="hidden group-hover:flex flex-row my-auto ms-2">
+          <a-button
+            class="col-actions"
+            shape="circle"
+            size="small"
+            type="dashed"
+            @click="(e) => manageDocumentsCollectionProfile(e, col.id)"
+          >
+            <template #icon>
+              <DashboardOutlined />
+            </template>
+          </a-button>
+          <a-button
+            class="col-actions"
+            shape="circle"
+            size="small"
+            type="dashed"
+            @click="(e) => deleteDocumentsCollection(e, col.id)"
+          >
+            <template #icon>
+              <DeleteOutlined />
+            </template>
+          </a-button>
         </div>
-      </template>
-      <!--   New Index Profile   -->
-      <a-menu-item key="add" @click="newDocumentsCollectionProfile(col.id)">
-        New index
-        <template #icon>
-          <PlusCircleOutlined />
-        </template>
-      </a-menu-item>
-      <a-menu-item key="manage" @click="manageDocumentsCollectionProfile(col.id)">
-        Manage
-        <template #icon>
-          <DashboardOutlined />
-        </template>
-      </a-menu-item>
-      <a-menu-item key="delete" @click="deleteDocumentsCollection(col.id)">
-        Delete
-        <template #icon>
-          <DeleteOutlined />
-        </template>
-      </a-menu-item>
-      <!--   Index Profiles   -->
-      <a-menu-item
-        v-for="profile of col.profiles"
-        :key="profile.name"
-        @click="navigateToIndexProfile(col.id, profile.id)"
-      >
-        {{ profile.name }}
-      </a-menu-item>
-    </a-sub-menu>
+      </div>
+    </a-menu-item>
   </a-menu>
 </template>
 
@@ -52,11 +47,12 @@
 import {
   DashboardOutlined,
   DeleteOutlined,
+  ExclamationCircleOutlined,
   FolderAddOutlined,
   FolderOutlined,
-  PlusCircleOutlined,
 } from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
+import { createVNode } from '@vue/runtime-core';
+import { message, Modal } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { useCollectionStore } from '~/store/collections';
 
@@ -68,33 +64,46 @@ const { collections } = storeToRefs(collectionStore);
 isLoading.value = true;
 await collectionStore.loadFromDb().catch((e) => {
   message.error(`Failed to load profiles: ${e}`);
+}).finally(() => {
+  isLoading.value = false;
 });
-isLoading.value = false;
 
-async function navigateToIndexProfile(collectionId: number, indexProfileId: number) {
-  navigateTo(`/main/collections/${collectionId}/indexes/${indexProfileId}`);
+async function navigateToDefaultIndexProfile(collectionId: number) {
+  navigateTo(`/main/collections/${collectionId}/indexes`);
 }
 
-async function manageDocumentsCollectionProfile(collectionId: number) {
-  navigateTo(`/main/collections/${collectionId}/indexes/manage`);
-}
-
-async function newDocumentsCollectionProfile(collectionId: number) {
-  navigateTo(`/main/collections/${collectionId}/indexes/create`);
+async function manageDocumentsCollectionProfile(e: Event, collectionId: number) {
+  navigateTo(`/main/collections/${collectionId}/manage`);
+  e.stopPropagation();
 }
 
 async function newDocumentsCollection() {
   navigateTo('/main/collections/create');
 }
 
-async function deleteDocumentsCollection(collectionId: number) {
-  await collectionStore
-    .deleteCollectionById(collectionId)
-    .catch((e) => {
-      message.error(`Failed to delete collection ${collectionId}: ${e.toString()}`);
-    })
-    .then(() => {
-      message.info(`Deleted!`);
-    });
+async function deleteDocumentsCollection(e: Event, collectionId: number) {
+  Modal.confirm({
+    title: 'Do you want to continue?',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: 'Delete collection will delete all its indexes and chat sessions.',
+    okText: 'Yes',
+    async onOk() {
+      await collectionStore
+        .deleteCollectionById(collectionId)
+        .catch((e) => {
+          message.error(`Failed to delete collection ${collectionId}: ${e.toString()}`);
+        })
+        .then(() => {
+          message.info(`Deleted!`);
+        });
+    },
+  });
+  e.stopPropagation();
 }
 </script>
+
+<style lang="sass">
+.ant-menu-inline-collapsed
+  .col-actions
+    visibility: hidden
+</style>
