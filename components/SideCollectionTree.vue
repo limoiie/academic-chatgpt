@@ -8,13 +8,16 @@
       </template>
     </a-menu-item>
     <a-menu-divider />
+    <!--suppress TypeScriptUnresolvedReference -->
     <a-menu-item :key="col.id" v-for="col in collections" @click="navigateToDefaultIndexProfile(col.id)">
       <template #icon>
         <FolderOutlined />
       </template>
       <div class="flex flex-row group">
+        <!--suppress TypeScriptUnresolvedReference -->
         <div class="flex flex-grow overflow-scroll">{{ col.name }}</div>
         <div class="hidden group-hover:flex flex-row my-auto ms-2">
+          <!--suppress TypeScriptUnresolvedReference -->
           <a-button
             class="col-actions"
             shape="circle"
@@ -26,6 +29,7 @@
               <DashboardOutlined />
             </template>
           </a-button>
+          <!--suppress TypeScriptUnresolvedReference -->
           <a-button
             class="col-actions"
             shape="circle"

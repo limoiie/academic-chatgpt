@@ -244,21 +244,6 @@ pub(crate) async fn upsert_embedding_vector_by_md5hash_in_batch(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn delete_collection_on_documents(
-    db: DbState<'_>,
-    collection_id: i32,
-) -> crate::Result<i32> {
-    Ok(db
-        .collections_on_documents()
-        .delete_many(vec![collections_on_documents::collection_id::equals(
-            collection_id,
-        )])
-        .exec()
-        .await? as i32)
-}
-
-#[tauri::command]
-#[specta::specta]
 pub(crate) async fn get_documents(db: DbState<'_>) -> crate::Result<Vec<document::Data>> {
     Ok(db.document().find_many(vec![]).exec().await?)
 }
@@ -336,6 +321,89 @@ pub(crate) async fn get_or_create_document(
     }
 }
 
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn add_documents(
+    db: DbState<'_>,
+    documents: Vec<CreateDocumentData>,
+) -> crate::Result<Vec<document::Data>> {
+    let mut docs = vec![];
+    for document in documents {
+        let doc = get_or_create_document(db.clone(), document).await?;
+        docs.push(doc);
+    }
+    Ok(docs)
+}
+
+///
+/// Collections on Documents operations
+///
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn delete_collection_on_documents(
+    db: DbState<'_>,
+    collection_id: i32,
+) -> crate::Result<i32> {
+    Ok(db
+        .collections_on_documents()
+        .delete_many(vec![collections_on_documents::collection_id::equals(
+            collection_id,
+        )])
+        .exec()
+        .await? as i32)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn delete_documents_in_collection(
+    db: DbState<'_>,
+    collection_id: i32,
+    document_ids: Vec<i32>,
+) -> crate::Result<i32> {
+    Ok(db
+        .collections_on_documents()
+        .delete_many(vec![
+            collections_on_documents::collection_id::equals(collection_id),
+            collections_on_documents::document_id::in_vec(document_ids),
+        ])
+        .exec()
+        .await? as i32)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn add_documents_to_collection(
+    db: DbState<'_>,
+    collection_id: i32,
+    document_ids: Vec<i32>,
+) -> crate::Result<Vec<collections_on_documents::Data>> {
+    Ok(db
+        ._batch(
+            document_ids
+                .into_iter()
+                .map(|document_id| {
+                    db.collections_on_documents().upsert(
+                        collections_on_documents::collection_id_document_id(
+                            collection_id,
+                            document_id,
+                        ),
+                        (
+                            collection::id::equals(collection_id),
+                            document::id::equals(document_id),
+                            vec![],
+                        ),
+                        vec![
+                            collections_on_documents::collection_id::set(collection_id),
+                            collections_on_documents::document_id::set(document_id),
+                        ],
+                    )
+                })
+                .collect::<Vec<_>>(),
+        )
+        .await?)
+}
+
 ///
 /// Collections operations
 ///
@@ -409,7 +477,6 @@ pub(crate) async fn create_collection(
     data: CreateCollectionData,
 ) -> crate::Result<collection::Data> {
     let collection = db.collection().create(data.name, vec![]).exec().await?;
-
     for doc_create_data in data.documents {
         let doc = get_or_create_document(db.clone(), doc_create_data).await?;
         db.collections_on_documents()
@@ -422,6 +489,23 @@ pub(crate) async fn create_collection(
             .await?;
     }
     Ok(collection)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn update_collection_name(
+    db: DbState<'_>,
+    collection_id: i32,
+    collection_name: String,
+) -> crate::Result<collection::Data> {
+    Ok(db
+        .collection()
+        .update(
+            collection::id::equals(collection_id),
+            vec![collection::name::set(collection_name)],
+        )
+        .exec()
+        .await?)
 }
 
 ///
