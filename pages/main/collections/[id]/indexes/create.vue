@@ -291,7 +291,7 @@ async function cancelIndex() {
 
 async function chatNow() {
   if (indexProfile.value) {
-    const url = route.path.replace(/\/create/, `/indexes/${indexProfile.value.id}`);
+    const url = route.path.replace(/\/create/, `/${indexProfile.value.id}`);
     navigateTo(url);
   }
 }
