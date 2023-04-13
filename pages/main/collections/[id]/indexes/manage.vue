@@ -4,19 +4,24 @@
       <a-divider orientation="left" orientation-margin="0">Manage index profiles</a-divider>
       <a-space class="w-full" direction="vertical">
         <a-space>
-          <a-button v-if="!hasSelected" @click="add">
+          <a-button v-if="!hasSelected" class="ant-btn-with-icon" @click="add">
             <template #icon>
               <PlusCircleOutlined />
             </template>
             Add more
           </a-button>
-          <a-button v-if="hasSelected" @click="removeSelected" danger>
+          <a-button v-if="hasSelected" class="ant-btn-with-icon" @click="removeSelected" danger>
             <template #icon>
               <ClearOutlined />
             </template>
             Remove
           </a-button>
-          <a-button v-if="!hasSelected" :loading="loading" @click="collectionStore.loadIndexProfilesFromDb">
+          <a-button
+            v-if="!hasSelected"
+            :loading="loading"
+            class="ant-btn-with-icon"
+            @click="collectionStore.loadIndexProfilesFromDb"
+          >
             <template #icon>
               <ReloadOutlined />
             </template>
@@ -38,21 +43,19 @@
 
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
-              <div class="w-full flex flex-col items-center">
-                <a-space>
-                  <a-button size="small" shape="circle" @click="open(record.id)">
-                    <template #icon>
-                      <CommentOutlined />
-                    </template>
-                  </a-button>
+              <a-space>
+                <a-button size="small" shape="circle" @click="open(record.id)">
+                  <template #icon>
+                    <CommentOutlined />
+                  </template>
+                </a-button>
 
-                  <a-button size="small" shape="circle" @click="remove(record.id)" danger>
-                    <template #icon>
-                      <DeleteOutlined />
-                    </template>
-                  </a-button>
-                </a-space>
-              </div>
+                <a-button size="small" shape="circle" @click="remove(record.id)" danger>
+                  <template #icon>
+                    <DeleteOutlined />
+                  </template>
+                </a-button>
+              </a-space>
             </template>
           </template>
         </a-table>
