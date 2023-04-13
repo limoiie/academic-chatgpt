@@ -32,11 +32,10 @@ export const useDefaultVectorDbStore = defineStore('defaultVectorDb', () => {
 
   async function storeToLocalStore() {
     await persistDefaultVectorDbConfig();
-
     await $tauriStore.set(STORE_KEY, {
       defaultConfigId: defaultConfig.value.id,
     } as DefaultVectorDbStore);
-
+    await $tauriStore.save();
     return true;
   }
 

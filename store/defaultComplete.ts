@@ -62,6 +62,7 @@ export const useDefaultCompleteStore = defineStore('defaultComplete', () => {
     await $tauriStore.set(STORE_KEY, {
       defaultConfig: defaultConfig.value,
     } as DefaultCompleteStore);
+    await $tauriStore.save();
     return true;
   }
 

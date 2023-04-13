@@ -51,6 +51,7 @@ export const useDefaultEmbeddingsStore = defineStore('defaultEmbeddings', () => 
       defaultClientId: defaultClient.value.id,
       defaultConfigId: defaultConfig.value.id,
     } as DefaultEmbeddingsStore);
+    $tauriStore.save();
     return true;
   }
 
