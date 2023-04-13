@@ -6,12 +6,12 @@
       name="configName"
       :rules="[{ required: true, message: 'Please choose an unique name for this config!' }]"
     >
-      <a-input v-model:value="formState.config_name" />
+      <a-input v-model:value="formState.name" />
     </a-form-item>
     <!-- Index Client -->
     <a-form-item label="Client" name="client" :rules="[{ required: true }]">
       <div class="border px-2 pb-2">
-        <a-tabs v-model:activeKey="formState.client_type">
+        <a-tabs v-model:activeKey="formState.clientType">
           <!-- Pinecone panel -->
           <a-tab-pane key="pinecone" tab="Pinecone">
             <a-form :model="formState.meta">
@@ -51,8 +51,8 @@ const pineconeMetrics = [
 
 const formState = useState<CreateVectorDbConfigFormState>('creatingVectorDbConfig', () => {
   return {
-    client_type: 'pinecone',
-    config_name: '',
+    clientType: 'pinecone',
+    name: '',
     meta: {
       metric: 'cosine'
     },

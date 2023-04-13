@@ -1,5 +1,5 @@
 <template>
-  <a-space class="w-full mt-2" direction="vertical">
+  <a-space class="w-full" direction="vertical">
     <a-modal title="Adding..." :visible="isAdding" :closable="false">
       <a-space class="w-full" direction="vertical">
         <p class="whitespace-nowrap overflow-scroll">Working on {{ workingOn }}...</p>
@@ -21,24 +21,7 @@
       </a-space>
     </a-modal>
 
-    <a-space direction="vertical">
-      <a-space class="w-80 flex flex-row items-center">
-        <a-input ref="vCollectionName" v-model:value="formState.collectionName" placeholder="Collection Name" />
-        <a-button
-          v-show="isCollectionNameChanged"
-          shape="circle"
-          :disabled="!isCollectionNameChanged"
-          :loading="isUpdatingName"
-          @click="tryUpdateCollectionName"
-        >
-          <template #icon>
-            <EditOutlined />
-          </template>
-        </a-button>
-      </a-space>
-    </a-space>
-
-    <a-space class="w-full mt-6" direction="vertical">
+    <a-space class="w-full" direction="vertical">
       <a-space>
         <a-button v-if="!hasSelected" class="ant-btn-with-icon" @click="addDocuments">
           <template #icon>
@@ -93,37 +76,21 @@
 </template>
 
 <script setup lang="ts">
-import { ClearOutlined, DeleteOutlined, EditOutlined, PlusCircleOutlined, ReloadOutlined } from '@ant-design/icons-vue';
+import { ClearOutlined, DeleteOutlined, PlusCircleOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import { open } from '@tauri-apps/api/dialog';
 import { message, TableColumnType } from 'ant-design-vue';
 import { basename } from 'pathe';
-import { storeToRefs } from 'pinia';
-import { onMounted, reactive, ref } from 'vue';
-import { useCollectionStore } from '~/store/collections';
+import { reactive, ref } from 'vue';
 import { ProgressLogger } from '~/types';
 import { CreateDocumentData, deleteDocumentsInCollection, getOrCreateDocument } from '~/utils/bindings';
 
+const { id } = defineProps<{ id: number }>();
+
 const isLoading = ref<boolean>(false);
-const isUpdatingName = ref<boolean>(false);
 const isAdding = ref<boolean>(false);
 const workingOn = ref<string | null>(null);
 const showDetails = ref<string>('0');
 const progress = new ProgressLogger();
-
-const { id } = defineProps<{ id: number }>();
-
-const collectionStore = useCollectionStore();
-const { collections, collectionNames } = storeToRefs(collectionStore);
-const collection = computed(() => {
-  const collection = collections.value.find((e) => e.id == id);
-  if (collection) {
-    formState.collectionName = collection.name;
-  }
-  return collection;
-});
-const isCollectionNameChanged = computed(() => {
-  return collection.value?.name != formState.collectionName;
-});
 
 const selectedDocumentIds = ref<number[]>([]);
 const hasSelected = computed(() => selectedDocumentIds.value.length != 0);
@@ -167,12 +134,10 @@ interface DocumentUiData {
 }
 
 interface FormState {
-  collectionName: string;
   documents: DocumentUiData[];
 }
 
 const formState = reactive<FormState>({
-  collectionName: '',
   documents: [],
 });
 
@@ -180,32 +145,8 @@ await reloadDocuments().catch((e) => {
   message.error(`Failed to load documents: ${errToString(e)}`);
 });
 
-const vCollectionName = ref<any | null>(null);
-onMounted(() => {
-  vCollectionName.value.focus();
-});
-
 function onSelectionChanged(selected: number[]) {
   selectedDocumentIds.value = selected;
-}
-
-async function tryUpdateCollectionName() {
-  if (collectionNames.value.includes(formState.collectionName)) {
-    message.error('Failed to update name: already existing!');
-    return;
-  }
-
-  isUpdatingName.value = true;
-  await updateCollectionName(id, formState.collectionName)
-    .then(async (data) => {
-      await collectionStore.reloadCollectionById(id);
-      message.info(`Updated name as '${data.name}'`);
-    })
-    .catch((e) => {
-      message.error(`Failed to update name: ${errToString(e)}`);
-    }).finally(() => {
-      isUpdatingName.value = false
-    });
 }
 
 async function addDocuments() {
@@ -294,7 +235,6 @@ async function reloadDocuments() {
 }
 
 function handleResizeColumn(w: number, col: TableColumnType) {
-  console.log('resizing...', w);
   col.width = w;
 }
 </script>

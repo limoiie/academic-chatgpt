@@ -91,7 +91,7 @@ export class ProgressLogger {
   advance(log: {level: LogLevel | undefined, message: string } | undefined = undefined, delta: number = 1) {
     ++this.updated.value;
     this.completedNum.value += delta;
-    this.percentage.value += delta * this.step.value;
+    this.percentage.value += parseFloat((delta * this.step.value).toPrecision(3));
     if (log) {
       this.log(log.level || 'info', log.message);
     }

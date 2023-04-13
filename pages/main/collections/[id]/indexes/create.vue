@@ -258,7 +258,7 @@ async function createIndex(
       const embeddings = await createEmbeddings(embeddingsClient, embeddingsConfig);
       const vectorstore = await createVectorstore(vectorDbConfig, embeddings, namespace);
       const indexer = new Indexer(embeddings, vectorstore, embeddingsConfig.id, splitting, (...messages: any[]) => {
-        progress.log('info', messages.map((e) => e.toString()).join(' '));
+        progress.info(messages.map((e) => e.toString()).join(' '));
       });
 
       progress.info('start processing...');

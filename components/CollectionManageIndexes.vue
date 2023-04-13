@@ -1,67 +1,62 @@
 <template>
-  <a-layout>
-    <a-layout-content class="mx-8 mt-2 mb-8">
-      <a-divider orientation="left" orientation-margin="0">Manage index profiles</a-divider>
-      <a-space class="w-full" direction="vertical">
-        <a-space>
-          <a-button v-if="!hasSelected" class="ant-btn-with-icon" @click="add">
-            <template #icon>
-              <PlusCircleOutlined />
-            </template>
-            Add more
-          </a-button>
-          <a-button v-if="hasSelected" class="ant-btn-with-icon" @click="removeSelected" danger>
-            <template #icon>
-              <ClearOutlined />
-            </template>
-            Remove
-          </a-button>
-          <a-button
-            v-if="!hasSelected"
-            :loading="loading"
-            class="ant-btn-with-icon"
-            @click="collectionStore.loadIndexProfilesFromDb"
-          >
-            <template #icon>
-              <ReloadOutlined />
-            </template>
-            Refresh
-          </a-button>
-        </a-space>
-        <a-table
-          :data-source="indexProfilesUiData"
-          :columns="columns || []"
-          :row-selection="{ selectedRowKeys: selectedRawKeys, onChange: onSelectionChanged }"
-          :row-key="(record) => record.id"
-          :scroll="{ x: 200 }"
-          :loading="loading"
-          @resizeColumn="handleResizeColumn"
-        >
-          <template #expandedRowRender="{ record }">
-            <pre class="m-0">{{ stringify(record.origin) }}</pre>
-          </template>
+  <a-space class="w-full" direction="vertical">
+    <a-space>
+      <a-button v-if="!hasSelected" class="ant-btn-with-icon" @click="add">
+        <template #icon>
+          <PlusCircleOutlined />
+        </template>
+        Add
+      </a-button>
+      <a-button v-if="hasSelected" class="ant-btn-with-icon" @click="removeSelected" danger>
+        <template #icon>
+          <ClearOutlined />
+        </template>
+        Remove
+      </a-button>
+      <a-button
+        v-if="!hasSelected"
+        :loading="loading"
+        class="ant-btn-with-icon"
+        @click="collectionStore.loadIndexProfilesFromDb"
+      >
+        <template #icon>
+          <ReloadOutlined />
+        </template>
+        Refresh
+      </a-button>
+    </a-space>
+    <a-table
+      :data-source="indexProfilesUiData"
+      :columns="columns || []"
+      :row-selection="{ selectedRowKeys: selectedRawKeys, onChange: onSelectionChanged }"
+      :row-key="(record) => record.id"
+      :scroll="{ x: 200 }"
+      :loading="loading"
+      @resizeColumn="handleResizeColumn"
+    >
+      <template #expandedRowRender="{ record }">
+        <pre class="m-0">{{ stringify(record.origin) }}</pre>
+      </template>
 
-          <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'action'">
-              <a-space>
-                <a-button size="small" shape="circle" @click="open(record.id)">
-                  <template #icon>
-                    <CommentOutlined />
-                  </template>
-                </a-button>
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'action'">
+          <a-space>
+            <a-button size="small" shape="circle" @click="open(record.id)">
+              <template #icon>
+                <CommentOutlined />
+              </template>
+            </a-button>
 
-                <a-button size="small" shape="circle" @click="remove(record.id)" danger>
-                  <template #icon>
-                    <DeleteOutlined />
-                  </template>
-                </a-button>
-              </a-space>
-            </template>
-          </template>
-        </a-table>
-      </a-space>
-    </a-layout-content>
-  </a-layout>
+            <a-button size="small" shape="circle" @click="remove(record.id)" danger>
+              <template #icon>
+                <DeleteOutlined />
+              </template>
+            </a-button>
+          </a-space>
+        </template>
+      </template>
+    </a-table>
+  </a-space>
 </template>
 
 <script setup lang="ts">

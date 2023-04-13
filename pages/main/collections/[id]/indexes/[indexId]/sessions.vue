@@ -1,6 +1,7 @@
 <template>
   <div class="h-full flex flex-col">
     <a-tabs
+      id="chatSessions"
       v-if="activeSessionId"
       v-model:activeKey="activeSessionId"
       class="flex flex-1"
@@ -106,17 +107,18 @@ const onEdit = (targetSessionId: number | MouseEvent, action: string) => {
 </script>
 
 <style lang="sass">
-.ant-tabs-content
-  height: 100%
+#chatSessions
+  .ant-tabs-content
+    height: 100%
 
-.ant-tabs-nav
-  margin-bottom: 0 !important
+  .ant-tabs-nav
+    margin-bottom: 0 !important
 
-.ant-tabs-nav-wrap
-  height: 42px
+  .ant-tabs-nav-wrap
+    height: 42px
 
-.ant-tabs-tab
-  border: 0 !important
+  .ant-tabs-tab
+    border: 0 !important
 
 button.ant-tabs-tab-remove, .ant-tabs-tab-btn
   height: 18px
