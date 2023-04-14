@@ -14,8 +14,10 @@ type DbState<'a> = State<'a, Arc<PrismaClient>>;
 ///
 
 #[derive(Deserialize, Type)]
-pub(crate) struct CreateSplittingData {
+pub(crate) struct CreateGetOrCreateSplittingData {
+    #[serde(rename = "chunkSize")]
     chunk_size: i32,
+    #[serde(rename = "chunkOverlap")]
     chunk_overlap: i32,
 }
 
@@ -23,7 +25,7 @@ pub(crate) struct CreateSplittingData {
 #[specta::specta]
 pub(crate) async fn get_or_create_splitting(
     db: DbState<'_>,
-    data: CreateSplittingData,
+    data: CreateGetOrCreateSplittingData,
 ) -> crate::Result<splitting::Data> {
     let existing = db
         .splitting()
@@ -45,42 +47,36 @@ pub(crate) async fn get_or_create_splitting(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) enum SplittingData {
+pub(crate) enum GetOrCreateSplittingData {
     Id(i32),
-    Config(CreateSplittingData),
+    Config(CreateGetOrCreateSplittingData),
 }
 
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn get_or_create_splitting_id(
     db: DbState<'_>,
-    data: SplittingData,
+    data: GetOrCreateSplittingData,
 ) -> crate::Result<i32> {
     match data {
-        SplittingData::Id(id) => Ok(id),
-        SplittingData::Config(data) => Ok(get_or_create_splitting(db, data).await?.id),
+        GetOrCreateSplittingData::Id(id) => Ok(id),
+        GetOrCreateSplittingData::Config(data) => Ok(get_or_create_splitting(db, data).await?.id),
     }
-}
-
-#[derive(Deserialize, Type)]
-pub(crate) struct GetDocumentChunkData {
-    #[serde(rename = "documentId")]
-    document_id: i32,
-    splitting: SplittingData,
 }
 
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn get_document_chunks(
     db: DbState<'_>,
-    data: GetDocumentChunkData,
+    document_id: i32,
+    splitting: GetOrCreateSplittingData,
 ) -> crate::Result<Vec<document_chunk::Data>> {
-    let splitting_id = get_or_create_splitting_id(db.clone(), data.splitting).await?;
+    let splitting_id = get_or_create_splitting_id(db.clone(), splitting).await?;
 
     Ok(db
         .document_chunk()
         .find_many(vec![
-            document_chunk::document_id::equals(data.document_id),
+            document_chunk::document_id::equals(document_id),
             document_chunk::splitting_id::equals(splitting_id),
         ])
         .exec()
@@ -95,8 +91,9 @@ pub(crate) struct CreateChunkData {
 
 #[derive(Deserialize, Type)]
 pub(crate) struct CreateChunksByDocumentData {
+    #[serde(rename = "documentId")]
     document_id: i32,
-    splitting: SplittingData,
+    splitting: GetOrCreateSplittingData,
     chunks: Vec<CreateChunkData>,
 }
 
@@ -140,7 +137,9 @@ pub(crate) struct EmbeddingVectorData {
 
 #[derive(Deserialize, Type)]
 pub(crate) struct GetEmbeddingVectorByMD5Hash {
+    #[serde(rename = "embeddingsConfigId")]
     embeddings_config_id: i32,
+    #[serde(rename = "md5Hash")]
     md5_hash: String,
 }
 
@@ -407,6 +406,7 @@ pub(crate) async fn add_documents_to_collection(
 ///
 /// Collections operations
 ///
+
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn delete_collection_by_id(
@@ -414,9 +414,9 @@ pub(crate) async fn delete_collection_by_id(
     collection_id: i32,
 ) -> crate::Result<collection::Data> {
     delete_collection_on_documents(db.clone(), collection_id).await?;
-    delete_index_profiles_by_id(
+    delete_collections_on_indexes_by_id(
         db.clone(),
-        get_index_profiles_by_collection_id(db.clone(), collection_id)
+        get_collections_on_indexes_by_collection_id(db.clone(), collection_id)
             .await?
             .into_iter()
             .map(|p| p.id)
@@ -443,17 +443,17 @@ pub(crate) async fn get_collection_by_id(
         .await?)
 }
 
-collection::include!(collection_with_profiles { profiles });
+collection::include!(collection_with_indexes { index_profiles });
 
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn get_collections_with_index_profiles(
     db: DbState<'_>,
-) -> crate::Result<Vec<collection_with_profiles::Data>> {
+) -> crate::Result<Vec<collection_with_indexes::Data>> {
     Ok(db
         .collection()
         .find_many(vec![])
-        .include(collection_with_profiles::include())
+        .include(collection_with_indexes::include())
         .exec()
         .await?)
 }
@@ -508,24 +508,118 @@ pub(crate) async fn update_collection_name(
         .await?)
 }
 
+#[derive(Serialize, Type)]
+pub(crate) struct VectorDbClientExData {
+    id: i32,
+    name: String,
+    r#type: String,
+    info: serde_json::Value,
+}
+
+impl VectorDbClientExData {
+    pub(crate) fn from_data(data: vector_db_client::Data) -> crate::Result<Self> {
+        Ok(Self {
+            id: data.id,
+            name: data.name,
+            r#type: data.r#type,
+            info: serde_json::from_str(data.info.as_str())?,
+        })
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_vector_db_client_by_id(
+    db: DbState<'_>,
+    client_id: i32,
+) -> crate::Result<Option<VectorDbClientExData>> {
+    db.vector_db_client()
+        .find_unique(vector_db_client::id::equals(client_id))
+        .exec()
+        .await
+        .map(|opt| opt.map(VectorDbClientExData::from_data).transpose())?
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_vector_db_clients(
+    db: DbState<'_>,
+) -> crate::Result<Vec<VectorDbClientExData>> {
+    db.vector_db_client()
+        .find_many(vec![])
+        .exec()
+        .await
+        .map(|vec| {
+            vec.into_iter()
+                .map(VectorDbClientExData::from_data)
+                .collect::<Result<Vec<_>, _>>()
+        })?
+}
+
+#[derive(Deserialize, Type)]
+pub(crate) struct CreateVectorDbClientData {
+    name: String,
+    r#type: String,
+    info: serde_json::Value,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn create_vector_db_client(
+    db: DbState<'_>,
+    data: CreateVectorDbClientData,
+) -> crate::Result<VectorDbConfigExData> {
+    let info = serde_json::to_string(&data.info)?;
+    db.vector_db_config()
+        .create(data.name, data.r#type, info, vec![])
+        .exec()
+        .await
+        .map(VectorDbConfigExData::from_data)?
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn upsert_vector_db_client(
+    db: DbState<'_>,
+    client_id: i32,
+    data: CreateVectorDbClientData,
+) -> crate::Result<VectorDbClientExData> {
+    let info = serde_json::to_string(&data.info)?;
+    db.vector_db_client()
+        .upsert(
+            vector_db_client::id::equals(client_id),
+            (data.name.clone(), data.r#type.clone(), info.clone(), vec![]),
+            vec![
+                vector_db_client::name::set(data.name),
+                vector_db_client::r#type::set(data.r#type),
+                vector_db_client::info::set(info),
+            ],
+        )
+        .exec()
+        .await
+        .map(VectorDbClientExData::from_data)?
+}
+
 ///
 /// Vector Db Config operations
 ///
 
 #[derive(Serialize, Type)]
-pub(crate) struct GetVectorDbConfigData {
+pub(crate) struct VectorDbConfigExData {
     id: i32,
     name: String,
-    client: String,
+
+    #[serde(rename = "clientType")]
+    client_type: String,
     meta: serde_json::Value,
 }
 
-impl GetVectorDbConfigData {
+impl VectorDbConfigExData {
     pub(crate) fn from_data(data: vector_db_config::Data) -> crate::Result<Self> {
         Ok(Self {
             id: data.id,
             name: data.name,
-            client: data.client,
+            client_type: data.client_type,
             meta: serde_json::from_str(data.meta.as_str())?,
         })
     }
@@ -536,26 +630,26 @@ impl GetVectorDbConfigData {
 pub(crate) async fn get_vector_db_config_by_id(
     db: DbState<'_>,
     vector_db_config_id: i32,
-) -> crate::Result<Option<GetVectorDbConfigData>> {
+) -> crate::Result<Option<VectorDbConfigExData>> {
     db.vector_db_config()
         .find_unique(vector_db_config::id::equals(vector_db_config_id))
         .exec()
         .await
-        .map(|opt| opt.map(GetVectorDbConfigData::from_data).transpose())?
+        .map(|opt| opt.map(VectorDbConfigExData::from_data).transpose())?
 }
 
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn get_vector_db_configs(
     db: DbState<'_>,
-) -> crate::Result<Vec<GetVectorDbConfigData>> {
+) -> crate::Result<Vec<VectorDbConfigExData>> {
     db.vector_db_config()
         .find_many(vec![])
         .exec()
         .await
         .map(|vec| {
             vec.into_iter()
-                .map(GetVectorDbConfigData::from_data)
+                .map(VectorDbConfigExData::from_data)
                 .collect::<Result<Vec<_>, _>>()
         })?
 }
@@ -563,7 +657,8 @@ pub(crate) async fn get_vector_db_configs(
 #[derive(Deserialize, Type)]
 pub(crate) struct CreateVectorDbData {
     name: String,
-    client: String,
+    #[serde(rename = "clientType")]
+    client_type: String,
     meta: serde_json::Value,
 }
 
@@ -572,13 +667,13 @@ pub(crate) struct CreateVectorDbData {
 pub(crate) async fn create_vector_db_config(
     db: DbState<'_>,
     data: CreateVectorDbData,
-) -> crate::Result<GetVectorDbConfigData> {
+) -> crate::Result<VectorDbConfigExData> {
     let meta = serde_json::to_string(&data.meta)?;
     db.vector_db_config()
-        .create(data.name, data.client, meta, vec![])
+        .create(data.name, data.client_type, meta, vec![])
         .exec()
         .await
-        .map(GetVectorDbConfigData::from_data)?
+        .map(VectorDbConfigExData::from_data)?
 }
 
 #[tauri::command]
@@ -587,21 +682,26 @@ pub(crate) async fn upsert_vector_db_config(
     db: DbState<'_>,
     config_id: i32,
     data: CreateVectorDbData,
-) -> crate::Result<GetVectorDbConfigData> {
+) -> crate::Result<VectorDbConfigExData> {
     let meta = serde_json::to_string(&data.meta)?;
     db.vector_db_config()
         .upsert(
             vector_db_config::id::equals(config_id),
-            (data.name.clone(), data.client.clone(), meta.clone(), vec![]),
+            (
+                data.name.clone(),
+                data.client_type.clone(),
+                meta.clone(),
+                vec![],
+            ),
             vec![
                 vector_db_config::name::set(data.name),
-                vector_db_config::client::set(data.client),
+                vector_db_config::client_type::set(data.client_type),
                 vector_db_config::meta::set(meta),
             ],
         )
         .exec()
         .await
-        .map(GetVectorDbConfigData::from_data)?
+        .map(VectorDbConfigExData::from_data)?
 }
 
 ///
@@ -609,14 +709,14 @@ pub(crate) async fn upsert_vector_db_config(
 ///
 
 #[derive(Serialize, Type)]
-pub(crate) struct GetEmbeddingsClientData {
+pub(crate) struct EmbeddingsClientExData {
     id: i32,
     name: String,
     r#type: String,
     info: serde_json::Value,
 }
 
-impl GetEmbeddingsClientData {
+impl EmbeddingsClientExData {
     pub(crate) fn from_data(data: embeddings_client::Data) -> crate::Result<Self> {
         Ok(Self {
             id: data.id,
@@ -631,14 +731,14 @@ impl GetEmbeddingsClientData {
 #[specta::specta]
 pub(crate) async fn get_embeddings_clients(
     db: DbState<'_>,
-) -> crate::Result<Vec<GetEmbeddingsClientData>> {
+) -> crate::Result<Vec<EmbeddingsClientExData>> {
     db.embeddings_client()
         .find_many(vec![])
         .exec()
         .await
         .map(|data| {
             data.into_iter()
-                .map(GetEmbeddingsClientData::from_data)
+                .map(EmbeddingsClientExData::from_data)
                 .collect::<Result<Vec<_>, _>>()
         })?
 }
@@ -648,12 +748,12 @@ pub(crate) async fn get_embeddings_clients(
 pub(crate) async fn get_embeddings_client_by_id(
     db: DbState<'_>,
     client_id: i32,
-) -> crate::Result<Option<GetEmbeddingsClientData>> {
+) -> crate::Result<Option<EmbeddingsClientExData>> {
     db.embeddings_client()
         .find_unique(embeddings_client::id::equals(client_id))
         .exec()
         .await?
-        .map(GetEmbeddingsClientData::from_data)
+        .map(EmbeddingsClientExData::from_data)
         .transpose()
 }
 
@@ -669,13 +769,13 @@ pub(crate) struct CreateEmbeddingsClientData {
 pub(crate) async fn create_embeddings_client(
     db: DbState<'_>,
     data: CreateEmbeddingsClientData,
-) -> crate::Result<GetEmbeddingsClientData> {
+) -> crate::Result<EmbeddingsClientExData> {
     let info = serde_json::to_string(&data.info)?;
     db.embeddings_client()
         .create(data.name, data.r#type, info, vec![])
         .exec()
         .await
-        .map(GetEmbeddingsClientData::from_data)?
+        .map(EmbeddingsClientExData::from_data)?
 }
 
 #[tauri::command]
@@ -684,7 +784,7 @@ pub(crate) async fn upsert_embeddings_client(
     db: DbState<'_>,
     client_id: i32,
     data: CreateEmbeddingsClientData,
-) -> crate::Result<GetEmbeddingsClientData> {
+) -> crate::Result<EmbeddingsClientExData> {
     let info = serde_json::to_string(&data.info)?;
     db.embeddings_client()
         .upsert(
@@ -693,12 +793,12 @@ pub(crate) async fn upsert_embeddings_client(
             vec![
                 embeddings_client::name::set(data.name),
                 embeddings_client::r#type::set(data.r#type),
-                embeddings_client::r#type::set(info),
+                embeddings_client::info::set(info),
             ],
         )
         .exec()
         .await
-        .map(GetEmbeddingsClientData::from_data)?
+        .map(EmbeddingsClientExData::from_data)?
 }
 
 ///
@@ -709,6 +809,7 @@ pub(crate) async fn upsert_embeddings_client(
 pub(crate) struct GetEmbeddingsConfigData {
     id: i32,
     name: String,
+    #[serde(rename = "clientType")]
     client_type: String,
     meta: serde_json::Value,
 }
@@ -773,6 +874,7 @@ pub(crate) async fn get_embeddings_configs(
 #[derive(Deserialize, Type)]
 pub(crate) struct CreateEmbeddingsConfigData {
     name: String,
+    #[serde(rename = "clientType")]
     client_type: String,
     meta: serde_json::Value,
 }
@@ -820,60 +922,13 @@ pub(crate) async fn upsert_embeddings_config(
 }
 
 ///
-/// Collection Index Profile operations
+/// Index Profile operations
 ///
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn delete_index_profiles_by_id(
-    db: DbState<'_>,
-    index_profile_ids: Vec<i32>,
-) -> crate::Result<i32> {
-    delete_sessions_by_index_profile_ids(db.clone(), index_profile_ids.clone()).await?;
-    Ok(db
-        .collection_index_profile()
-        .delete_many(vec![collection_index_profile::id::in_vec(
-            index_profile_ids,
-        )])
-        .exec()
-        .await? as i32)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub(crate) async fn get_index_profiles_by_collection_id(
-    db: DbState<'_>,
-    collection_id: i32,
-) -> crate::Result<Vec<collection_index_profile::Data>> {
-    Ok(db
-        .collection_index_profile()
-        .find_many(vec![collection_index_profile::collection_id::equals(
-            collection_id,
-        )])
-        .exec()
-        .await?)
-}
-
-collection_index_profile::include!(index_profile_with_all {
-    splitting
-    embeddings_config
-    vector_db_config
-});
-
-#[tauri::command]
-#[specta::specta]
-pub(crate) async fn get_index_profiles_by_collection_id_with_all(
-    db: DbState<'_>,
-    collection_id: i32,
-) -> crate::Result<Vec<index_profile_with_all::Data>> {
-    Ok(db
-        .collection_index_profile()
-        .find_many(vec![collection_index_profile::collection_id::equals(
-            collection_id,
-        )])
-        .include(index_profile_with_all::include())
-        .exec()
-        .await?)
+pub(crate) async fn get_index_profiles(db: DbState<'_>) -> crate::Result<Vec<index_profile::Data>> {
+    Ok(db.index_profile().find_many(vec![]).exec().await?)
 }
 
 #[tauri::command]
@@ -881,10 +936,118 @@ pub(crate) async fn get_index_profiles_by_collection_id_with_all(
 pub(crate) async fn get_index_profile_by_id(
     db: DbState<'_>,
     index_profile_id: i32,
-) -> crate::Result<Option<collection_index_profile::Data>> {
+) -> crate::Result<Option<index_profile::Data>> {
     Ok(db
-        .collection_index_profile()
-        .find_unique(collection_index_profile::id::equals(index_profile_id))
+        .index_profile()
+        .find_unique(index_profile::id::equals(index_profile_id))
+        .exec()
+        .await?)
+}
+
+#[derive(Deserialize, Type)]
+pub(crate) struct CreateIndexProfileData {
+    name: String,
+    #[serde(rename = "splittingId")]
+    splitting_id: i32,
+    #[serde(rename = "embeddingsClientId")]
+    embeddings_client_id: i32,
+    #[serde(rename = "embeddingsConfigId")]
+    embeddings_config_id: i32,
+    #[serde(rename = "vectorDbClientId")]
+    vector_db_client_id: i32,
+    #[serde(rename = "vectorDbConfigId")]
+    vector_db_config_id: i32,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn create_index_profile(
+    db: DbState<'_>,
+    data: CreateIndexProfileData,
+) -> crate::Result<index_profile::Data> {
+    Ok(db
+        .index_profile()
+        .create(
+            data.name,
+            splitting::id::equals(data.splitting_id),
+            embeddings_client::id::equals(data.embeddings_client_id),
+            embeddings_config::id::equals(data.embeddings_config_id),
+            vector_db_client::id::equals(data.vector_db_client_id),
+            vector_db_config::id::equals(data.vector_db_config_id),
+            vec![],
+        )
+        .exec()
+        .await?)
+}
+
+///
+/// Collection on Index Profile operations
+///
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn delete_collections_on_indexes_by_id(
+    db: DbState<'_>,
+    collection_index_ids: Vec<i32>,
+) -> crate::Result<i32> {
+    delete_sessions_by_collection_index_ids(db.clone(), collection_index_ids.clone()).await?;
+    Ok(db
+        .collections_on_index_profiles()
+        .delete_many(vec![collections_on_index_profiles::id::in_vec(
+            collection_index_ids,
+        )])
+        .exec()
+        .await? as i32)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_collections_on_indexes_by_collection_id(
+    db: DbState<'_>,
+    collection_id: i32,
+) -> crate::Result<Vec<collections_on_index_profiles::Data>> {
+    Ok(db
+        .collections_on_index_profiles()
+        .find_many(vec![collections_on_index_profiles::collection_id::equals(
+            collection_id,
+        )])
+        .exec()
+        .await?)
+}
+
+collections_on_index_profiles::include!(collection_on_index_profile_with_all {
+    index: include {
+        embeddings_client embeddings_config vector_db_client vector_db_config
+    }
+});
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_collections_on_indexes_by_collection_id_with_all(
+    db: DbState<'_>,
+    collection_id: i32,
+) -> crate::Result<Vec<collection_on_index_profile_with_all::Data>> {
+    Ok(db
+        .collections_on_index_profiles()
+        .find_many(vec![collections_on_index_profiles::collection_id::equals(
+            collection_id,
+        )])
+        .include(collection_on_index_profile_with_all::include())
+        .exec()
+        .await?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_collection_on_index_by_id(
+    db: DbState<'_>,
+    collection_index_id: i32,
+) -> crate::Result<Option<collections_on_index_profiles::Data>> {
+    Ok(db
+        .collections_on_index_profiles()
+        .find_unique(collections_on_index_profiles::id::equals(
+            collection_index_id,
+        ))
         .exec()
         .await?)
 }
@@ -892,26 +1055,27 @@ pub(crate) async fn get_index_profile_by_id(
 #[derive(Deserialize, Type)]
 pub(crate) struct CreateCollectionIndexProfileData {
     name: String,
+    #[serde(rename = "collectionId")]
     collection_id: i32,
-    splitting_id: i32,
-    embeddings_config_id: i32,
-    vector_db_config_id: i32,
+    #[serde(rename = "indexId")]
+    index_id: i32,
+    #[serde(rename = "indexedDocuments")]
+    indexed_documents: String,
 }
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn create_collection_index_profile(
+pub(crate) async fn create_collection_on_index(
     db: DbState<'_>,
     data: CreateCollectionIndexProfileData,
-) -> crate::Result<collection_index_profile::Data> {
+) -> crate::Result<collections_on_index_profiles::Data> {
     Ok(db
-        .collection_index_profile()
+        .collections_on_index_profiles()
         .create(
             data.name,
             collection::id::equals(data.collection_id),
-            splitting::id::equals(data.splitting_id),
-            embeddings_config::id::equals(data.embeddings_config_id),
-            vector_db_config::id::equals(data.vector_db_config_id),
+            index_profile::id::equals(data.index_id),
+            data.indexed_documents,
             vec![],
         )
         .exec()
@@ -924,14 +1088,14 @@ pub(crate) async fn create_collection_index_profile(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn delete_sessions_by_index_profile_id(
+pub(crate) async fn delete_sessions_by_collection_index_id(
     db: DbState<'_>,
-    index_profile_id: i32,
+    collection_index_id: i32,
 ) -> crate::Result<i32> {
     Ok(db
         .session()
-        .delete_many(vec![session::collection_profile_id::equals(
-            index_profile_id,
+        .delete_many(vec![session::collections_on_index_profiles_id::equals(
+            collection_index_id,
         )])
         .exec()
         .await? as i32)
@@ -939,14 +1103,14 @@ pub(crate) async fn delete_sessions_by_index_profile_id(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn delete_sessions_by_index_profile_ids(
+pub(crate) async fn delete_sessions_by_collection_index_ids(
     db: DbState<'_>,
-    index_profile_ids: Vec<i32>,
+    collection_index_ids: Vec<i32>,
 ) -> crate::Result<i32> {
     Ok(db
         .session()
-        .delete_many(vec![session::collection_profile_id::in_vec(
-            index_profile_ids,
+        .delete_many(vec![session::collections_on_index_profiles_id::in_vec(
+            collection_index_ids,
         )])
         .exec()
         .await? as i32)
@@ -974,6 +1138,7 @@ pub(crate) async fn get_sessions(db: DbState<'_>) -> crate::Result<Vec<session::
 #[derive(Deserialize, Type)]
 pub(crate) struct CreateSessionsData {
     name: String,
+    #[serde(rename = "collectionIndexProfileId")]
     collection_profile_id: i32,
     history: String,
 }
@@ -988,7 +1153,7 @@ pub(crate) async fn create_session(
         .session()
         .create(
             data.name,
-            collection_index_profile::id::equals(data.collection_profile_id),
+            collections_on_index_profiles::id::equals(data.collection_profile_id),
             data.history,
             vec![],
         )

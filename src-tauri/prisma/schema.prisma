@@ -29,9 +29,9 @@ model Splitting {
   chunkSize    Int
   chunkOverlap Int
 
-  documents               SplittingsOnDocuments[]
-  documentChunks          DocumentChunk[]
-  collectionIndexProfiles CollectionIndexProfile[]
+  documents      SplittingsOnDocuments[]
+  documentChunks DocumentChunk[]
+  indexes        IndexProfile[]
 
   @@unique([chunkOverlap, chunkSize])
 }
@@ -62,8 +62,8 @@ model Collection {
   id   Int    @id @default(autoincrement())
   name String
 
-  documents CollectionsOnDocuments[]
-  profiles  CollectionIndexProfile[]
+  documents     CollectionsOnDocuments[]
+  indexProfiles CollectionsOnIndexProfiles[]
 }
 
 model CollectionsOnDocuments {
@@ -82,6 +82,8 @@ model EmbeddingsClient {
   type String
   info String
 
+  indexes IndexProfile[]
+
   @@unique([type, info])
 }
 
@@ -91,8 +93,8 @@ model EmbeddingsConfig {
   clientType String
   meta       String
 
-  collectionIndexProfiles          CollectionIndexProfile[]
-  EmbeddingVectorsOnDocumentChunks EmbeddingVectorsOnDocumentChunks[]
+  vectorsOnChunks EmbeddingVectorsOnDocumentChunks[]
+  indexes         IndexProfile[]
 }
 
 model EmbeddingVectorsOnDocumentChunks {
@@ -105,27 +107,53 @@ model EmbeddingVectorsOnDocumentChunks {
   @@id([embeddingsConfigId, md5Hash])
 }
 
+model VectorDbClient {
+  id   Int    @id @default(autoincrement())
+  name String
+  type String
+  info String
+
+  indexes IndexProfile[]
+
+  @@unique([type, info])
+}
+
 model VectorDbConfig {
   id         Int    @id @default(autoincrement())
   name       String
-  client     String
+  clientType String
   meta       String
 
-  collectionIndexProfiles CollectionIndexProfile[]
+  indexes IndexProfile[]
 }
 
-model CollectionIndexProfile {
+model IndexProfile {
   id               Int              @id @default(autoincrement())
   name             String
-  collection       Collection       @relation(fields: [collectionId], references: [id])
   splitting        Splitting        @relation(fields: [splittingId], references: [id])
+  embeddingsClient EmbeddingsClient @relation(fields: [embeddingsClientId], references: [id])
   embeddingsConfig EmbeddingsConfig @relation(fields: [embeddingsConfigId], references: [id])
-  vectorDbConfig   VectorDbConfig   @relation(fields: [vectordbConfigId], references: [id])
+  vectorDbClient   VectorDbClient   @relation(fields: [vectorDbClientId], references: [id])
+  vectorDbConfig   VectorDbConfig   @relation(fields: [vectorDbConfigId], references: [id])
 
-  collectionId       Int
   splittingId        Int
+  embeddingsClientId Int
   embeddingsConfigId Int
-  vectordbConfigId   Int
+  vectorDbClientId   Int
+  vectorDbConfigId   Int
+
+  collections CollectionsOnIndexProfiles[]
+}
+
+model CollectionsOnIndexProfiles {
+  id               Int          @id @default(autoincrement())
+  name             String
+  collection       Collection   @relation(fields: [collectionId], references: [id])
+  index            IndexProfile @relation(fields: [indexId], references: [id])
+  indexedDocuments String
+
+  collectionId Int
+  indexId      Int
 
   sessions Session[]
 
@@ -133,10 +161,10 @@ model CollectionIndexProfile {
 }
 
 model Session {
-  id                     Int                    @id @default(autoincrement())
+  id                     Int                        @id @default(autoincrement())
   name                   String
-  collectionIndexProfile CollectionIndexProfile @relation(fields: [collectionProfileId], references: [id])
+  collectionIndexProfile CollectionsOnIndexProfiles @relation(fields: [collectionIndexProfileId], references: [id])
   history                String
 
-  collectionProfileId Int
+  collectionIndexProfileId Int
 }
