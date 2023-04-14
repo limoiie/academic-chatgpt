@@ -1,57 +1,74 @@
 <template>
   <div class="w-full h-full flex">
     <div class="m-auto flex flex-col">
-      <a-spin class="m-auto!" :spinning="isLoading" />
-      <div>Prepare new collection...</div>
+      <div v-if="isLoading">
+        <a-spin class="m-auto!" :spinning="isLoading" />
+        <div>Prepare new collection...</div>
+      </div>
+      <div v-else-if="errorMessage">
+        <a-result status="error">
+          <template #title>Failed to create a new collection</template>
+          <template #subTitle>{{ errorMessage }}</template>
+        </a-result>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { createCollection, errToString } from '#imports';
+import { errToString } from '#imports';
 import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { useCollectionStore } from '~/store/collections';
+import { useIndexProfilesStore } from '~/store/indexProfiles';
+import { uniqueName } from '~/utils/strings';
 
-const isLoading = ref(true);
+const isLoading = ref<boolean>(false);
+const errorMessage = ref<string>('');
 
 const collectionStore = useCollectionStore();
+const indexProfilesStore = useIndexProfilesStore();
+
 const { collectionNames } = storeToRefs(collectionStore);
+const { defaultIndexProfile } = storeToRefs(indexProfilesStore);
 
-await collectionStore
-  .loadFromDb()
-  .catch((e) => message.error(`Failed to create collection: ${errToString(e)}`))
-  .finally(() => (isLoading.value = false));
-
-function newCollectionName() {
-  let i = 0;
-  while (true) {
-    i += 1;
-    const newName = `Collection ${i}`;
-    if (collectionNames.value.findIndex((name) => name == newName) == -1) {
-      return newName;
-    }
-  }
-}
-
+/**
+ * Create a new collection and a new index profile for it.
+ *
+ * @returns The new collection.
+ */
 async function prepareNewCollection() {
-  const newName = newCollectionName();
-  return await createCollection({
-    documents: [],
-    name: newName,
+  if (!defaultIndexProfile.value) {
+    throw new Error('No default index profile');
+  }
+
+  const newCollectionName = uniqueName('Collection', collectionNames.value);
+  const collection = await createCollection({ documents: [], name: newCollectionName });
+  await createCollectionOnIndex({
+    name: defaultIndexProfile.value.name,
+    collectionId: collection.id,
+    indexId: defaultIndexProfile.value.id,
+    indexedDocuments: '',
   });
+
+  await collectionStore.reloadCollectionById(collection.id);
+  return collection;
 }
 
-await prepareNewCollection()
-  .then(async (collection) => {
-    await collectionStore.reloadCollectionById(collection.id);
-
+await Promise.resolve((isLoading.value = true))
+  .then(async () => {
+    await collectionStore.loadFromDb();
+    await indexProfilesStore.load();
+    return await prepareNewCollection();
+  })
+  .then((collection) => {
     message.info(`New collection ${collection.name}#${collection.id}`);
     navigateTo(`/main/collections/${collection.id}/manage`);
   })
-  .catch((e) => {
-    message.error(`Failed to create collection: ${errToString(e)}`);
-  });
+  .catch((error) => {
+    errorMessage.value = errToString(error);
+  })
+  .finally(() => (isLoading.value = false));
 </script>
 
 <style lang="sass" scoped>

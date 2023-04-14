@@ -25,19 +25,20 @@
 
 <script setup lang="ts">
 import { useAsyncData } from '#app';
-import { createSession, getIndexProfileById, getSessions } from '~/utils/bindings';
+import { createSession, getCollectionOnIndexById, getSessions } from "~/utils/bindings";
+import { uniqueName } from "~/utils/strings";
 
 const route = useRoute();
 const indexProfileId = parseInt(route.params['indexId'] as string);
 const { data: indexProfile } = useAsyncData('indexProfile', async () => {
-  return await getIndexProfileById(indexProfileId);
+  return await getCollectionOnIndexById(indexProfileId);
 });
 
 const activeSessionId = ref<number | undefined>(undefined);
 
 const sessions = ref<{ title: string; key: number }[]>([]);
 const { data: chatSessions } = useAsyncData('chatSessions', async () => {
-  return (await getSessions()).filter((session) => session.collectionProfileId === indexProfileId);
+  return (await getSessions()).filter((session) => session.collectionIndexProfileId === indexProfileId);
 });
 const hasNoSession = computed(() => !chatSessions.value?.length);
 watch(chatSessions, (newChatSessions) => {
@@ -63,20 +64,10 @@ async function switchTo(tabIndex: number) {
   }
 }
 
-function parseTabIndex(tabName: string) {
-  return tabName == 'Chat' ? 1 : tabName.startsWith('Chat-') ? parseInt(tabName.substring(5)) : 0;
-}
-
-function currentMaxTabIndex() {
-  return sessions.value.map((s) => parseTabIndex(s.title)).reduce((prev, curr) => Math.max(prev, curr), 0);
-}
-
 async function add() {
-  const tabIndex = currentMaxTabIndex() + 1;
-  const title = tabIndex == 1 ? 'Chat' : 'Chat-' + tabIndex.toString();
   const chatSession = await createSession({
-    collection_profile_id: indexProfileId,
-    name: title,
+    collectionIndexProfileId: indexProfileId,
+    name: uniqueName('Chat', sessions.value.map((s) => s.title)),
     history: '{}',
   });
   chatSessions.value = [...(chatSessions.value || []), chatSession];

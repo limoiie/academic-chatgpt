@@ -73,7 +73,7 @@ import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { stringify } from 'yaml';
 import { useCollectionStore } from '~/store/collections';
-import { deleteIndexProfilesById, IndexProfileWithAll } from '~/utils/bindings';
+import { deleteCollectionsOnIndexesById, CollectionOnIndexProfileWithAll } from '~/utils/bindings';
 
 const columns = ref<TableColumnsType>([
   {
@@ -134,19 +134,21 @@ const indexProfilesUiData = computed(() => indexProfiles.value.map(dbDataToUi));
 interface IndexProfileUiData {
   id: number;
   name: string;
+  indexName: string;
   splitting: string;
   embeddingsConfig: string;
   vectorDbConfig: string;
-  origin: IndexProfileWithAll;
+  origin: CollectionOnIndexProfileWithAll;
 }
 
-function dbDataToUi(indexProfile: IndexProfileWithAll) {
+function dbDataToUi(indexProfile: CollectionOnIndexProfileWithAll) {
   return {
     id: indexProfile.id,
     name: indexProfile.name,
-    splitting: [indexProfile.splitting.chunkSize.toString(), indexProfile.splitting.chunkOverlap.toString()].join('-'),
-    embeddingsConfig: indexProfile.embeddingsConfig.name,
-    vectorDbConfig: indexProfile.vectorDbConfig.name,
+    indexName: indexProfile.index.name,
+    splitting: indexProfile.index.splittingId.toString(),
+    embeddingsConfig: indexProfile.index.embeddingsConfig.name,
+    vectorDbConfig: indexProfile.index.vectorDbConfig.name,
     origin: indexProfile,
   } as IndexProfileUiData;
 }
@@ -177,7 +179,7 @@ async function removeSelected() {
 
 async function removeIndexProfiles(indexProfileIds: number[]) {
   if (indexProfileIds.length > 0) {
-    const deleted = await deleteIndexProfilesById(indexProfileIds);
+    const deleted = await deleteCollectionsOnIndexesById(indexProfileIds);
     if (deleted != indexProfileIds.length) {
       message.warn(`Failed to delete: ${indexProfileIds.length} to delete, only ${deleted} deleted`);
     }

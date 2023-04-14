@@ -25,10 +25,10 @@
       </template>
 
       <template #extra>
-        <a-tooltip title="Default Index Profile">
+        <a-tooltip title="Active Index Profile" placement="left">
           <a-select
             :value="formState.defaultIndex"
-            :options="collection.profiles"
+            :options="collection.indexProfiles"
             :field-names="{ label: 'name', value: 'id', options: 'options' }"
           />
         </a-tooltip>
@@ -77,7 +77,7 @@ const collection = computed(() => {
   const collection = collections.value.find((e) => e.id == id);
   if (collection) {
     formState.name = collection.name;
-    formState.defaultIndex = collection.profiles.at(0)?.id;
+    formState.defaultIndex = collection.indexProfiles.at(0)?.id;
   }
   return collection;
 });
@@ -113,6 +113,14 @@ async function tryUpdateCollectionName() {
     .finally(() => {
       isUpdatingName.value = false;
     });
+}
+
+async function checkIndexSyncStatus() {
+  message.warn('Not implemented yet');
+}
+
+async function syncIndex() {
+  message.warn('Not implemented yet');
 }
 </script>
 

@@ -34,9 +34,9 @@
 <script setup lang="ts">
 import { message } from 'ant-design-vue';
 import { ref } from 'vue';
-import { GetEmbeddingsClientData } from '~/utils/bindings';
+import { EmbeddingsClientExData } from '~/utils/bindings';
 
-const { id = null, value } = defineProps<{ id?: number; value: GetEmbeddingsClientData | undefined }>();
+const { id = null, value } = defineProps<{ id?: number; value: EmbeddingsClientExData | undefined }>();
 const emits = defineEmits(['update:id', 'update:value']);
 
 const selectedId = ref<number | null>(id);
@@ -56,7 +56,7 @@ const allClientTypes = ref([
   },
 ]);
 
-function dbDataToUi(config: GetEmbeddingsClientData) {
+function dbDataToUi(config: EmbeddingsClientExData) {
   return {
     value: config.id,
     label: config.name,
@@ -71,7 +71,7 @@ const formState = ref<CreateEmbeddingsClientFormState>({
 
 const { data: availableClients } = useAsyncData('availableEmbeddingsClients', async () => {
   isLoading.value = true;
-  let clients: GetEmbeddingsClientData[] = [];
+  let clients: EmbeddingsClientExData[] = [];
   try {
     clients = await getEmbeddingsClients();
     selectedId.value = selectedId.value || clients[0]?.id;

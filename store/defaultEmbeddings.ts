@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import {
+  EmbeddingsClientExData,
   getEmbeddingsClientById,
-  GetEmbeddingsClientData,
   getEmbeddingsConfigById,
   GetEmbeddingsConfigData,
   upsertEmbeddingsClient,
@@ -20,16 +20,16 @@ const STORE_KEY = 'defaultEmbeddingsStore';
 export const useDefaultEmbeddingsStore = defineStore('defaultEmbeddings', () => {
   const { $tauriStore } = useNuxtApp();
 
-  const defaultClient = ref<GetEmbeddingsClientData>({
+  const defaultClient = ref<EmbeddingsClientExData>({
     id: -1,
-    name: 'openai-defaultUser',
+    name: 'openai',
     type: 'openai' as EmbeddingsClientType,
     info: {},
   });
   const defaultConfig = ref<GetEmbeddingsConfigData>({
     id: -1,
-    name: 'openai-defaultConfig',
-    client_type: 'openai' as EmbeddingsClientType,
+    name: 'openai',
+    clientType: 'openai' as EmbeddingsClientType,
     meta: {},
   });
 
@@ -62,17 +62,18 @@ export const useDefaultEmbeddingsStore = defineStore('defaultEmbeddings', () => 
       type: defaultClient.value.type,
       info: defaultClient.value.info,
     });
-
     defaultConfig.value = await upsertEmbeddingsConfig(defaultConfig.value.id, {
       name: defaultConfig.value.name,
-      client_type: defaultConfig.value.client_type,
+      clientType: defaultConfig.value.clientType,
       meta: defaultConfig.value.meta,
     });
   }
 
   function validateStore() {
-    if (defaultConfig.value.client_type != defaultClient.value.type) {
-      throw new Error('The client_type of defaultConfig should be consistent with the type of defaultClient.');
+    if (defaultConfig.value.clientType != defaultClient.value.type) {
+      throw new Error(
+        `Client type ${defaultClient.value.type} does not match config type ${defaultConfig.value.clientType}`,
+      );
     }
   }
 

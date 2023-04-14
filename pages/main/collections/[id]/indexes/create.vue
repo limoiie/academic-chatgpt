@@ -123,14 +123,13 @@ import { useDefaultEmbeddingsStore } from '~/store/defaultEmbeddings';
 import { useDefaultVectorDbStore } from '~/store/defaultVectorDb';
 import { ProgressLogger } from '~/types';
 import {
-  CollectionIndexProfile,
-  createCollectionIndexProfile,
-  GetEmbeddingsClientData,
+  CollectionsOnIndexProfiles,
+  createCollectionOnIndex,
+  EmbeddingsClientExData,
   GetEmbeddingsConfigData,
-  GetVectorDbConfigData,
+  VectorDbConfigExData,
 } from '~/utils/bindings';
 import { createEmbeddings } from '~/utils/embeddings';
-import { namespaceOfProfile } from '~/utils/index_profiles';
 import { Indexer } from '~/utils/indexer';
 import { notInValidate } from '~/utils/validates';
 import { createVectorstore } from '~/utils/vectorstores';
@@ -145,9 +144,9 @@ interface FormState {
   name: string;
   chunkOverlap: number;
   chunkSize: number;
-  embeddingsClient: GetEmbeddingsClientData | undefined;
+  embeddingsClient: EmbeddingsClientExData | undefined;
   embeddingsConfig: GetEmbeddingsConfigData | undefined;
-  vectorDbConfig: GetVectorDbConfigData | undefined;
+  vectorDbConfig: VectorDbConfigExData | undefined;
 }
 
 const formState = reactive<FormState>({
@@ -176,7 +175,7 @@ const { collections, indexProfilesByCollectionId } = storeToRefs(collectionStore
 collectionStores.loadFromDb();
 collectionStores.loadIndexProfilesFromDb();
 
-const indexProfile = ref<CollectionIndexProfile | null>(null);
+const indexProfile = ref<CollectionsOnIndexProfiles | null>(null);
 const collection = computed(() => collections.value.find((c) => c.id == collectionId));
 const indexProfiles = computed(() => indexProfilesByCollectionId.value.get(collectionId) || []);
 const existingIndexProfileNames = computed(() => indexProfiles.value.map((p) => p.name));
@@ -229,8 +228,8 @@ async function createIndex(
   chunkOverlap: number,
   chunkSize: number,
   embeddingsConfig: GetEmbeddingsConfigData,
-  embeddingsClient: GetEmbeddingsClientData,
-  vectorDbConfig: GetVectorDbConfigData,
+  embeddingsClient: EmbeddingsClientExData,
+  vectorDbConfig: VectorDbConfigExData,
 ) {
   progress.start();
   showProcessing.value = true;
@@ -243,18 +242,19 @@ async function createIndex(
       progress.totalNum.value = documents.length;
 
       const splitting = await getOrCreateSplitting({
-        chunk_overlap: chunkOverlap,
-        chunk_size: chunkSize,
+        chunkOverlap: chunkOverlap,
+        chunkSize: chunkSize,
       });
-      indexProfile.value = await createCollectionIndexProfile({
+      indexProfile.value = await createCollectionOnIndex({
         name: name,
-        splitting_id: splitting.id,
-        collection_id: collectionId,
-        embeddings_config_id: embeddingsConfig.id,
-        vector_db_config_id: vectorDbConfig.id,
+        collectionId: collectionId,
+        indexId: -1,
+        indexedDocuments: '[]',
       });
 
-      const namespace = namespaceOfProfile(indexProfile.value);
+      // fixme
+      const namespace = 'todo-namespace';
+
       const embeddings = await createEmbeddings(embeddingsClient, embeddingsConfig);
       const vectorstore = await createVectorstore(vectorDbConfig, embeddings, namespace);
       const indexer = new Indexer(embeddings, vectorstore, embeddingsConfig.id, splitting, (...messages: any[]) => {
@@ -273,7 +273,7 @@ async function createIndex(
     } catch (e: any) {
       if (indexProfile.value) {
         progress.info(`Cleaning indexProfile ${indexProfile.value?.id}`);
-        await deleteIndexProfilesById([indexProfile.value?.id]).catch((e) =>
+        await deleteCollectionsOnIndexesById([indexProfile.value?.id]).catch((e) =>
           progress.error(`Failed to clean: ${e.toString()}`),
         );
       }

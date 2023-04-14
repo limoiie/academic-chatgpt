@@ -1,14 +1,14 @@
 import { Embeddings } from 'langchain/embeddings';
 import { PineconeStore, VectorStore } from 'langchain/vectorstores';
-import { GetVectorDbConfigData } from '~/utils/bindings';
+import { VectorDbConfigExData } from '~/utils/bindings';
 import { CrossPineconeClient } from '~/utils/pinecone';
 
 export async function createVectorstore(
-  vectorstoreConfig: GetVectorDbConfigData,
+  vectorstoreConfig: VectorDbConfigExData,
   embeddings: Embeddings,
   namespace: string,
 ): Promise<VectorStore> {
-  switch (vectorstoreConfig.client) {
+  switch (vectorstoreConfig.clientType) {
     case 'pinecone':
       const meta: PineconeVectorstoreConfigMeta = vectorstoreConfig.meta;
       const client = new CrossPineconeClient();
@@ -25,6 +25,6 @@ export async function createVectorstore(
       });
 
     default:
-      throw Error(`Not supported client: ${vectorstoreConfig.client}`);
+      throw Error(`Not supported client: ${vectorstoreConfig.clientType}`);
   }
 }

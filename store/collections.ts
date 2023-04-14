@@ -1,17 +1,17 @@
 import { defineStore } from 'pinia';
 import { Ref } from 'vue';
 import {
-  CollectionWithProfiles,
+  CollectionWithIndexes,
   deleteCollectionById as removeCollectionById,
-  IndexProfileWithAll,
+  CollectionOnIndexProfileWithAll,
 } from '~/utils/bindings';
 
 export const useCollectionStore = defineStore('collections', () => {
   const loaded = ref(false);
 
-  const collections: Ref<CollectionWithProfiles[]> = ref([]);
+  const collections: Ref<CollectionWithIndexes[]> = ref([]);
   const collectionNames = computed(() => collections.value.map((c) => c.name));
-  const indexProfilesByCollectionId: Ref<Map<number, IndexProfileWithAll[]>> = ref(new Map());
+  const indexProfilesByCollectionId: Ref<Map<number, CollectionOnIndexProfileWithAll[]>> = ref(new Map());
 
   async function loadFromDb() {
     if (!loaded.value) {
@@ -23,7 +23,7 @@ export const useCollectionStore = defineStore('collections', () => {
   async function loadIndexProfilesFromDb() {
     const map = new Map();
     for (const collection of collections.value) {
-      const indexProfiles = await getIndexProfilesByCollectionIdWithAll(collection.id);
+      const indexProfiles = await getCollectionsOnIndexesByCollectionIdWithAll(collection.id);
       map.set(collection.id, indexProfiles);
     }
     indexProfilesByCollectionId.value = map;
@@ -45,7 +45,7 @@ export const useCollectionStore = defineStore('collections', () => {
       }
     }
 
-    const indexProfiles = await getIndexProfilesByCollectionIdWithAll(id);
+    const indexProfiles = await getCollectionsOnIndexesByCollectionIdWithAll(id);
     indexProfilesByCollectionId.value.set(id, indexProfiles);
   }
 

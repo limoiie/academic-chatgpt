@@ -11,7 +11,7 @@ export class Indexer {
     public vectorstore: VectorStore,
     public embeddingsConfigId: number,
     public splitting: Splitting,
-    public onProgress = (..._: any []) => {},
+    public onProgress = (..._: any[]) => {},
   ) {}
 
   /**
@@ -54,10 +54,7 @@ export class Indexer {
    * Fetch existing chunks if there were.
    */
   private async fetchChunksFromDb(document: Document) {
-    return await getDocumentChunks({
-      documentId: document.id,
-      splitting: { Id: this.splitting.id },
-    });
+    return await getDocumentChunks(document.id, { Id: this.splitting.id });
   }
 
   /**
@@ -73,8 +70,8 @@ export class Indexer {
     const chunksBeingUploaded: DocumentChunk[] = [];
     const chunksBeingIndexed = await asyncFilter(chunks, async (chunk) => {
       const embeddingsResult = await getEmbeddingVectorByMd5hash({
-        embeddings_config_id: this.embeddingsConfigId,
-        md5_hash: chunk.md5Hash,
+        embeddingsConfigId: this.embeddingsConfigId,
+        md5Hash: chunk.md5Hash,
       });
       if (embeddingsResult != null) {
         vectors.push(embeddingsResult.vector);
@@ -88,10 +85,10 @@ export class Indexer {
   }
 
   private async embeddingChunksAndStoreIntoDb(chunks: DocumentChunk[]) {
-    this.onProgress(`Embedding ${chunks.length} chunks...`)
+    this.onProgress(`Embedding ${chunks.length} chunks...`);
     const vectors = await this.embeddings.embedDocuments(chunks.map((c) => c.content));
 
-    this.onProgress(`Storing embedding vectors into database...`)
+    this.onProgress(`Storing embedding vectors into database...`);
     await upsertEmbeddingVectorByMd5hashInBatch(
       chunks
         .map((chunk, i) => {
@@ -101,8 +98,8 @@ export class Indexer {
           return {
             vector: vector,
             identity: {
-              md5_hash: chunk.md5Hash,
-              embeddings_config_id: this.embeddingsConfigId,
+              md5Hash: chunk.md5Hash,
+              embeddingsConfigId: this.embeddingsConfigId,
             },
           };
         }),
@@ -136,7 +133,7 @@ export class Indexer {
     // store into db
     return await createChunksByDocument({
       chunks: rawChunks.map(uiDocumentChunks2Db),
-      document_id: document.id,
+      documentId: document.id,
       splitting: { Id: this.splitting.id },
     });
   }

@@ -38,9 +38,17 @@ interface CompleteConfig {
 
 const STORE_KEY = 'defaultCompleteStore';
 
+/**
+ * Default completion agent store.
+ *
+ * This store is used to store the default client info and configuration of a
+ * completion agent. The complete agent will be used for completing the user's
+ * question or other completion-like queries.
+ */
 export const useDefaultCompleteStore = defineStore('defaultComplete', () => {
   const { $tauriStore } = useNuxtApp();
 
+  /// Set openai as the default completion agent.
   const defaultConfig = ref<CompleteConfig>({
     client: 'openai' as CompleteClientType,
     meta: {

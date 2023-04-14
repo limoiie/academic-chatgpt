@@ -55,12 +55,12 @@
 <script setup lang="ts">
 import { message } from 'ant-design-vue';
 import { ref } from 'vue';
-import { GetVectorDbConfigData, getVectorDbConfigs } from '~/utils/bindings';
+import { VectorDbConfigExData, getVectorDbConfigs } from '~/utils/bindings';
 
 const isLoadingConfigs = ref(false);
 const isCreatingConfig = ref(false);
 
-const { id = null, value } = defineProps<{ id?: number; value: GetVectorDbConfigData | undefined }>();
+const { id = null, value } = defineProps<{ id?: number; value: VectorDbConfigExData | undefined }>();
 const emits = defineEmits(['update:id', 'update:value']);
 
 const pineconeMetrics = [
@@ -86,7 +86,7 @@ watch(selectedConfigId, (newConfigId) => {
   emits('update:value', value);
 });
 
-function dbDataToUi(config: GetVectorDbConfigData) {
+function dbDataToUi(config: VectorDbConfigExData) {
   return {
     value: config.id,
     label: config.name,
@@ -95,7 +95,7 @@ function dbDataToUi(config: GetVectorDbConfigData) {
 
 const { data: availableConfigs } = useAsyncData('availableVectorDbConfigs', async () => {
   isLoadingConfigs.value = true;
-  let data: GetVectorDbConfigData[] = [];
+  let data: VectorDbConfigExData[] = [];
   try {
     data = await getVectorDbConfigs();
     selectedConfigId.value = selectedConfigId.value || data[0]?.id;
@@ -114,7 +114,7 @@ async function onCreate() {
 
       // update db
       const newDbConf = await createVectorDbConfig({
-        client: formState.value.clientType,
+        clientType: formState.value.clientType,
         name: formState.value.name,
         meta: formState.value.meta,
       });

@@ -59,7 +59,7 @@ import { storeToRefs } from 'pinia';
 import { upperFirst } from 'scule';
 import { ref } from 'vue';
 import { useCollectionStore } from '~/store/collections';
-import { CollectionWithProfiles } from '~/utils/bindings';
+import { CollectionWithIndexes } from '~/utils/bindings';
 
 const colorMode = useColorMode();
 const collapsed = ref<boolean>(false);
@@ -75,7 +75,7 @@ await collectionStore.loadFromDb().catch((e) => {
 });
 isLoading.value = false;
 
-function navigate(collections: CollectionWithProfiles[]) {
+function navigate(collections: CollectionWithIndexes[]) {
   const collection = collections[0];
   if (collection) {
     navigateTo(`/main/collections/${collection.id}`);

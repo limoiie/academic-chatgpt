@@ -51,18 +51,18 @@ import { useDefaultCompleteStore } from '~/store/defaultComplete';
 import { noHistoryVectorDbQA } from '~/utils/aichains/noHistoryVectorDbQA';
 import { rephraseVectorDbQA } from '~/utils/aichains/rephraseVectorDbQA';
 import {
-  CollectionIndexProfile,
-  GetEmbeddingsClientData,
+  CollectionsOnIndexProfiles,
+  EmbeddingsClientExData,
   getEmbeddingsClients,
   getEmbeddingsConfigById,
   GetEmbeddingsConfigData,
-  GetVectorDbConfigData,
+  VectorDbConfigExData,
   Session,
   updateSession,
 } from '~/utils/bindings';
 import { createVectorstore } from '~/utils/vectorstores';
 
-const { indexProfile, session } = defineProps<{ indexProfile: CollectionIndexProfile; session: Session }>();
+const { indexProfile, session } = defineProps<{ indexProfile: CollectionsOnIndexProfiles; session: Session }>();
 
 const input = ref('');
 const generating = ref(false);
@@ -85,10 +85,10 @@ const currentAIApiKey = computed(() => specifiedAIApiKey.value || defaultComplet
 const currentAIModel = computed(() => specifiedAIModel.value || defaultCompleteConfig.value.meta.model);
 
 interface Context {
-  indexProfile: CollectionIndexProfile;
-  embeddingsClient: GetEmbeddingsClientData;
+  indexProfile: CollectionsOnIndexProfiles;
+  embeddingsClient: EmbeddingsClientExData;
   embeddingsConfig: GetEmbeddingsConfigData;
-  vectorDbConfig: GetVectorDbConfigData;
+  vectorDbConfig: VectorDbConfigExData;
   embeddings: Embeddings;
   vectorDb: VectorStore;
 }
