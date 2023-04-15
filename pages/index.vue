@@ -11,7 +11,7 @@ import { useDefaultVectorDbStore } from '~/store/defaultVectorDb';
 const defaultCompleteStore = useDefaultCompleteStore();
 const defaultVectorDbStore = useDefaultVectorDbStore();
 
-if ((await defaultCompleteStore.loadFromLocalStore()) && (await defaultVectorDbStore.loadFromLocalStore())) {
+if ((await defaultCompleteStore.load()) && (await defaultVectorDbStore.load())) {
   navigateTo('/main');
 } else {
   navigateTo('/presets');

@@ -17,7 +17,7 @@
         v-if="!hasSelected"
         :loading="loading"
         class="ant-btn-with-icon"
-        @click="collectionStore.loadIndexProfilesFromDb"
+        @click="collectionStore.loadIndexProfilesFromDatabase"
       >
         <template #icon>
           <ReloadOutlined />

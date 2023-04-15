@@ -57,7 +57,7 @@ export const useDefaultCompleteStore = defineStore('defaultComplete', () => {
     },
   });
 
-  async function loadFromLocalStore() {
+  async function load() {
     const stored = await $tauriStore.get<DefaultCompleteStore>(STORE_KEY);
     if (stored == null) return false;
 
@@ -65,7 +65,7 @@ export const useDefaultCompleteStore = defineStore('defaultComplete', () => {
     return defaultConfig.value.client && defaultConfig.value.meta.apiKey && defaultConfig.value.meta.model;
   }
 
-  async function storeToLocalStore() {
+  async function store() {
     validateStore();
     await $tauriStore.set(STORE_KEY, {
       defaultConfig: defaultConfig.value,
@@ -82,8 +82,8 @@ export const useDefaultCompleteStore = defineStore('defaultComplete', () => {
 
   return {
     defaultCompleteConfig: defaultConfig,
-    loadFromLocalStore,
-    storeToLocalStore,
+    load,
+    store,
     validateStore,
   };
 });

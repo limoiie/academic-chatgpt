@@ -57,7 +57,7 @@ async function prepareNewCollection() {
 
 await Promise.resolve((isLoading.value = true))
   .then(async () => {
-    await collectionStore.loadFromDb();
+    await collectionStore.load();
     await indexProfilesStore.load();
     return await prepareNewCollection();
   })

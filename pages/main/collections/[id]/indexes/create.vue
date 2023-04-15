@@ -172,8 +172,8 @@ const route = useRoute();
 const collectionId = parseInt(route.params['id'] as string);
 const collectionStores = useCollectionStore();
 const { collections, indexProfilesByCollectionId } = storeToRefs(collectionStores);
-collectionStores.loadFromDb();
-collectionStores.loadIndexProfilesFromDb();
+collectionStores.load();
+collectionStores.loadIndexProfilesFromDatabase();
 
 const indexProfile = ref<CollectionsOnIndexProfiles | null>(null);
 const collection = computed(() => collections.value.find((c) => c.id == collectionId));
@@ -185,8 +185,8 @@ const defaultVectorDbStore = useDefaultVectorDbStore();
 const { defaultEmbeddingsClient, defaultEmbeddingsConfig } = storeToRefs(defaultEmbeddingsStore);
 const { defaultVectorDbConfig } = storeToRefs(defaultVectorDbStore);
 
-await defaultEmbeddingsStore.loadFromLocalStore();
-await defaultVectorDbStore.loadFromLocalStore();
+await defaultEmbeddingsStore.load();
+await defaultVectorDbStore.load();
 
 async function createIndexDefault() {
   if (defaultEmbeddingsClient.value.id == -1 || defaultEmbeddingsConfig.value.id == -1) {

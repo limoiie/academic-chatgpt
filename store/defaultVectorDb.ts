@@ -64,7 +64,7 @@ export const useDefaultVectorDbStore = defineStore('defaultVectorDb', () => {
    *
    * @returns true if both VectorDBClient and VectorDBConfig are loaded
    */
-  async function loadFromLocalStore() {
+  async function load() {
     const stored = await $tauriStore.get<DefaultVectorDbStore>(STORE_KEY).then();
     if (stored == null) return false;
 
@@ -75,7 +75,7 @@ export const useDefaultVectorDbStore = defineStore('defaultVectorDb', () => {
     return client != null && config != null;
   }
 
-  async function storeToLocalStore() {
+  async function store() {
     await persistDefaultVectorDbConfig();
     await $tauriStore.set(STORE_KEY, {
       defaultClientId: defaultClient.value.id,
@@ -131,8 +131,8 @@ export const useDefaultVectorDbStore = defineStore('defaultVectorDb', () => {
   return {
     defaultVectorDbClient: defaultClient,
     defaultVectorDbConfig: defaultConfig,
-    loadFromLocalStore,
-    storeToLocalStore,
+    load,
+    store,
     validateStore,
   };
 });

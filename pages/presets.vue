@@ -64,9 +64,9 @@ const indexProfilesStore = useIndexProfilesStore();
 
 Promise.resolve()
   .then(async () => {
-    await defaultVectorDbStore.loadFromLocalStore();
-    await defaultEmbeddingsStore.loadFromLocalStore();
-    await defaultCompleteStore.loadFromLocalStore();
+    await defaultVectorDbStore.load();
+    await defaultEmbeddingsStore.load();
+    await defaultCompleteStore.load();
 
     await indexProfilesStore.load();
   })
@@ -127,9 +127,9 @@ async function go() {
       }
     })
     .then(async () => {
-      await defaultCompleteStore.storeToLocalStore();
-      await defaultVectorDbStore.storeToLocalStore();
-      await defaultEmbeddingsStore.storeToLocalStore();
+      await defaultCompleteStore.store();
+      await defaultVectorDbStore.store();
+      await defaultEmbeddingsStore.store();
 
       await indexProfilesStore.upsertDefaultIndexProfile(
         defaultEmbeddingsClient.value,

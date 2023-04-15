@@ -33,7 +33,7 @@ export const useDefaultEmbeddingsStore = defineStore('defaultEmbeddings', () => 
     meta: {},
   });
 
-  async function loadFromLocalStore() {
+  async function load() {
     const stored = await $tauriStore.get<DefaultEmbeddingsStore>(STORE_KEY);
     if (stored) {
       const client = await getEmbeddingsClientById(stored.defaultClientId);
@@ -45,7 +45,7 @@ export const useDefaultEmbeddingsStore = defineStore('defaultEmbeddings', () => 
     return false;
   }
 
-  async function storeToLocalStore() {
+  async function store() {
     await persistDefaultEmbeddingsClientAndConfig();
     await $tauriStore.set(STORE_KEY, {
       defaultClientId: defaultClient.value.id,
@@ -80,8 +80,8 @@ export const useDefaultEmbeddingsStore = defineStore('defaultEmbeddings', () => 
   return {
     defaultEmbeddingsClient: defaultClient,
     defaultEmbeddingsConfig: defaultConfig,
-    loadFromLocalStore,
-    storeToLocalStore,
+    load,
+    store,
     validateStore,
   };
 });
