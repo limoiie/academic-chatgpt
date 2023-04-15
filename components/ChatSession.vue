@@ -95,7 +95,7 @@ interface Context {
   embeddings: Embeddings;
 }
 
-const { data: context } = useAsyncData('context', async () => {
+const { data: context } = useAsyncData(`contextOfSession#${session.id}`, async () => {
   const namespace = collectionOnIndex.id;
   const embeddings = await createEmbeddings(
     collectionOnIndex.index.embeddingsClient,

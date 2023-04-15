@@ -141,6 +141,22 @@ export const useCollectionStore = defineStore('collections', () => {
     return indexProfilesByCollectionId.value.get(id);
   }
 
+  async function getActiveIndexProfileByCollectionId(id: number) {
+    const defaultIndexId = cache.value.activeIndexProfileIdByCollectionId.get(id);
+    if (defaultIndexId) {
+      const indexProfile = getCollectionOnIndexProfilesByCollectionId(id)?.find((c) => c.id == defaultIndexId);
+      if (indexProfile) return indexProfile;
+    }
+
+    // fallback to first index profile
+    const fallbackIndexProfile = getCollectionOnIndexProfilesByCollectionId(id)?.[0];
+    if (fallbackIndexProfile) {
+      cache.value.activeIndexProfileIdByCollectionId.set(id, fallbackIndexProfile.id);
+      await storeCacheToTauriStore();
+    }
+    return fallbackIndexProfile;
+  }
+
   async function getDefaultIndexProfileIdByCollectionId(id: number) {
     const defaultIndexId = cache.value.activeIndexProfileIdByCollectionId.get(id);
     if (defaultIndexId) return defaultIndexId;
@@ -173,6 +189,7 @@ export const useCollectionStore = defineStore('collections', () => {
     deleteCollectionById,
     loadIndexProfilesFromDatabase,
     getCollectionOnIndexProfileById,
+    getActiveIndexProfileByCollectionId,
     getDefaultIndexProfileIdByCollectionId,
     setActiveCollectionId,
     getActiveCollectionId,

@@ -1,31 +1,43 @@
 <template>
   <div class="w-full h-full flex">
     <div class="m-auto flex flex-col">
-      <a-spin class="m-auto!" />
-      <div>Loading index profiles...</div>
+      <div v-if="loading">
+        <a-spin class="m-auto!" :spinning="loading" />
+        <div>Loading index profiles...</div>
+      </div>
+      <div v-else-if="errorMessage">
+        <a-result status="error">
+          <template #title>Failed to create a new collection</template>
+          <template #subTitle>{{ errorMessage }}</template>
+        </a-result>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia';
+import { message } from 'ant-design-vue';
 import { useCollectionStore } from '~/store/collections';
+
+const loading = ref<boolean>(false);
+const errorMessage = ref<string>('');
 
 const route = useRoute();
 const collectionStore = useCollectionStore();
 const collectionId = parseInt(route.params['id'] as string);
 
-const loading = ref<boolean>(false);
-
-const { indexProfilesByCollectionId } = storeToRefs(collectionStore);
-const indexProfiles = computed(() => {
-  return indexProfilesByCollectionId.value.get(collectionId) || [];
-});
-
-const defaultIndexProfile = indexProfiles.value.at(0);
-if (defaultIndexProfile) {
-  navigateTo(`${route.path}/${defaultIndexProfile.indexId}`);
-} else {
-  navigateTo(`${route.path}/create`);
-}
+Promise.resolve((loading.value = true))
+  .then(() => collectionStore.load())
+  .then(async () => {
+    const active = await collectionStore.getActiveIndexProfileByCollectionId(collectionId);
+    if (active) {
+      navigateTo(`${route.path}/${active.indexId}`);
+    } else {
+      navigateTo(`${route.path}/create`);
+    }
+  })
+  .catch((error) => {
+    message.error(errToString(error));
+  })
+  .finally(() => (loading.value = false));
 </script>
