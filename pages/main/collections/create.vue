@@ -21,7 +21,6 @@ import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { useCollectionStore } from '~/store/collections';
 import { useIndexProfilesStore } from '~/store/indexProfiles';
-import { uniqueName } from '~/utils/strings';
 
 const isLoading = ref<boolean>(false);
 const errorMessage = ref<string>('');
@@ -29,7 +28,6 @@ const errorMessage = ref<string>('');
 const collectionStore = useCollectionStore();
 const indexProfilesStore = useIndexProfilesStore();
 
-const { collectionNames } = storeToRefs(collectionStore);
 const { defaultIndexProfile } = storeToRefs(indexProfilesStore);
 
 /**
@@ -42,17 +40,7 @@ async function prepareNewCollection() {
     throw new Error('No default index profile');
   }
 
-  const newCollectionName = uniqueName('Collection', collectionNames.value);
-  const collection = await createCollection({ documents: [], name: newCollectionName });
-  await createCollectionOnIndex({
-    name: defaultIndexProfile.value.name,
-    collectionId: collection.id,
-    indexId: defaultIndexProfile.value.id,
-    indexedDocuments: '',
-  });
-
-  await collectionStore.reloadCollectionById(collection.id);
-  return collection;
+  return await collectionStore.createCollection(defaultIndexProfile.value);
 }
 
 await Promise.resolve((isLoading.value = true))

@@ -48,6 +48,7 @@ const { data: collectionOnIndex } = useAsyncData('collectionOnIndex', async () =
     .catch((e) => {
       message.error(`Failed to load index profile: ${e}, jump to manage page.`);
       navigateTo(`/main/collections/${collectionId}/manage`);
+      return null;
     });
 });
 

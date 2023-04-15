@@ -59,7 +59,6 @@ import { storeToRefs } from 'pinia';
 import { upperFirst } from 'scule';
 import { ref } from 'vue';
 import { useCollectionStore } from '~/store/collections';
-import { CollectionWithIndexes } from '~/utils/bindings';
 
 const colorMode = useColorMode();
 const collapsed = ref<boolean>(false);
@@ -69,20 +68,12 @@ const isLoading = ref<boolean>(false);
 const collectionStore = useCollectionStore();
 const { collections } = storeToRefs(collectionStore);
 
-isLoading.value = true;
-await collectionStore.load().catch((e) => {
-  message.error(`Failed to load profiles: ${e}`);
-});
-isLoading.value = false;
-
-function navigate(collections: CollectionWithIndexes[]) {
-  const collection = collections[0];
-  if (collection) {
-    navigateTo(`/main/collections/${collection.id}`);
-  } else {
-    navigateTo(`/main/collections/create`);
-  }
-}
+Promise.resolve((isLoading.value = true))
+  .then(() => collectionStore.load())
+  .catch((e) => {
+    message.error(`Failed to load profiles: ${errToString(e)}`);
+  })
+  .finally(() => (isLoading.value = false));
 
 function navigateToPresetsPage() {
   navigateTo('/presets');
@@ -100,7 +91,7 @@ function handleMenuClick(e: { key: string; keyPath: string[] }) {
   }
 }
 
-navigate(collections.value);
+navigateTo('/main/collections');
 </script>
 
 <style lang="sass">

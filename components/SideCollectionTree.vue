@@ -66,11 +66,14 @@ const collectionStore = useCollectionStore();
 const { collections } = storeToRefs(collectionStore);
 
 isLoading.value = true;
-await collectionStore.load().catch((e) => {
-  message.error(`Failed to load profiles: ${e}`);
-}).finally(() => {
-  isLoading.value = false;
-});
+await collectionStore
+  .load()
+  .catch((e) => {
+    message.error(`Failed to load profiles: ${e}`);
+  })
+  .finally(() => {
+    isLoading.value = false;
+  });
 
 async function navigateToDefaultIndexProfile(collectionId: number) {
   navigateTo(`/main/collections/${collectionId}/indexes`);
@@ -94,11 +97,11 @@ async function deleteDocumentsCollection(e: Event, collectionId: number) {
     async onOk() {
       await collectionStore
         .deleteCollectionById(collectionId)
-        .catch((e) => {
-          message.error(`Failed to delete collection ${collectionId}: ${e.toString()}`);
-        })
         .then(() => {
-          message.info(`Deleted!`);
+          message.info(`Deleted collection#${collectionId}!`);
+        })
+        .catch((e) => {
+          message.error(`Failed to delete collection ${collectionId}: ${errToString(e)}`);
         });
     },
   });

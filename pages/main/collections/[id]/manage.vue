@@ -28,7 +28,7 @@
         <a-tooltip title="Active Index Profile" placement="left">
           <a-select
             :value="formState.defaultIndex"
-            :options="collection.indexProfiles"
+            :options="collection?.indexProfiles || []"
             :field-names="{ label: 'name', value: 'id', options: 'options' }"
           />
         </a-tooltip>
@@ -61,12 +61,6 @@ import { reactive, ref } from 'vue';
 import CollectionManageIndexes from '~/components/CollectionManageIndexes.vue';
 import { useCollectionStore } from '~/store/collections';
 
-const isUpdatingName = ref<boolean>(false);
-const viewCollectionName = ref<any | null>(null);
-onMounted(() => {
-  viewCollectionName.value.focus();
-});
-
 const route = useRoute();
 const id = parseInt(route.params['id'] as string);
 const activeKey = ref<'documents' | 'indexes'>('documents');
@@ -75,14 +69,19 @@ const collectionStore = useCollectionStore();
 const { collections, collectionNames } = storeToRefs(collectionStore);
 const collection = computed(() => {
   const collection = collections.value.find((e) => e.id == id);
-  if (collection) {
-    formState.name = collection.name;
-    formState.defaultIndex = collection.indexProfiles.at(0)?.id;
-  }
+  if (!collection) return null;
+
+  formState.name = collection.name;
   return collection;
 });
+
+const isUpdatingName = ref<boolean>(false);
 const isCollectionNameChanged = computed(() => {
   return collection.value?.name != formState.name;
+});
+const viewCollectionName = ref<any | null>(null);
+onMounted(() => {
+  viewCollectionName.value.focus();
 });
 
 interface FormState {
@@ -94,6 +93,15 @@ const formState = reactive<FormState>({
   name: '',
   defaultIndex: undefined,
 });
+
+Promise.resolve()
+  .then(async () => {
+    await collectionStore.load();
+    formState.defaultIndex = await collectionStore.getDefaultIndexProfileIdByCollectionId(id);
+  })
+  .catch((e) => {
+    message.error(`Failed to load collection: ${errToString(e)}`);
+  });
 
 async function tryUpdateCollectionName() {
   if (collectionNames.value.includes(formState.name)) {
