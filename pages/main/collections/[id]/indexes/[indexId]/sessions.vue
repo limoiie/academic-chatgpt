@@ -1,18 +1,25 @@
 <template>
   <div class="h-full flex flex-col">
+    <div v-if="isLoading">
+      <a-spin :spinning="isLoading" />
+    </div>
     <a-tabs
       id="chatSessions"
-      v-if="activeSessionId"
       v-model:activeKey="activeSessionId"
       class="flex flex-1"
       type="editable-card"
       @edit="onEditSession"
     >
       <a-tab-pane v-for="session in sessions" :key="session.key" :tab="session.title" :closable="session.closable">
-        <ChatSession v-if="collectionOnIndex" :session="session.origin" :collection-on-index="collectionOnIndex!" />
+        <!--suppress TypeScriptUnresolvedReference -->
+        <ChatSession
+          v-if="data?.collectionOnIndex"
+          :session="session.origin"
+          :collection-on-index="data?.collectionOnIndex!"
+        />
       </a-tab-pane>
     </a-tabs>
-    <div class="w-full h-full flex flex-row items-center" v-if="hasNoSession">
+    <div v-if="hasNoSession" class="w-full h-full flex flex-row items-center">
       <a-empty class="w-full mb-24! flex flex-col items-center">
         <template #description>
           <span> No session yet </span>
@@ -30,46 +37,54 @@ import { useCollectionStore } from '~/store/collections';
 import { createSession, getSessionsByCollectionOnIndexId } from '~/utils/bindings';
 import { uniqueName } from '~/utils/strings';
 
+const isLoading = ref<boolean>(false);
+
 const route = useRoute();
 const collectionId = parseInt(route.params['id'] as string);
 const indexId = parseInt(route.params['indexId'] as string);
 
 const collectionStore = useCollectionStore();
-const { data: collectionOnIndex } = useAsyncData('collectionOnIndex', async () => {
-  return await collectionStore
-    .load()
-    .then(() => {
+const { data } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${indexId}`, async () => {
+  return await Promise.resolve((isLoading.value = true))
+    .then(() => collectionStore.load())
+    .then(async () => {
       const index = collectionStore.getCollectionOnIndexProfileById(collectionId, indexId);
       if (!index) {
         throw new Error('Collection not found');
       }
-      return index;
+
+      const chatSessions = await getSessionsByCollectionOnIndexId(index.id);
+      return {
+        collectionOnIndex: index,
+        chatSessions: chatSessions,
+      };
     })
     .catch((e) => {
       message.error(`Failed to load index profile: ${e}, jump to manage page.`);
       navigateTo(`/main/collections/${collectionId}/manage`);
       return null;
-    });
+    })
+    .finally(() => (isLoading.value = false));
 });
 
 const activeSessionId = ref<number | undefined>(undefined);
-const { data: chatSessions } = useAsyncData('chatSessions', async () => {
-  return collectionOnIndex.value ? await getSessionsByCollectionOnIndexId(collectionOnIndex.value?.id) : null;
-});
-const hasNoSession = computed(() => !chatSessions.value?.length);
+const hasNoSession = computed(() => !data.value?.chatSessions.length);
 const sessions = computed(() => {
-  if (!chatSessions.value?.length) {
-    activeSessionId.value = undefined;
+  if (!data.value?.chatSessions.length) {
     return [];
   }
-  if (!activeSessionId.value) {
-    activeSessionId.value = chatSessions.value[0].id;
-  }
   return (
-    chatSessions.value.map((session) => {
+    data.value.chatSessions.map((session) => {
       return { key: session.id, title: session.name, origin: session };
     }) || []
   );
+});
+watch(sessions, (newSessions) => {
+  if (!newSessions.length) {
+    activeSessionId.value = undefined;
+  } else if (activeSessionId.value == null) {
+    activeSessionId.value = newSessions[0].key;
+  }
 });
 
 /**
@@ -87,19 +102,19 @@ function onEditSession(targetSessionId: number | MouseEvent, action: string) {
  * Create a new session, and allocate a new tab for it.
  */
 async function addSession() {
-  if (!collectionOnIndex.value) {
+  if (!data.value) {
     return;
   }
 
   const chatSession = await createSession({
-    indexProfileId: collectionOnIndex.value.id,
+    indexProfileId: data.value.collectionOnIndex.id,
     name: uniqueName(
       'Chat',
       sessions.value.map((s) => s.title),
     ),
     history: '{}',
   });
-  chatSessions.value = [...(chatSessions.value || []), chatSession];
+  data.value.chatSessions = [...(data.value.chatSessions || []), chatSession];
   activeSessionId.value = chatSession.id;
 }
 
@@ -109,12 +124,16 @@ async function addSession() {
  * If the session is the active one, switch to the previous one.
  */
 async function removeSession(targetSessionId: number) {
-  const sessions = chatSessions.value;
+  if (!data.value) {
+    return;
+  }
+
+  const sessions = data.value?.chatSessions;
   if (sessions && sessions.length) {
     let currTabIndex = sessions.findIndex((session) => session.id === targetSessionId);
     if (currTabIndex >= 0) {
       await deleteSessionById(targetSessionId);
-      chatSessions.value = sessions.filter((session) => session.id !== targetSessionId);
+      data.value.chatSessions = sessions.filter((session) => session.id !== targetSessionId);
       if (activeSessionId.value === targetSessionId) {
         await switchToSessionTabByIndex(currTabIndex - 1);
       }
@@ -126,7 +145,11 @@ async function removeSession(targetSessionId: number) {
  * Switch to a session tab by index.
  */
 async function switchToSessionTabByIndex(tabIndex: number) {
-  const sessions = chatSessions.value;
+  if (!data.value) {
+    return;
+  }
+
+  const sessions = data.value.chatSessions;
   if (sessions && sessions.length) {
     const safeTabIndex = tabIndex >= 0 && sessions.length > tabIndex ? tabIndex : 0;
     activeSessionId.value = sessions[safeTabIndex].id;

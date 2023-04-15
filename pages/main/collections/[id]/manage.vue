@@ -123,10 +123,12 @@ async function tryUpdateCollectionName() {
     });
 }
 
+// TODO: implement
 async function checkIndexSyncStatus() {
   message.warn('Not implemented yet');
 }
 
+// TODO: implement
 async function syncIndex() {
   message.warn('Not implemented yet');
 }
