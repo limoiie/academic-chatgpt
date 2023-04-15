@@ -1,7 +1,7 @@
 <!--suppress VueUnrecognizedSlot -->
 <template>
-  <a-menu class="overflow-auto" mode="inline" :theme="$colorMode.value">
-    <a-menu-item key="newDocumentsCollection" class="!h-20" @click="newDocumentsCollection">
+  <a-menu class="overflow-auto" :selected-keys="[activeCollectionId]" mode="inline" :theme="$colorMode.value">
+    <a-menu-item key="create" class="!h-20" @click="newCollection">
       New Collection
       <template #icon>
         <FolderAddOutlined />
@@ -9,7 +9,7 @@
     </a-menu-item>
     <a-menu-divider />
     <!--suppress TypeScriptUnresolvedReference -->
-    <a-menu-item :key="col.id" v-for="col in collections" @click="navigateToDefaultIndexProfile(col.id)">
+    <a-menu-item :key="col.id" v-for="col in collections" @click="navigateToActiveIndexProfile(col.id)">
       <template #icon>
         <FolderOutlined />
       </template>
@@ -23,7 +23,7 @@
             shape="circle"
             size="small"
             type="dashed"
-            @click="(e) => manageDocumentsCollectionProfile(e, col.id)"
+            @click="(e) => manageCollectionProfile(col.id, e)"
           >
             <template #icon>
               <DashboardOutlined />
@@ -35,7 +35,7 @@
             shape="circle"
             size="small"
             type="dashed"
-            @click="(e) => deleteDocumentsCollection(e, col.id)"
+            @click="(e) => confirmDeletingCollection(col.id, e)"
           >
             <template #icon>
               <DeleteOutlined />
@@ -61,13 +61,26 @@ import { storeToRefs } from 'pinia';
 import { useCollectionStore } from '~/store/collections';
 
 const isLoading = ref<boolean>(false);
+const activeCollectionId = ref<number>();
+
+const route = useRoute();
+watch(route, async () => {
+  await updateActiveCollection();
+});
 
 const collectionStore = useCollectionStore();
 const { collections } = storeToRefs(collectionStore);
 
-isLoading.value = true;
-await collectionStore
-  .load()
+await Promise.resolve((isLoading.value = true))
+  .then(() => collectionStore.load())
+  .then(() => {
+    const historyActiveCollectionId = collectionStore.getActiveCollectionId();
+    if (historyActiveCollectionId != null) {
+      navigateToActiveIndexProfile(historyActiveCollectionId);
+    } else if (historyActiveCollectionId != activeCollectionId.value) {
+      navigateTo('/main/collections');
+    }
+  })
   .catch((e) => {
     message.error(`Failed to load profiles: ${e}`);
   })
@@ -75,37 +88,68 @@ await collectionStore
     isLoading.value = false;
   });
 
-async function navigateToDefaultIndexProfile(collectionId: number) {
+/**
+ * Update active collection id from route params.
+ */
+async function updateActiveCollection() {
+  const paramId = route.params.id;
+  if (typeof paramId === 'string') {
+    const collectionId = Number(paramId);
+    await collectionStore.setActiveCollectionId(collectionId);
+    activeCollectionId.value = collectionId;
+  }
+}
+
+async function navigateToActiveIndexProfile(collectionId: number) {
   navigateTo(`/main/collections/${collectionId}/indexes`);
 }
 
-async function manageDocumentsCollectionProfile(e: Event, collectionId: number) {
+async function manageCollectionProfile(collectionId: number, e: Event | undefined = undefined) {
   navigateTo(`/main/collections/${collectionId}/manage`);
-  e.stopPropagation();
+  e?.stopPropagation();
 }
 
-async function newDocumentsCollection() {
+async function newCollection() {
   navigateTo('/main/collections/create');
 }
 
-async function deleteDocumentsCollection(e: Event, collectionId: number) {
+/**
+ * Open a confirm dialog to delete collection.
+ */
+async function confirmDeletingCollection(collectionId: number, e: Event | undefined = undefined) {
   Modal.confirm({
     title: 'Do you want to continue?',
     icon: createVNode(ExclamationCircleOutlined),
     content: 'Delete collection will delete all its indexes and chat sessions.',
     okText: 'Yes',
     async onOk() {
-      await collectionStore
-        .deleteCollectionById(collectionId)
-        .then(() => {
-          message.info(`Deleted collection#${collectionId}!`);
-        })
-        .catch((e) => {
-          message.error(`Failed to delete collection ${collectionId}: ${errToString(e)}`);
-        });
+      await deleteCollection(collectionId);
     },
   });
-  e.stopPropagation();
+  e?.stopPropagation();
+}
+
+/**
+ * Delete collection and navigate to fallback collection if exists.
+ */
+async function deleteCollection(collectionId: number) {
+  await collectionStore
+    .deleteCollectionById(collectionId)
+    .then(({ deleted, fallback }) => {
+      if (deleted) {
+        if (fallback) {
+          navigateTo(`/main/collections/${fallback.id}`);
+        } else {
+          navigateTo(`/main/collections`);
+        }
+        message.info(`Deleted collection#${collectionId}!`);
+      } else {
+        message.warn(`Unable to delete collection#${collectionId}: not found`);
+      }
+    })
+    .catch((e) => {
+      message.error(`Failed to delete collection#${collectionId}: ${errToString(e)}`);
+    });
 }
 </script>
 

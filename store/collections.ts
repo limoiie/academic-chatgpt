@@ -9,6 +9,7 @@ import {
 } from '~/utils/bindings';
 
 interface CollectionsStore {
+  activeCollectionId: number | undefined;
   activeIndexProfileIdByCollectionId: Map<number, string>;
 }
 
@@ -18,6 +19,7 @@ export const useCollectionStore = defineStore('collections', () => {
   const { $tauriStore } = useNuxtApp();
   const loaded = ref(false);
   const cache = ref<CollectionsStore>({
+    activeCollectionId: undefined,
     activeIndexProfileIdByCollectionId: new Map(),
   });
 
@@ -38,8 +40,16 @@ export const useCollectionStore = defineStore('collections', () => {
     const stored = await $tauriStore.get<CollectionsStore>(STORE_KEY);
     if (stored == null) return false;
     cache.value = {
+      ...stored,
       activeIndexProfileIdByCollectionId: new Map(stored.activeIndexProfileIdByCollectionId),
     };
+    // Check if the active collection is still valid. If not, reset the active collection.
+    if (stored.activeCollectionId != null) {
+      const active = collections.value.find((c) => c.id == stored.activeCollectionId);
+      if (!active) {
+        cache.value.activeCollectionId = undefined;
+      }
+    }
     return true;
   }
 
@@ -75,7 +85,6 @@ export const useCollectionStore = defineStore('collections', () => {
       indexedDocuments: '',
     });
 
-    console.log('cache.value.activeIndexProfileIdByCollectionId', cache.value.activeIndexProfileIdByCollectionId);
     cache.value.activeIndexProfileIdByCollectionId.set(collection.id, collectionIndex.id);
     await storeCacheToTauriStore();
 
@@ -104,12 +113,24 @@ export const useCollectionStore = defineStore('collections', () => {
   }
 
   async function deleteCollectionById(id: number) {
+    const i = collections.value.findIndex((c) => c.id == id);
+    if (i == -1) return { deleted: undefined, fallback: undefined };
+
     await deleteDbCollectionById(id);
-    collections.value = collections.value.filter((c) => c.id != id);
+    const deleted = collections.value[i];
+    collections.value = [...collections.value.slice(0, i), ...collections.value.slice(i + 1)];
     indexProfilesByCollectionId.value.delete(id);
 
     cache.value.activeIndexProfileIdByCollectionId.delete(id);
     await storeCacheToTauriStore();
+
+    if (cache.value.activeCollectionId != id) {
+      return { deleted, fallback: undefined };
+    }
+
+    const fallbackIdx = Math.min(i, collections.value.length - 1);
+    const fallback = collections.value[fallbackIdx];
+    return { deleted, fallback };
   }
 
   function getCollectionOnIndexProfileById(collectionId: number, indexProfileId: number) {
@@ -133,6 +154,15 @@ export const useCollectionStore = defineStore('collections', () => {
     return fallbackIndexId;
   }
 
+  async function setActiveCollectionId(id: number) {
+    cache.value.activeCollectionId = id;
+    await storeCacheToTauriStore();
+  }
+
+  function getActiveCollectionId() {
+    return cache.value.activeCollectionId;
+  }
+
   return {
     collections,
     collectionNames,
@@ -144,5 +174,7 @@ export const useCollectionStore = defineStore('collections', () => {
     loadIndexProfilesFromDatabase,
     getCollectionOnIndexProfileById,
     getDefaultIndexProfileIdByCollectionId,
+    setActiveCollectionId,
+    getActiveCollectionId,
   };
 });
