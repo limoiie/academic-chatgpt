@@ -50,64 +50,21 @@ import { UiChatConversation, UiChatDialogue } from '~/composables/beans/Chats';
 import { useDefaultCompleteStore } from '~/store/defaultComplete';
 import { noHistoryVectorDbQA } from '~/utils/aichains/noHistoryVectorDbQA';
 import { rephraseVectorDbQA } from '~/utils/aichains/rephraseVectorDbQA';
-import {
-  CollectionsOnIndexProfiles,
-  EmbeddingsClientExData,
-  getEmbeddingsClients,
-  getEmbeddingsConfigById,
-  GetEmbeddingsConfigData,
-  VectorDbConfigExData,
-  Session,
-  updateSession,
-} from '~/utils/bindings';
+import { CollectionOnIndexProfileWithAll, Session, updateSession } from '~/utils/bindings';
 import { createVectorstore } from '~/utils/vectorstores';
 
-const { indexProfile, session } = defineProps<{ indexProfile: CollectionsOnIndexProfiles; session: Session }>();
+const { collectionOnIndex, session } = defineProps<{
+  collectionOnIndex: CollectionOnIndexProfileWithAll;
+  session: Session;
+}>();
 
 const input = ref('');
 const generating = ref(false);
 const scrollToEnd = ref(false);
 
 const conversation = ref<UiChatConversation>(
-  new UiChatConversation(new SystemChatMessage('You are an assistant and going to help my coding.')),
+  new UiChatConversation(new SystemChatMessage('You are an assistant and going to help my to summary documents.')),
 );
-
-const defaultCompleteStore = useDefaultCompleteStore();
-const { defaultCompleteConfig } = storeToRefs(defaultCompleteStore);
-await defaultCompleteStore.loadFromLocalStore();
-
-const specifiedAIClient = ref<string | undefined>(undefined);
-const specifiedAIApiKey = ref<string | undefined>(undefined);
-const specifiedAIModel = ref<string | undefined>(undefined);
-
-const currentAIClient = computed(() => specifiedAIClient.value || defaultCompleteConfig.value.client);
-const currentAIApiKey = computed(() => specifiedAIApiKey.value || defaultCompleteConfig.value.meta.apiKey);
-const currentAIModel = computed(() => specifiedAIModel.value || defaultCompleteConfig.value.meta.model);
-
-interface Context {
-  indexProfile: CollectionsOnIndexProfiles;
-  embeddingsClient: EmbeddingsClientExData;
-  embeddingsConfig: GetEmbeddingsConfigData;
-  vectorDbConfig: VectorDbConfigExData;
-  embeddings: Embeddings;
-  vectorDb: VectorStore;
-}
-
-const { data: context } = useAsyncData('context', async () => {
-  const vectorDbConfig = indexProfile ? await getVectorDbConfigById(indexProfile.vectordbConfigId) : undefined;
-  const embeddingsClient = indexProfile ? (await getEmbeddingsClients())[0] : undefined;
-  const embeddingsConfig = indexProfile ? await getEmbeddingsConfigById(indexProfile.embeddingsConfigId) : undefined;
-  if (!indexProfile || !vectorDbConfig || !embeddingsClient || !embeddingsConfig) {
-    message.info(`Failed to load data: invalid index config`);
-    return null;
-  }
-
-  const namespace = namespaceOfProfile(indexProfile);
-  const embeddings = await createEmbeddings(embeddingsClient, embeddingsConfig);
-  const vectorDb = await createVectorstore(vectorDbConfig, embeddings, namespace);
-
-  return { indexProfile, embeddingsClient, embeddingsConfig, vectorDbConfig, vectorDb, embeddings } as Context;
-});
 
 const availableChainModes = ref(['RephraseHistory', 'WithoutHistory']);
 const availableChainModeOptions = computed(() => {
@@ -117,6 +74,52 @@ const availableChainModeOptions = computed(() => {
 });
 const currentChainMode = ref('RephraseHistory');
 
+const defaultCompleteStore = useDefaultCompleteStore();
+const { defaultCompleteConfig } = storeToRefs(defaultCompleteStore);
+
+interface CompletionConfig {
+  client: string;
+  apiKey: string;
+  model: string;
+}
+
+const completionConfig = reactive<CompletionConfig>({
+  client: defaultCompleteConfig.value.client,
+  apiKey: defaultCompleteConfig.value.meta.apiKey,
+  model: defaultCompleteConfig.value.meta.model,
+});
+
+interface Context {
+  collectionOnIndex: CollectionOnIndexProfileWithAll;
+  vectorstore: VectorStore;
+  embeddings: Embeddings;
+}
+
+const { data: context } = useAsyncData('context', async () => {
+  const namespace = collectionOnIndex.id;
+  const embeddings = await createEmbeddings(
+    collectionOnIndex.index.embeddingsClient,
+    collectionOnIndex.index.embeddingsConfig,
+  );
+  const vectorstore = await createVectorstore(
+    collectionOnIndex.index.vectorDbClient,
+    collectionOnIndex.index.vectorDbConfig,
+    embeddings,
+    namespace,
+  );
+
+  return {
+    collectionOnIndex,
+    vectorstore,
+    embeddings,
+  } as Context;
+});
+
+Promise.resolve().then(async () => {
+  await defaultCompleteStore.load();
+  loadConversationHistory();
+});
+
 async function buildChain(latestInput: string) {
   const contextValue = context.value;
   if (!contextValue) {
@@ -124,17 +127,14 @@ async function buildChain(latestInput: string) {
     return;
   }
 
-  const [client, apiKey, model] = [currentAIClient.value, currentAIApiKey.value, currentAIModel.value];
+  const { client, apiKey, model } = completionConfig;
   if (!client || !apiKey || !model) {
-    console.log('client', client, defaultCompleteConfig.value.client);
-    console.log('apiKey', apiKey, defaultCompleteConfig.value.meta.apiKey, specifiedAIApiKey.value);
-    console.log('model', model);
-    message.error('Invalid AI client: please specify a client');
+    message.error('Invalid completion client: please specify a client');
     return;
   }
 
-  const vectorstore = toRaw<VectorStore>(contextValue.vectorDb);
-  switch (currentAIClient.value) {
+  const vectorstore = toRaw<VectorStore>(contextValue.vectorstore);
+  switch (client) {
     case 'openai':
       switch (currentChainMode.value) {
         case 'RephraseHistory':
@@ -149,11 +149,11 @@ async function buildChain(latestInput: string) {
             query: latestInput,
           });
         default:
-          message.error(`Unsupported chain mode for ${currentAIClient.value}: ${currentChainMode.value}`);
+          message.error(`Unsupported chain mode for ${client}: ${currentChainMode.value}`);
       }
       break;
     default:
-      message.error(`Unsupported ai client: ${currentAIClient.value}`);
+      message.error(`Unsupported ai client: ${client}`);
       return;
   }
 }
@@ -179,8 +179,6 @@ async function clearDialogues() {
   conversation.value.dialogues = [];
   await saveConversationHistory();
 }
-
-loadConversationHistory();
 
 async function onTokenStream(token: string) {
   // get the latest dialogue and update the AI message

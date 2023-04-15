@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
 import { Ref } from 'vue';
 import {
-  createIndexProfile,
   CreateIndexProfileData,
   EmbeddingsClientExData,
   GetEmbeddingsConfigData,
+  getIndexProfilesWithAll,
   IndexProfile,
+  IndexProfileWithAll,
   VectorDbClientExData,
   VectorDbConfigExData,
 } from '~/utils/bindings';
@@ -24,7 +25,7 @@ export const useIndexProfilesStore = defineStore('indexProfiles', () => {
   const cache = ref<IndexProfilesStore>({
     defaultIndexProfileId: undefined,
   });
-  const indexProfiles: Ref<IndexProfile[]> = ref([]);
+  const indexProfiles: Ref<IndexProfileWithAll[]> = ref([]);
   const indexProfileNames = computed(() => indexProfiles.value.map((c) => c.name));
   const defaultIndexProfile = computed(() => {
     if (cache.value.defaultIndexProfileId == null) return undefined;
@@ -45,7 +46,7 @@ export const useIndexProfilesStore = defineStore('indexProfiles', () => {
   }
 
   async function loadDataFromDatabase() {
-    indexProfiles.value = (await getIndexProfiles()) || [];
+    indexProfiles.value = (await getIndexProfilesWithAll()) || [];
   }
 
   /**
@@ -104,7 +105,7 @@ export const useIndexProfilesStore = defineStore('indexProfiles', () => {
     } as CreateIndexProfileData;
 
     await ensureCreateIndexProfileData(data, embeddingsClient, vectorDbClient);
-    const newIndexProfile = await createIndexProfile(data);
+    const newIndexProfile = await createIndexProfileWithAll(data);
     indexProfiles.value.push(newIndexProfile);
     cache.value.defaultIndexProfileId = newIndexProfile.id;
   }

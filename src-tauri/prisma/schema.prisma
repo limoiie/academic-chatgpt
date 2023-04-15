@@ -146,7 +146,7 @@ model IndexProfile {
 }
 
 model CollectionsOnIndexProfiles {
-  id               Int          @id @default(autoincrement())
+  id               String       @id @default(uuid())
   name             String
   collection       Collection   @relation(fields: [collectionId], references: [id])
   index            IndexProfile @relation(fields: [indexId], references: [id])
@@ -161,10 +161,10 @@ model CollectionsOnIndexProfiles {
 }
 
 model Session {
-  id                     Int                        @id @default(autoincrement())
-  name                   String
-  collectionIndexProfile CollectionsOnIndexProfiles @relation(fields: [collectionIndexProfileId], references: [id])
-  history                String
+  id           Int                        @id @default(autoincrement())
+  name         String
+  indexProfile CollectionsOnIndexProfiles @relation(fields: [indexProfileId], references: [id])
+  history      String
 
-  collectionIndexProfileId Int
+  indexProfileId String
 }

@@ -87,7 +87,7 @@ const isCollectionNameChanged = computed(() => {
 
 interface FormState {
   name: string;
-  defaultIndex: number | undefined;
+  defaultIndex: string | undefined;
 }
 
 const formState = reactive<FormState>({

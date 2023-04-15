@@ -24,7 +24,7 @@ const indexProfiles = computed(() => {
 
 const defaultIndexProfile = indexProfiles.value.at(0);
 if (defaultIndexProfile) {
-  navigateTo(`${route.path}/${defaultIndexProfile.id}`);
+  navigateTo(`${route.path}/${defaultIndexProfile.indexId}`);
 } else {
   navigateTo(`${route.path}/create`);
 }

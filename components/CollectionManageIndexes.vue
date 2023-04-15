@@ -73,7 +73,7 @@ import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { stringify } from 'yaml';
 import { useCollectionStore } from '~/store/collections';
-import { deleteCollectionsOnIndexesById, CollectionOnIndexProfileWithAll } from '~/utils/bindings';
+import { CollectionOnIndexProfileWithAll, deleteCollectionsOnIndexesById } from '~/utils/bindings';
 
 const columns = ref<TableColumnsType>([
   {
@@ -117,7 +117,7 @@ const collectionStore = useCollectionStore();
 const collectionId = parseInt(route.params['id'] as string);
 
 const loading = ref<boolean>(false);
-const selectedRawKeys = ref<number[]>([]);
+const selectedRawKeys = ref<string[]>([]);
 const hasSelected = computed(() => selectedRawKeys.value.length != 0);
 
 const { indexProfilesByCollectionId } = storeToRefs(collectionStore);
@@ -125,14 +125,14 @@ const indexProfiles = computed(() => {
   return indexProfilesByCollectionId.value.get(collectionId) || [];
 });
 
-loading.value = true;
-await collectionStore.loadIndexProfilesFromDb();
-loading.value = false;
-
 const indexProfilesUiData = computed(() => indexProfiles.value.map(dbDataToUi));
 
+Promise.resolve((loading.value = true))
+  .then(() => collectionStore.loadIndexProfilesFromDatabase())
+  .finally(() => (loading.value = false));
+
 interface IndexProfileUiData {
-  id: number;
+  id: string;
   name: string;
   indexName: string;
   splitting: string;
@@ -163,7 +163,7 @@ async function add() {
   await collectionStore.reloadCollectionById(collectionId);
 }
 
-async function remove(id: number) {
+async function remove(id: string) {
   await removeIndexProfiles([id]);
   await collectionStore.reloadCollectionById(collectionId);
 }
@@ -177,7 +177,7 @@ async function removeSelected() {
   await collectionStore.reloadCollectionById(collectionId);
 }
 
-async function removeIndexProfiles(indexProfileIds: number[]) {
+async function removeIndexProfiles(indexProfileIds: string[]) {
   if (indexProfileIds.length > 0) {
     const deleted = await deleteCollectionsOnIndexesById(indexProfileIds);
     if (deleted != indexProfileIds.length) {
@@ -186,7 +186,7 @@ async function removeIndexProfiles(indexProfileIds: number[]) {
   }
 }
 
-function onSelectionChanged(selected: number[]) {
+function onSelectionChanged(selected: string[]) {
   selectedRawKeys.value = selected;
 }
 

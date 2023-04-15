@@ -12,6 +12,7 @@ export const useCollectionStore = defineStore('collections', () => {
   const collections: Ref<CollectionWithIndexes[]> = ref([]);
   const collectionNames = computed(() => collections.value.map((c) => c.name));
   const indexProfilesByCollectionId: Ref<Map<number, CollectionOnIndexProfileWithAll[]>> = ref(new Map());
+  const activeIndexProfileIdByCollectionId: Ref<Map<number, string>> = ref(new Map());
 
   async function load() {
     if (!loaded.value) {
@@ -60,6 +61,14 @@ export const useCollectionStore = defineStore('collections', () => {
     indexProfilesByCollectionId.value.delete(id);
   }
 
+  function getCollectionOnIndexProfileById(collectionId: number, indexProfileId: number) {
+    return getCollectionOnIndexProfilesByCollectionId(collectionId)?.find((c) => c.indexId == indexProfileId);
+  }
+
+  function getCollectionOnIndexProfilesByCollectionId(id: number) {
+    return indexProfilesByCollectionId.value.get(id);
+  }
+
   return {
     collections,
     collectionNames,
@@ -68,5 +77,6 @@ export const useCollectionStore = defineStore('collections', () => {
     reloadCollectionById,
     deleteCollectionById,
     loadIndexProfilesFromDatabase,
+    getCollectionOnIndexProfileById,
   };
 });
