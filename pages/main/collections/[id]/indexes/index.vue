@@ -26,14 +26,14 @@ const route = useRoute();
 const collectionStore = useCollectionStore();
 const collectionId = parseInt(route.params['id'] as string);
 
-Promise.resolve((loading.value = true))
+await Promise.resolve((loading.value = true))
   .then(() => collectionStore.load())
   .then(async () => {
     const active = await collectionStore.getActiveIndexProfileByCollectionId(collectionId);
     if (active) {
       navigateTo(`${route.path}/${active.indexId}`);
     } else {
-      navigateTo(`${route.path}/create`);
+      navigateTo(route.path.replace(/\/indexes/, '/manage'));
     }
   })
   .catch((error) => {

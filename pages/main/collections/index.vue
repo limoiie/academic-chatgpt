@@ -34,7 +34,7 @@ const errorMessage = ref<string>('');
 const collectionStore = useCollectionStore();
 const { collections } = storeToRefs(collectionStore);
 
-Promise.resolve((isLoading.value = true))
+await Promise.resolve((isLoading.value = true))
   .then(() => collectionStore.load())
   .then(async () => {
     navigate(collections.value);

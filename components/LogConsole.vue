@@ -3,25 +3,31 @@
     <!--suppress VueUnrecognizedSlot -->
     <template #renderItem="{ item }">
       <a-list-item>
-        <!--suppress TypeScriptUnresolvedReference -->
-        <p>{{ item.level }}: {{ item.message }}</p>
+        <p :class="{ [item.level]: item.level }">{{ item.message }}</p>
         <p class="w-32 text-end col-span-1 whitespace-nowrap">[{{ (item.timestamp as Date).toLocaleTimeString() }}]</p>
       </a-list-item>
     </template>
 
     <!--suppress VueUnrecognizedSlot -->
-    <template #footer ref="bottom" />
+    <template #footer>
+      <div class="h-2" ref="viewBottom"></div>
+    </template>
   </a-list>
 </template>
 
 <script setup lang="ts">
-const bottom = ref<Element | null>(null);
-const props = defineProps<{ scrollToEnd: boolean; logs: LogMessage[] }>();
-const { scrollToEnd, logs } = props;
-watch(toRef(props, 'scrollToEnd'), () => {
-  console.log('updated', bottom.value)
-  bottom.value?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-});
+const viewBottom = ref<Element | null>(null);
+
+const props = defineProps<{ logs: LogMessage[] }>();
+const { logs } = toRefs(props);
+watch(logs, scrollToConsoleEnd, { deep: true });
+
+/**
+ * Scroll to the bottom of the console.
+ */
+function scrollToConsoleEnd() {
+  viewBottom.value?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
 </script>
 
 <style lang="sass">
@@ -44,4 +50,10 @@ watch(toRef(props, 'scrollToEnd'), () => {
 
     p
       margin: 0
+
+p.warn
+  color: #faad14
+
+p.error
+  color: #f5222d
 </style>

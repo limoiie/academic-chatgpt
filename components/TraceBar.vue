@@ -1,0 +1,49 @@
+<template>
+  <a-space class="w-full" direction="vertical">
+    <!--<p class="whitespace-nowrap overflow-scroll">Working on {{ workingOn }}...</p>-->
+    <a-progress :percent="percentage" status="normal" />
+    <a-space class="flex flex-row items-baseline!">
+      <a-button
+        :type="showDetails == 1 ? 'primary' : 'dashed'"
+        size="small"
+        shape="circle"
+        @click="() => (showDetails = 1 - showDetails)"
+      >
+        <template #icon>
+          <DownCircleOutlined v-if="!showDetails" />
+          <UpCircleOutlined v-else />
+        </template>
+      </a-button>
+      <p class="whitespace-nowrap overflow-scroll">{{ title }}</p>
+    </a-space>
+
+    <a-collapse v-model:activeKey="showDetails" ghost>
+      <template #expandIcon></template>
+      <a-collapse-panel :key="1">
+        <LogConsole class="border-0 max-h-32 overflow-scroll" :logs="logs" />
+      </a-collapse-panel>
+    </a-collapse>
+  </a-space>
+</template>
+
+<script setup lang="ts">
+import { defineProps } from 'vue';
+import { TracerStatus } from '~/utils/tracer';
+import { DownCircleOutlined, UpCircleOutlined } from "@ant-design/icons-vue";
+
+const showDetails = ref<number>(0);
+
+const { tracerStatus } = defineProps<{ tracerStatus: TracerStatus }>();
+const { logs, percentage, title } = tracerStatus;
+</script>
+
+<style lang="sass">
+.ant-collapse
+  .ant-collapse-item
+    .ant-collapse-header
+      padding: 0
+
+.ant-collapse-content
+  .ant-collapse-content-box
+    padding: 0 !important
+</style>

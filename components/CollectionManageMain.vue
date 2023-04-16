@@ -21,6 +21,10 @@
       </a-space>
     </a-modal>
 
+    <a-modal title="Syncing..." :visible="isSyncing" :closable="false" @cancel="() => (isSyncing = false)">
+      <TraceBar :tracer-status="indexTracer" />
+    </a-modal>
+
     <a-space class="w-full" direction="vertical">
       <a-space>
         <a-button v-if="!hasSelected" class="ant-btn-with-icon" @click="addDocuments">
@@ -41,9 +45,34 @@
           </template>
           Refresh
         </a-button>
+        <a-tooltip title="Reload sync status">
+          <a-button
+            :loading="isComputingSync"
+            :disabled="isAdding || isLoading"
+            shape="circle"
+            @click="recomputeIndexSyncStatus"
+          >
+            <template #icon>
+              <DiffOutlined />
+            </template>
+          </a-button>
+        </a-tooltip>
+        <a-tooltip :title="`Sync changes: ${syncStatusBrief}.`">
+          <a-button
+            :loading="isSyncing || isComputingSync"
+            :disabled="isAdding || isLoading || !indexSyncStatus"
+            :type="indexSyncStatus?.clean ? 'dashed' : 'primary'"
+            shape="circle"
+            @click="syncIndex"
+          >
+            <template #icon>
+              <CloudSyncOutlined />
+            </template>
+          </a-button>
+        </a-tooltip>
       </a-space>
       <a-table
-        :data-source="formState.documents"
+        :data-source="uiDocuments"
         :columns="columns"
         :scroll="{ x: 200 }"
         :row-selection="{ selectedRowKeys: selectedDocumentIds, onChange: onSelectionChanged }"
@@ -69,31 +98,35 @@
         </template>
       </a-table>
     </a-space>
-    <!--<a-button type="primary" :disabled="!isFormStateValid" :loading="isCreating" @click="addCollection">-->
-    <!--  Create-->
-    <!--</a-button>-->
   </a-space>
 </template>
 
 <script setup lang="ts">
-import { ClearOutlined, DeleteOutlined, PlusCircleOutlined, ReloadOutlined } from '@ant-design/icons-vue';
+import {
+  ClearOutlined,
+  CloudSyncOutlined,
+  DeleteOutlined,
+  DiffOutlined,
+  PlusCircleOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons-vue';
 import { open } from '@tauri-apps/api/dialog';
 import { message, TableColumnType } from 'ant-design-vue';
 import { basename } from 'pathe';
-import { reactive, ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import { ref } from 'vue';
+import { useCollectionStore } from '~/store/collections';
 import { ProgressLogger } from '~/types';
-import { CreateDocumentData, deleteDocumentsInCollection, getOrCreateDocument } from '~/utils/bindings';
-
-const { id } = defineProps<{ id: number }>();
-
-const isLoading = ref<boolean>(false);
-const isAdding = ref<boolean>(false);
-const workingOn = ref<string | null>(null);
-const showDetails = ref<string>('0');
-const progress = new ProgressLogger();
-
-const selectedDocumentIds = ref<number[]>([]);
-const hasSelected = computed(() => selectedDocumentIds.value.length != 0);
+import {
+  CollectionOnIndexProfileWithAll,
+  CreateDocumentData,
+  deleteDocumentsInCollection,
+  Document,
+  getDocumentsByCollectionId,
+  getOrCreateDocument,
+} from '~/utils/bindings';
+import { IndexSyncStatus } from '~/utils/indexSyncStatus';
+import { IndexTracer } from '~/utils/indexTracer';
 
 const columns = [
   {
@@ -133,22 +166,81 @@ interface DocumentUiData {
   md5: string;
 }
 
-interface FormState {
-  documents: DocumentUiData[];
-}
+const props = defineProps<{ id: number; indexProfileId: string | undefined }>();
+const { id } = props;
+const indexProfileId = toRef(props, 'indexProfileId');
 
-const formState = reactive<FormState>({
-  documents: [],
+const isLoading = ref<boolean>(false);
+const isAdding = ref<boolean>(false);
+const isComputingSync = ref<boolean>(false);
+const isSyncing = ref<boolean>(false);
+
+const workingOn = ref<string | null>(null);
+const showDetails = ref<string>('0');
+const progress = new ProgressLogger();
+const indexTracer = new IndexTracer();
+
+/// documents and related status
+const selectedDocumentIds = ref<number[]>([]);
+const hasSelected = computed(() => selectedDocumentIds.value.length != 0);
+const { data: documents, refresh: reloadDocuments } = useAsyncData(`documentsOfCollection#${id}`, async () => {
+  return await Promise.resolve((isLoading.value = true))
+    .then(() => getDocumentsByCollectionId(id))
+    .catch((e) => {
+      message.error(`Failed to load documents: ${errToString(e)}`);
+      return null;
+    })
+    .finally(() => (isLoading.value = false));
+});
+const uiDocuments = computed(() => {
+  return (
+    documents.value?.map(
+      (d) =>
+        ({
+          key: d.id,
+          filename: basename(d.filepath),
+          filepath: d.filepath,
+          md5: d.md5Hash,
+        } as DocumentUiData),
+    ) || []
+  );
 });
 
-await reloadDocuments().catch((e) => {
-  message.error(`Failed to load documents: ${errToString(e)}`);
+/// collectionIndexProfile and related status
+const collectionStore = useCollectionStore();
+const { indexProfilesByCollectionId } = storeToRefs(collectionStore);
+const indexProfile = computed(() => {
+  if (indexProfileId.value == null) {
+    message.warn('No index profile selected for this collection. Please select one in the collection manage page.');
+    return undefined;
+  }
+  const indexProfiles = indexProfilesByCollectionId.value.get(id);
+  if (!indexProfiles) {
+    message.warn('No index profile for this collection. Please add in the collection manage > indexes page.');
+    return undefined;
+  }
+  return indexProfiles.find((p) => p.id == indexProfileId.value);
 });
 
-function onSelectionChanged(selected: number[]) {
-  selectedDocumentIds.value = selected;
-}
+/// index synchronizer and related status
+const indexSyncStatus = ref<IndexSyncStatus>();
+watch([indexProfile, documents], computeIndexSyncStatus);
+const syncStatusBrief = computed(() => {
+  if (isComputingSync.value) return 'Computing...';
+  if (!indexSyncStatus.value) return 'Not computed';
+  return `🚀+${indexSyncStatus.value?.toIndexed.length}, -${indexSyncStatus.value?.toDeleted.length}`;
+});
 
+await Promise.resolve((isLoading.value = true))
+  .then(() => collectionStore.load())
+  .catch((e) => {
+    message.error(`Failed to collection: ${errToString(e)}`);
+  })
+  .finally(() => (isLoading.value = false));
+
+/**
+ * Open a file selection dialog, and add the selected documents into the collection.
+ */
 async function addDocuments() {
   // Open a selection dialog, and collection documents
   const newDocuments = await open({
@@ -164,7 +256,13 @@ async function addDocuments() {
     return;
   }
 
-  async function addToDb(filepaths: string[]) {
+  /**
+   * Add documents to collection by inserting into database
+   * After all, reload the documents list.
+   *
+   * @param filepaths The filepaths of the documents to add
+   */
+  async function addToDatabase(filepaths: string[]) {
     const documents = filepaths.map((filepath) => {
       return {
         filename: basename(filepath),
@@ -189,14 +287,13 @@ async function addDocuments() {
     });
   }
 
-  isAdding.value = true;
-
-  await addToDb(typeof newDocuments === 'string' ? [newDocuments] : newDocuments)
-    .then((added) => {
+  await Promise.resolve((isAdding.value = true))
+    .then(async () => {
+      const added = await addToDatabase(typeof newDocuments === 'string' ? [newDocuments] : newDocuments);
       message.info(`Added ${added.length} documents into collection ${id}`);
     })
-    .catch((e) => {
-      message.error(`Failed to add documents: ${errToString(e)}`);
+    .catch((error) => {
+      message.error(`Failed to add documents: ${errToString(error)}`);
     })
     .finally(() => {
       isAdding.value = false;
@@ -204,37 +301,104 @@ async function addDocuments() {
     });
 }
 
-async function removeDocuments(keys: number[]) {
-  const deleted = await deleteDocumentsInCollection(id, keys);
-  formState.documents = formState.documents.filter((e) => !keys.includes(e.key));
-  message.info(`Deleted ${deleted} document(s)!`);
-  return deleted;
-}
-
+/**
+ * Remove a single document from the collection.
+ */
 async function removeDocument(key: number) {
   await removeDocuments([key]);
 }
 
+/**
+ * Remove all selected documents from the collection.
+ */
 async function removeSelectedDocuments() {
   await removeDocuments(selectedDocumentIds.value);
   selectedDocumentIds.value = [];
 }
 
-async function reloadDocuments() {
-  isLoading.value = true;
-  const documents = await getDocumentsByCollectionId(id);
-  formState.documents = documents.map((doc) => {
-    return {
-      key: doc.id,
-      filename: doc.filename,
-      filepath: doc.filepath,
-      md5: doc.md5Hash,
-    };
-  });
-  isLoading.value = false;
+/**
+ * Remove documents from the collection.
+ */
+async function removeDocuments(keys: number[]) {
+  const deleted = await deleteDocumentsInCollection(id, keys);
+  documents.value = documents.value?.filter((e) => !keys.includes(e.id)) || null;
+  message.info(`Deleted ${deleted} document(s)!`);
+  return deleted;
 }
 
+async function recomputeIndexSyncStatus() {
+  await computeIndexSyncStatus([indexProfile.value, documents.value]);
+}
+
+/**
+ * Compute the sync status of the index.
+ */
+async function computeIndexSyncStatus([newIndexProfile, newDocuments]: [
+  CollectionOnIndexProfileWithAll | undefined,
+  Document[] | null,
+]) {
+  if (newIndexProfile == undefined || newDocuments == null) {
+    indexSyncStatus.value = undefined;
+    return;
+  }
+  await Promise.resolve((isComputingSync.value = true))
+    .then(async () => {
+      return (indexSyncStatus.value = IndexSyncStatus.compute(newDocuments, newIndexProfile));
+    })
+    .then((status) => {
+      message.info(`Computed sync status: ${status.toIndexed.length} to index, ${status.toDeleted.length} to delete.`);
+    })
+    .catch((e) => {
+      message.error(`Failed to compute sync: ${errToString(e)}`);
+    })
+    .finally(() => (isComputingSync.value = false));
+}
+
+/**
+ * Synchronize the index with the collection.
+ */
+async function syncIndex() {
+  const syncStatus = indexSyncStatus.value;
+  if (!syncStatus) {
+    message.warn('Sync status is not ready.');
+    return;
+  }
+
+  const collectionOnIndex = indexProfile.value;
+  if (!collectionOnIndex) {
+    message.warn('No index profile for this collection. Please specify one in the collection manage page.');
+    return;
+  }
+
+  await Promise.resolve((isSyncing.value = true))
+    .then(async () => {
+      indexTracer.start();
+      const indexer = await Indexer.create(collectionOnIndex, indexTracer);
+      return await indexer.sync(syncStatus, collectionOnIndex);
+    })
+    .then(({ deleted, indexed }) => {
+      message.info(`Indexed ${indexed} documents, deleted ${deleted} documents.`);
+      // todo: refresh the collection's indexed documents
+      indexTracer.finish();
+    })
+    .catch((e) => {
+      message.error(`Failed to sync index: ${errToString(e)}`);
+      indexTracer.fail();
+    })
+    .finally(() => (isSyncing.value = false));
+}
+
+/**
+ * Callback for when a column of the table is resized.
+ */
 function handleResizeColumn(w: number, col: TableColumnType) {
   col.width = w;
+}
+
+/**
+ * Callback for when selection of the table is changed.
+ */
+function onSelectionChanged(selected: number[]) {
+  selectedDocumentIds.value = selected;
 }
 </script>

@@ -27,7 +27,7 @@
       <template #extra>
         <a-tooltip title="Active Index Profile" placement="left">
           <a-select
-            :value="formState.defaultIndex"
+            :value="formState.activeIndexId"
             :options="collection?.indexProfiles || []"
             :field-names="{ label: 'name', value: 'id', options: 'options' }"
           />
@@ -41,9 +41,9 @@
     </a-page-header>
 
     <a-layout-content class="mx-6">
-      <a-tabs v-model:activeKey="activeKey">
+      <a-tabs v-model:activeKey="activeTab">
         <a-tab-pane key="documents" tab="Documents">
-          <CollectionManageMain :id="id" />
+          <CollectionManageMain :id="id" :index-profile-id="formState.activeIndexId || ''" />
         </a-tab-pane>
         <a-tab-pane key="indexes" tab="Indexes" force-render>
           <CollectionManageIndexes />
@@ -63,7 +63,7 @@ import { useCollectionStore } from '~/store/collections';
 
 const route = useRoute();
 const id = parseInt(route.params['id'] as string);
-const activeKey = ref<'documents' | 'indexes'>('documents');
+const activeTab = ref<'documents' | 'indexes'>('documents');
 
 const collectionStore = useCollectionStore();
 const { collections, collectionNames } = storeToRefs(collectionStore);
@@ -86,32 +86,34 @@ onMounted(() => {
 
 interface FormState {
   name: string;
-  defaultIndex: string | undefined;
+  activeIndexId: string | undefined;
 }
 
 const formState = reactive<FormState>({
   name: '',
-  defaultIndex: undefined,
+  activeIndexId: undefined,
 });
 
 await Promise.resolve()
   .then(() => collectionStore.load())
   .then(async () => {
-    await collectionStore.load();
-    formState.defaultIndex = await collectionStore.getDefaultIndexProfileIdByCollectionId(id);
+    formState.activeIndexId = await collectionStore.getActiveIndexProfileIdByCollectionId(id);
   })
   .catch((e) => {
     message.error(`Failed to load collection: ${errToString(e)}`);
   });
 
+/**
+ * Update collection name and reload the collection.
+ */
 async function tryUpdateCollectionName() {
   if (collectionNames.value.includes(formState.name)) {
     message.error('Failed to update name: already existing!');
     return;
   }
 
-  isUpdatingName.value = true;
-  await updateCollectionName(id, formState.name)
+  await Promise.resolve((isUpdatingName.value = true))
+    .then(() => updateCollectionName(id, formState.name))
     .then(async (data) => {
       await collectionStore.reloadCollectionById(id);
       message.info(`Updated name as '${data.name}'`);
@@ -123,21 +125,10 @@ async function tryUpdateCollectionName() {
       isUpdatingName.value = false;
     });
 }
-
-// TODO: implement
-async function checkIndexSyncStatus() {
-  message.warn('Not implemented yet');
-}
-
-// TODO: implement
-async function syncIndex() {
-  message.warn('Not implemented yet');
-}
 </script>
 
 <style lang="sass">
 #collectionMain
   .ant-form-item
     margin-bottom: 0 !important
-//    margin-top: 16px
 </style>

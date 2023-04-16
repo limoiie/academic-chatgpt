@@ -157,16 +157,17 @@ export const useCollectionStore = defineStore('collections', () => {
     return fallbackIndexProfile;
   }
 
-  async function getDefaultIndexProfileIdByCollectionId(id: number) {
+  async function getActiveIndexProfileIdByCollectionId(id: number) {
     const defaultIndexId = cache.value.activeIndexProfileIdByCollectionId.get(id);
     if (defaultIndexId) return defaultIndexId;
 
     // fallback to first index profile
     const fallbackIndexId = getCollectionOnIndexProfilesByCollectionId(id)?.[0].id;
-    if (fallbackIndexId) {
-      cache.value.activeIndexProfileIdByCollectionId.set(id, fallbackIndexId);
-      await storeCacheToTauriStore();
+    if (!fallbackIndexId) {
+      throw Error('No index profile found for collection')
     }
+    cache.value.activeIndexProfileIdByCollectionId.set(id, fallbackIndexId);
+    await storeCacheToTauriStore();
     return fallbackIndexId;
   }
 
@@ -190,7 +191,7 @@ export const useCollectionStore = defineStore('collections', () => {
     loadIndexProfilesFromDatabase,
     getCollectionOnIndexProfileById,
     getActiveIndexProfileByCollectionId,
-    getDefaultIndexProfileIdByCollectionId,
+    getActiveIndexProfileIdByCollectionId,
     setActiveCollectionId,
     getActiveCollectionId,
   };

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use specta::Type;
+use specta::{specta, Type};
 use tauri::State;
 
 use crate::core::fs::hash_file_in_md5;
@@ -62,6 +62,28 @@ pub(crate) async fn get_or_create_splitting_id(
         GetOrCreateSplittingData::Id(id) => Ok(id),
         GetOrCreateSplittingData::Config(data) => Ok(get_or_create_splitting(db, data).await?.id),
     }
+}
+
+document_chunk::select!(document_chunk_only_md5hash { md_5_hash });
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn get_chunk_md5hashes_by_documents_and_splitting(
+    db: DbState<'_>,
+    document_ids: Vec<i32>,
+    splitting: GetOrCreateSplittingData,
+) -> crate::Result<Vec<document_chunk_only_md5hash::Data>> {
+    let splitting_id = get_or_create_splitting_id(db.clone(), splitting).await?;
+
+    Ok(db
+        .document_chunk()
+        .find_many(vec![
+            document_chunk::document_id::in_vec(document_ids),
+            document_chunk::splitting_id::equals(splitting_id),
+        ])
+        .select(document_chunk_only_md5hash::select())
+        .exec()
+        .await?)
 }
 
 #[tauri::command]
@@ -926,7 +948,7 @@ pub(crate) async fn upsert_embeddings_config(
 ///
 
 index_profile::include!(index_profile_with_all {
-    embeddings_client embeddings_config vector_db_client vector_db_config
+    embeddings_client embeddings_config vector_db_client vector_db_config splitting
 });
 
 #[tauri::command]
@@ -1070,7 +1092,7 @@ pub(crate) async fn get_collections_on_indexes_by_collection_id(
 
 collections_on_index_profiles::include!(collection_on_index_profile_with_all {
     index: include {
-        embeddings_client embeddings_config vector_db_client vector_db_config
+        embeddings_client embeddings_config vector_db_client vector_db_config splitting
     }
 });
 
