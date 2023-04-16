@@ -1,17 +1,19 @@
 import { Embeddings } from 'langchain/embeddings';
 import { PineconeStore, VectorStore } from 'langchain/vectorstores';
-import { VectorDbClientExData, VectorDbConfigExData } from '~/utils/bindings';
+import { VectorDbClient, VectorDbConfig } from '~/utils/bindings';
 import { CrossPineconeClient } from '~/utils/pinecone';
 
 export async function createVectorstore(
-  vectorstoreClient: VectorDbClientExData,
-  vectorstoreConfig: VectorDbConfigExData,
+  vectorstoreClient: VectorDbClient,
+  vectorstoreConfig: VectorDbConfig,
   embeddings: Embeddings,
   namespace: string,
 ): Promise<VectorStore> {
+  const clientInfo = JSON.parse(vectorstoreClient.info);
+  const configMeta = JSON.parse(vectorstoreConfig.meta);
+
   switch (vectorstoreConfig.clientType) {
     case 'pinecone':
-      const clientInfo: PineconeVectorstoreConfigMeta = vectorstoreClient.info;
       const client = new CrossPineconeClient();
       await client.init({
         environment: clientInfo.environment,
@@ -23,10 +25,10 @@ export async function createVectorstore(
         await client.createIndex({
           createRequest: {
             name: clientInfo.indexName,
-            metric: vectorstoreConfig.meta.metric,
-            dimension: vectorstoreConfig.meta.dimension,
-          }
-        })
+            metric: configMeta.metric,
+            dimension: configMeta.dimension,
+          },
+        });
       }
 
       const index = client.Index(clientInfo.indexName);

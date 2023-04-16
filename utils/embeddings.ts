@@ -1,11 +1,12 @@
 import { OpenAIEmbeddings } from 'langchain/embeddings';
-import { EmbeddingsClientExData, GetEmbeddingsConfigData } from '~/utils/bindings';
+import { EmbeddingsClient, EmbeddingsConfig } from '~/utils/bindings';
 
-export async function createEmbeddings(client: EmbeddingsClientExData, config: GetEmbeddingsConfigData) {
+export async function createEmbeddings(client: EmbeddingsClient, config: EmbeddingsConfig) {
+  const clientInfo = JSON.parse(client.info);
   switch (config.clientType) {
     case 'openai':
       return new OpenAIEmbeddings({
-        openAIApiKey: client.info.apiKey,
+        openAIApiKey: clientInfo.apiKey,
       });
 
     default:
