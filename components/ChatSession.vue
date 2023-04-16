@@ -115,7 +115,7 @@ const { data: context } = useAsyncData(`contextOfSession#${session.id}`, async (
   } as Context;
 });
 
-Promise.resolve().then(async () => {
+await Promise.resolve().then(async () => {
   await defaultCompleteStore.load();
   loadConversationHistory();
 });

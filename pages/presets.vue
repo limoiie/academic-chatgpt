@@ -62,7 +62,7 @@ const { defaultEmbeddingsClient, defaultEmbeddingsConfig } = storeToRefs(default
 
 const indexProfilesStore = useIndexProfilesStore();
 
-Promise.resolve()
+await Promise.resolve()
   .then(async () => {
     await defaultVectorDbStore.load();
     await defaultEmbeddingsStore.load();

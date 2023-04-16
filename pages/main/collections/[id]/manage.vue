@@ -94,7 +94,8 @@ const formState = reactive<FormState>({
   defaultIndex: undefined,
 });
 
-Promise.resolve()
+await Promise.resolve()
+  .then(() => collectionStore.load())
   .then(async () => {
     await collectionStore.load();
     formState.defaultIndex = await collectionStore.getDefaultIndexProfileIdByCollectionId(id);

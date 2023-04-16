@@ -127,7 +127,7 @@ const indexProfiles = computed(() => {
 
 const indexProfilesUiData = computed(() => indexProfiles.value.map(dbDataToUi));
 
-Promise.resolve((loading.value = true))
+await Promise.resolve((loading.value = true))
   .then(() => collectionStore.loadIndexProfilesFromDatabase())
   .finally(() => (loading.value = false));
 

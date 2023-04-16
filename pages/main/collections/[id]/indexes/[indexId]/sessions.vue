@@ -36,7 +36,6 @@ import { message } from 'ant-design-vue';
 import { useCollectionStore } from '~/store/collections';
 import { createSession, getSessionsByCollectionOnIndexId } from '~/utils/bindings';
 import { uniqueName } from '~/utils/strings';
-
 const isLoading = ref<boolean>(false);
 
 const route = useRoute();

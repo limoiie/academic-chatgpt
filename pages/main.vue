@@ -68,7 +68,7 @@ const isLoading = ref<boolean>(false);
 const collectionStore = useCollectionStore();
 const { collections } = storeToRefs(collectionStore);
 
-Promise.resolve((isLoading.value = true))
+await Promise.resolve((isLoading.value = true))
   .then(() => collectionStore.load())
   .catch((e) => {
     message.error(`Failed to load profiles: ${errToString(e)}`);
