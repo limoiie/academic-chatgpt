@@ -26,7 +26,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.0.1",
     "@nuxt/content": "^2.5.2",
-    "@pinecone-database/pinecone": "^0.0.12",
+    "@pinecone-database/pinecone": "^0.0.10",
     "@pinia/nuxt": "^0.4.7",
     "@tauri-apps/api": "^1.2.0",
     "@types/marked": "^4.0.8",
