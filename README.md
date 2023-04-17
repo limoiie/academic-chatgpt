@@ -2,6 +2,16 @@
 
 A chatbot that allows users to chat with a collection of documents files.
 
+## Snapshots
+
+Chat with collection of documents files. Supports of various completion styles.
+
+![snapshot](./docs/_media/chat-documents-page.png)
+
+Collection dashboard. 
+
+![snapshot](./docs/_media/collection-dashboard-page.png)
+
 ## Setup
 
 Academic-chatgpt is built on [Nuxt 3](https://nuxt.com/) + [tauri](https://tauri.app/). So before you start, make sure you have the following installed:
@@ -29,9 +39,9 @@ After that, run following command to initialize the database schema at your firs
 cargo prisma generate --schema=./src-tauri/prisma/schema.prisma
 ```
 
-## Development Server
+## Development
 
-Start the development server on http://localhost:3000
+Start the development application:
 
 ```bash
 cargo tauri dev
