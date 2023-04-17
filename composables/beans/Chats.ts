@@ -7,7 +7,16 @@ import {
   LLMResult,
   SystemChatMessage,
 } from 'langchain/schema';
+import { ChatCompletionRequestMessage } from 'openai';
 import { objectToOpenaiChatMessage, openaiChatMessageToObject } from '~/utils/serde';
+
+function langchainChatCompletionMessageToOpenai(message: BaseChatMessage): ChatCompletionRequestMessage {
+  return {
+    role: message instanceof HumanChatMessage ? 'user' : message instanceof AIChatMessage ? 'assistant' : 'system',
+    content: message.text,
+    name: message._getType(),
+  };
+}
 
 export class UiChatMessage {
   constructor(
@@ -116,7 +125,7 @@ export class UiChatConversation {
     this.dialogues = dialogues;
   }
 
-  extractMessages() {
+  extractHistoryInLangchainChatCompletion() {
     return [
       this.prompt,
       ...this.dialogues.flatMap((dialogue) => {
@@ -128,7 +137,11 @@ export class UiChatConversation {
     ];
   }
 
-  extractHistory(): [string, string][] {
+  extractHistoryInOpenAIChatCompletion(): ChatCompletionRequestMessage[] {
+    return this.extractHistoryInLangchainChatCompletion().map(langchainChatCompletionMessageToOpenai);
+  }
+
+  extractHistoryAsQAPairs(): [string, string][] {
     return this.dialogues.slice(0, -1).map((dialogue) => {
       return [dialogue.question.message.text, dialogue.chosenAnswer.message.text];
     });

@@ -26,9 +26,10 @@ const chatBottom: Ref<Element | undefined> = ref(undefined);
 
 /// Define properties
 const props = defineProps<{ scrollToEnd: boolean; conversation: UiChatConversation }>();
-const { scrollToEnd, conversation } = props;
+const { conversation } = props;
+const { scrollToEnd } = toRefs(props);
 
-watch(toRef(props, 'scrollToEnd'), () => {
+watch(scrollToEnd, () => {
   chatBottom.value?.scrollIntoView({ behavior: 'smooth', block: 'end' });
 });
 </script>

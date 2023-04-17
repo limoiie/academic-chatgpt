@@ -107,7 +107,6 @@
 
 <script setup lang="ts">
 import {
-  ClearOutlined,
   CloudSyncOutlined,
   DeleteOutlined,
   DiffOutlined,
