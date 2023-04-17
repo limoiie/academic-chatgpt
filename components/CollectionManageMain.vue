@@ -227,7 +227,9 @@ const index = computed(() => {
 
 /// index synchronizer and related status
 const indexSyncStatus = ref<IndexSyncStatus>();
-watch([index, documents], computeIndexSyncStatus);
+watch([index, documents], (changed) => {
+  computeIndexSyncStatus(changed, false);
+});
 const syncStatusBrief = computed(() => {
   if (isComputingSync.value) return 'Computing...';
   if (!indexSyncStatus.value) return 'Not computed';
@@ -330,16 +332,16 @@ async function removeDocuments(keys: number[]) {
 }
 
 async function recomputeIndexSyncStatus() {
-  await computeIndexSyncStatus([index.value, documents.value]);
+  await computeIndexSyncStatus([index.value, documents.value], true);
 }
 
 /**
  * Compute the sync status of the index.
  */
-async function computeIndexSyncStatus([newIndexProfile, newDocuments]: [
-  CollectionIndexWithAll | undefined,
-  Document[] | null,
-]) {
+async function computeIndexSyncStatus(
+  [newIndexProfile, newDocuments]: [CollectionIndexWithAll | undefined, Document[] | null],
+  showInfo = false,
+) {
   if (newIndexProfile == undefined || newDocuments == null) {
     indexSyncStatus.value = undefined;
     return;
@@ -349,7 +351,13 @@ async function computeIndexSyncStatus([newIndexProfile, newDocuments]: [
       return (indexSyncStatus.value = IndexSyncStatus.compute(newDocuments, newIndexProfile));
     })
     .then((status) => {
-      message.info(`Computed sync status: ${status.toIndexed.length} to index, ${status.toDeleted.length} to delete.`);
+      showInfo
+        ? status.clean
+          ? message.success('Index is synced.')
+          : message.info(
+              `Computed sync status: ${status.toIndexed.length} to index, ${status.toDeleted.length} to delete.`
+            )
+        : undefined;
     })
     .catch((e) => {
       message.error(`Failed to compute sync: ${errToString(e)}`);
@@ -381,7 +389,6 @@ async function syncIndex() {
     })
     .then(({ deleted, indexed }) => {
       message.info(`Indexed ${indexed} documents, deleted ${deleted} documents.`);
-      // todo: refresh the collection's indexed documents
       indexTracer.finish();
     })
     .catch((e) => {
