@@ -42,3 +42,33 @@ export async function createVectorstore(
       throw Error(`Not supported client: ${vectorstoreConfig.clientType}`);
   }
 }
+
+/**
+ * Delete the vectors for indexing from vectorstore
+ *
+ * @param vectorstoreClient
+ * @param vectorstoreConfig
+ * @param namespace
+ */
+export async function deleteIndexFromVectorstore(
+  vectorstoreClient: VectorDbClient,
+  vectorstoreConfig: VectorDbConfig,
+  namespace: string,
+) {
+  const clientInfo = JSON.parse(vectorstoreClient.info);
+
+  switch (vectorstoreConfig.clientType) {
+    case 'pinecone':
+      const client = new CrossPineconeClient();
+      await client.init({
+        environment: clientInfo.environment,
+        apiKey: clientInfo.apiKey,
+      });
+
+      const index = client.Index(namespace);
+      await index.delete1({
+        namespace: namespace,
+        deleteAll: true,
+      });
+  }
+}

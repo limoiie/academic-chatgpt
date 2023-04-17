@@ -1,3 +1,4 @@
+import { message } from 'ant-design-vue';
 import { defineStore } from 'pinia';
 import { Ref } from 'vue';
 import {
@@ -7,6 +8,7 @@ import {
   deleteCollectionById as deleteDbCollectionById,
   IndexProfileWithAll,
 } from '~/utils/bindings';
+import { deleteIndexFromVectorstore } from '~/utils/vectorstores';
 
 interface CollectionsStore {
   activeCollectionId: number | undefined;
@@ -115,20 +117,28 @@ export const useCollectionStore = defineStore('collections', () => {
     const i = collections.value.findIndex((c) => c.id == id);
     if (i == -1) return { deleted: undefined, fallback: undefined };
 
+    // remove from remote vectorstore
+    for (const index of indexesByCollectionId.value.get(id) || []) {
+      await deleteIndexFromVectorstore(index.index.vectorDbClient, index.index.vectorDbConfig, index.id).catch((e) =>
+        message.warn(
+          `Failed to delete index from vectorstore: ${errToString(e)}.` +
+            `If the vectorstore from pinecone, it is safe to ignore.`,
+        ),
+      );
+    }
+
+    // remove from local database
     await deleteDbCollectionById(id);
     const deleted = collections.value[i];
     collections.value = [...collections.value.slice(0, i), ...collections.value.slice(i + 1)];
-    indexesByCollectionId.value.delete(id);
 
+    // delete index-related caches
+    indexesByCollectionId.value.delete(id);
     cache.value.activeIndexIdByCollectionId.delete(id);
     await storeCacheToTauriStore();
 
-    if (cache.value.activeCollectionId != id) {
-      return { deleted, fallback: undefined };
-    }
-
-    const fallbackIdx = Math.min(i, collections.value.length - 1);
-    const fallback = collections.value[fallbackIdx];
+    // set fallback collection if deleted collection is active
+    const fallback = cache.value.activeCollectionId != id ? undefined : await setActiveCollectionIdByNo(i);
     return { deleted, fallback };
   }
 
@@ -163,11 +173,26 @@ export const useCollectionStore = defineStore('collections', () => {
     // fallback to first index
     const fallbackActiveIndexId = getCollectionIndexesByCollectionId(id)?.[0].id;
     if (!fallbackActiveIndexId) {
-      throw Error('No index profile found for collection')
+      throw Error('No index profile found for collection');
     }
     cache.value.activeIndexIdByCollectionId.set(id, fallbackActiveIndexId);
     await storeCacheToTauriStore();
     return fallbackActiveIndexId;
+  }
+
+  async function setActiveCollectionIdByNo(no: number) {
+    no = Math.min(no, collections.value.length - 1);
+    const activeCollection = collections.value.at(no);
+    if (!activeCollection) {
+      return undefined;
+    }
+    if (activeCollection.id == cache.value.activeCollectionId) {
+      return;
+    }
+
+    cache.value.activeCollectionId = activeCollection.id;
+    await storeCacheToTauriStore();
+    return activeCollection;
   }
 
   async function setActiveCollectionId(id: number) {

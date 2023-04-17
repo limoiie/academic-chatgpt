@@ -20,9 +20,25 @@ pub(crate) async fn delete_collection_indexes_by_id(
     collection_index_ids: Vec<String>,
 ) -> crate::Result<i32> {
     sessions::delete_sessions_by_index_ids(db.clone(), collection_index_ids.clone()).await?;
+    remove_all_documents_from_collection_indexes(db.clone(), collection_index_ids.clone()).await?;
     Ok(db
         .collection_index()
         .delete_many(vec![collection_index::id::in_vec(collection_index_ids)])
+        .exec()
+        .await? as i32)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn remove_all_documents_from_collection_indexes(
+    db: DbState<'_>,
+    collection_index_ids: Vec<String>,
+) -> crate::Result<i32> {
+    Ok(db
+        .collection_index_on_document()
+        .delete_many(vec![collection_index_on_document::index_id::in_vec(
+            collection_index_ids,
+        )])
         .exec()
         .await? as i32)
 }

@@ -48,7 +48,7 @@ export class Indexer {
    * Sync the index with the given sync status.
    */
   async sync(status: IndexSyncStatus, index: CollectionIndexWithAll) {
-    const deleted = await this.deleteVectors(status.toDeleted, index);
+    const deleted = await this.removeIndexedDocuments(status.toDeleted, index);
     const indexed = await this.indexDocuments(index, ...status.toIndexed);
     status.toIndexed = [];
     status.toDeleted = [];
@@ -58,7 +58,18 @@ export class Indexer {
     };
   }
 
-  async deleteVectors(toDeleted: number[], index: CollectionIndexWithAll) {
+  /**
+   * Remove the given documents from the index.
+   *
+   * This function does not remove the documents from the database. It only
+   * removes the indexed vectors from the vector database and the indexed
+   * records from the local database. Additionally, the vectors cached in local
+   * will be preserved.
+   *
+   * @param toDeleted
+   * @param index
+   */
+  async removeIndexedDocuments(toDeleted: number[], index: CollectionIndexWithAll) {
     this.tracer.onStepStart('Deleting', `vectors of ${toDeleted.length} obstacle documents...`, undefined);
 
     if (toDeleted.length == 0) {
@@ -75,19 +86,27 @@ export class Indexer {
 
     this.tracer.log('deleting vectors from vector database...');
     if (this.vectorstore instanceof PineconeStore) {
-      await this.vectorstore.pineconeIndex.delete1({
-        ids: vectorIds,
-        namespace: index.id,
-        deleteAll: false,
-      });
+      await this.vectorstore.pineconeIndex
+        .delete1({
+          ids: vectorIds,
+          namespace: index.id,
+          deleteAll: false,
+        })
+        .catch((e) => {
+          message.warn(
+            'Deleting vectors failed: ' +
+              errToString(e) +
+              '. If you are using Pinecone, you may ignore this.',
+          );
+        });
     } else {
       message.warn('Deleting vectors is not supported for this vector store.');
     }
 
-    await removeDocumentsFromCollectionIndex(index.id, toDeleted);
+    const deleted = await removeDocumentsFromCollectionIndex(index.id, toDeleted);
     index.indexedDocuments.filter((document) => !toDeleted.includes(document.id));
     this.tracer.onStepEnd();
-    return vectorIds.length;
+    return deleted;
   }
 
   /**
