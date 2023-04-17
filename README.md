@@ -1,6 +1,7 @@
-# Nuxt 3 Minimal Starter
+# Academic Chatgpt
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+A chatbot that allows users to chat with a collection of documents files.
+It is built on [Nuxt 3](https://nuxt.com/) + [tauri](https://tauri.app/).
 
 ## Setup
 
@@ -17,12 +18,18 @@ npm install
 pnpm install
 ```
 
+Do not forget to create the database schema at the first run:
+
+```bash
+cargo prisma generate --schema=./src-tauri/prisma/schema.prisma
+```
+
 ## Development Server
 
 Start the development server on http://localhost:3000
 
 ```bash
-npm run dev
+cargo tauri dev
 ```
 
 ## Production
@@ -30,13 +37,5 @@ npm run dev
 Build the application for production:
 
 ```bash
-npm run build
+cargo tauri build
 ```
-
-Locally preview production build:
-
-```bash
-npm run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
