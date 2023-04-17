@@ -139,8 +139,6 @@ async function deleteCollection(collectionId: number) {
       if (deleted) {
         if (fallback) {
           navigateTo(`/main/collections/${fallback.id}`);
-        } else {
-          navigateTo(`/main/collections`);
         }
         message.info(`Deleted collection#${collectionId}!`);
       } else {

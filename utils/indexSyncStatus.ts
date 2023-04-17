@@ -26,7 +26,7 @@ export class IndexSyncStatus {
    * @param index
    */
   static compute(documents: Document[], index: CollectionIndexWithAll) {
-    const indexed: Set<number> = new Set(index.indexedDocuments.map((d) => d.id));
+    const indexed: Set<number> = new Set(index.indexedDocuments.map((d) => d.documentId));
     const toIndexed = documents.filter((document) => {
       if (indexed.has(document.id)) {
         indexed.delete(document.id);
