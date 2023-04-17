@@ -36,4 +36,7 @@ watch(
 );
 </script>
 
-<style scoped></style>
+<style lang="sass">
+code
+  border-radius: 2px
+</style>

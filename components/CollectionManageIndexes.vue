@@ -41,7 +41,7 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
           <a-space>
-            <a-button size="small" shape="circle" @click="open(record.id)">
+            <a-button size="small" shape="circle" @click="open(record.indexId)">
               <template #icon>
                 <CommentOutlined />
               </template>
@@ -133,6 +133,7 @@ await Promise.resolve((loading.value = true))
 
 interface IndexProfileUiData {
   id: string;
+  indexId: number;
   name: string;
   indexName: string;
   splitting: string;
@@ -144,6 +145,7 @@ interface IndexProfileUiData {
 function dbDataToUi(indexProfile: CollectionIndexWithAll) {
   return {
     id: indexProfile.id,
+    indexId: indexProfile.indexId,
     name: indexProfile.name,
     indexName: indexProfile.index.name,
     splitting: indexProfile.index.splittingId.toString(),
@@ -154,7 +156,7 @@ function dbDataToUi(indexProfile: CollectionIndexWithAll) {
 }
 
 async function open(id: number) {
-  const targetIndexPageUrl = route.path.replace(/\/manage$/, `/${id}`);
+  const targetIndexPageUrl = route.path.replace(/\/manage$/, `/indexes/${id}`);
   navigateTo(targetIndexPageUrl);
 }
 

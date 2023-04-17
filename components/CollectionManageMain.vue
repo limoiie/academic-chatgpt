@@ -35,7 +35,7 @@
         </a-button>
         <a-button v-if="hasSelected" class="ant-btn-with-icon" @click="removeSelectedDocuments" danger>
           <template #icon>
-            <ClearOutlined />
+            <DeleteOutlined />
           </template>
           Remove
         </a-button>
@@ -45,19 +45,10 @@
           </template>
           Refresh
         </a-button>
-        <a-tooltip title="Reload sync status">
-          <a-button
-            :loading="isComputingSync"
-            :disabled="isAdding || isLoading"
-            shape="circle"
-            @click="recomputeIndexSyncStatus"
-          >
-            <template #icon>
-              <DiffOutlined />
-            </template>
-          </a-button>
-        </a-tooltip>
-        <a-tooltip :title="`Sync changes: ${syncStatusBrief}.`">
+        <a-tooltip
+          :title="indexSyncStatus?.clean ? 'Synced!' : `Sync changes: ${syncStatusBrief}.`"
+          :color="indexSyncStatus?.clean ? 'green' : 'orange'"
+        >
           <a-button
             :loading="isSyncing || isComputingSync"
             :disabled="isAdding || isLoading || !indexSyncStatus"
@@ -67,6 +58,19 @@
           >
             <template #icon>
               <CloudSyncOutlined />
+            </template>
+          </a-button>
+        </a-tooltip>
+        <a-tooltip title="Reload sync status">
+          <a-button
+            :loading="isComputingSync"
+            :disabled="isAdding || isLoading"
+            :type="'dashed'"
+            shape="circle"
+            @click="recomputeIndexSyncStatus"
+          >
+            <template #icon>
+              <DiffOutlined />
             </template>
           </a-button>
         </a-tooltip>
@@ -383,7 +387,6 @@ async function syncIndex() {
     })
     .catch((e) => {
       message.error(`Failed to sync index: ${errToString(e)}`);
-      console.log(e)
       indexTracer.fail();
     })
     .finally(() => (isSyncing.value = false));
