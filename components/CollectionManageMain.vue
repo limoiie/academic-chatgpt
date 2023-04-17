@@ -118,7 +118,7 @@ import { ref } from 'vue';
 import { useCollectionStore } from '~/store/collections';
 import { ProgressLogger } from '~/types';
 import {
-  CollectionOnIndexProfileWithAll,
+  CollectionIndexWithAll,
   CreateDocumentData,
   deleteDocumentsInCollection,
   Document,
@@ -166,9 +166,9 @@ interface DocumentUiData {
   md5: string;
 }
 
-const props = defineProps<{ id: number; indexProfileId: string | undefined }>();
+const props = defineProps<{ id: number; indexId: string | undefined }>();
 const { id } = props;
-const indexProfileId = toRef(props, 'indexProfileId');
+const indexId = toRef(props, 'indexId');
 
 const isLoading = ref<boolean>(false);
 const isAdding = ref<boolean>(false);
@@ -206,25 +206,25 @@ const uiDocuments = computed(() => {
   );
 });
 
-/// collectionIndexProfile and related status
+/// collectionIndex and related status
 const collectionStore = useCollectionStore();
-const { indexProfilesByCollectionId } = storeToRefs(collectionStore);
-const indexProfile = computed(() => {
-  if (indexProfileId.value == null) {
+const { indexesByCollectionId } = storeToRefs(collectionStore);
+const index = computed(() => {
+  if (indexId.value == null) {
     message.warn('No index profile selected for this collection. Please select one in the collection manage page.');
     return undefined;
   }
-  const indexProfiles = indexProfilesByCollectionId.value.get(id);
+  const indexProfiles = indexesByCollectionId.value.get(id);
   if (!indexProfiles) {
     message.warn('No index profile for this collection. Please add in the collection manage > indexes page.');
     return undefined;
   }
-  return indexProfiles.find((p) => p.id == indexProfileId.value);
+  return indexProfiles.find((p) => p.id == indexId.value);
 });
 
 /// index synchronizer and related status
 const indexSyncStatus = ref<IndexSyncStatus>();
-watch([indexProfile, documents], computeIndexSyncStatus);
+watch([index, documents], computeIndexSyncStatus);
 const syncStatusBrief = computed(() => {
   if (isComputingSync.value) return 'Computing...';
   if (!indexSyncStatus.value) return 'Not computed';
@@ -327,14 +327,14 @@ async function removeDocuments(keys: number[]) {
 }
 
 async function recomputeIndexSyncStatus() {
-  await computeIndexSyncStatus([indexProfile.value, documents.value]);
+  await computeIndexSyncStatus([index.value, documents.value]);
 }
 
 /**
  * Compute the sync status of the index.
  */
 async function computeIndexSyncStatus([newIndexProfile, newDocuments]: [
-  CollectionOnIndexProfileWithAll | undefined,
+  CollectionIndexWithAll | undefined,
   Document[] | null,
 ]) {
   if (newIndexProfile == undefined || newDocuments == null) {
@@ -364,8 +364,8 @@ async function syncIndex() {
     return;
   }
 
-  const collectionOnIndex = indexProfile.value;
-  if (!collectionOnIndex) {
+  const collectionIndex = index.value;
+  if (!collectionIndex) {
     message.warn('No index profile for this collection. Please specify one in the collection manage page.');
     return;
   }
@@ -373,8 +373,8 @@ async function syncIndex() {
   await Promise.resolve((isSyncing.value = true))
     .then(async () => {
       indexTracer.start();
-      const indexer = await Indexer.create(collectionOnIndex, indexTracer);
-      return await indexer.sync(syncStatus, collectionOnIndex);
+      const indexer = await Indexer.create(collectionIndex, indexTracer);
+      return await indexer.sync(syncStatus, collectionIndex);
     })
     .then(({ deleted, indexed }) => {
       message.info(`Indexed ${indexed} documents, deleted ${deleted} documents.`);
@@ -383,6 +383,7 @@ async function syncIndex() {
     })
     .catch((e) => {
       message.error(`Failed to sync index: ${errToString(e)}`);
+      console.log(e)
       indexTracer.fail();
     })
     .finally(() => (isSyncing.value = false));

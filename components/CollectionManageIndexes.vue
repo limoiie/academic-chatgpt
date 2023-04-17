@@ -17,7 +17,7 @@
         v-if="!hasSelected"
         :loading="loading"
         class="ant-btn-with-icon"
-        @click="collectionStore.loadIndexProfilesFromDatabase"
+        @click="collectionStore.loadIndexesFromDatabase"
       >
         <template #icon>
           <ReloadOutlined />
@@ -26,7 +26,7 @@
       </a-button>
     </a-space>
     <a-table
-      :data-source="indexProfilesUiData"
+      :data-source="indexesUiData"
       :columns="columns || []"
       :row-selection="{ selectedRowKeys: selectedRawKeys, onChange: onSelectionChanged }"
       :row-key="(record) => record.id"
@@ -73,7 +73,7 @@ import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { stringify } from 'yaml';
 import { useCollectionStore } from '~/store/collections';
-import { CollectionOnIndexProfileWithAll, deleteCollectionsOnIndexesById } from '~/utils/bindings';
+import { CollectionIndexWithAll, deleteCollectionIndexesById } from '~/utils/bindings';
 
 const columns = ref<TableColumnsType>([
   {
@@ -120,15 +120,15 @@ const loading = ref<boolean>(false);
 const selectedRawKeys = ref<string[]>([]);
 const hasSelected = computed(() => selectedRawKeys.value.length != 0);
 
-const { indexProfilesByCollectionId } = storeToRefs(collectionStore);
-const indexProfiles = computed(() => {
-  return indexProfilesByCollectionId.value.get(collectionId) || [];
+const { indexesByCollectionId: indexesByCollectionId } = storeToRefs(collectionStore);
+const indexes = computed(() => {
+  return indexesByCollectionId.value.get(collectionId) || [];
 });
 
-const indexProfilesUiData = computed(() => indexProfiles.value.map(dbDataToUi));
+const indexesUiData = computed(() => indexes.value.map(dbDataToUi));
 
 await Promise.resolve((loading.value = true))
-  .then(() => collectionStore.loadIndexProfilesFromDatabase())
+  .then(() => collectionStore.loadIndexesFromDatabase())
   .finally(() => (loading.value = false));
 
 interface IndexProfileUiData {
@@ -138,10 +138,10 @@ interface IndexProfileUiData {
   splitting: string;
   embeddingsConfig: string;
   vectorDbConfig: string;
-  origin: CollectionOnIndexProfileWithAll;
+  origin: CollectionIndexWithAll;
 }
 
-function dbDataToUi(indexProfile: CollectionOnIndexProfileWithAll) {
+function dbDataToUi(indexProfile: CollectionIndexWithAll) {
   return {
     id: indexProfile.id,
     name: indexProfile.name,
@@ -179,7 +179,7 @@ async function removeSelected() {
 
 async function removeIndexProfiles(indexProfileIds: string[]) {
   if (indexProfileIds.length > 0) {
-    const deleted = await deleteCollectionsOnIndexesById(indexProfileIds);
+    const deleted = await deleteCollectionIndexesById(indexProfileIds);
     if (deleted != indexProfileIds.length) {
       message.warn(`Failed to delete: ${indexProfileIds.length} to delete, only ${deleted} deleted`);
     }

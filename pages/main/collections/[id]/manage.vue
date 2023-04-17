@@ -28,7 +28,7 @@
         <a-tooltip title="Active Index Profile" placement="left">
           <a-select
             :value="formState.activeIndexId"
-            :options="collection?.indexProfiles || []"
+            :options="collection?.indexes || []"
             :field-names="{ label: 'name', value: 'id', options: 'options' }"
           />
         </a-tooltip>
@@ -43,7 +43,7 @@
     <a-layout-content class="mx-6">
       <a-tabs v-model:activeKey="activeTab">
         <a-tab-pane key="documents" tab="Documents">
-          <CollectionManageMain :id="id" :index-profile-id="formState.activeIndexId || ''" />
+          <CollectionManageMain :id="id" :index-id="formState.activeIndexId || ''" />
         </a-tab-pane>
         <a-tab-pane key="indexes" tab="Indexes" force-render>
           <CollectionManageIndexes />
@@ -97,7 +97,7 @@ const formState = reactive<FormState>({
 await Promise.resolve()
   .then(() => collectionStore.load())
   .then(async () => {
-    formState.activeIndexId = await collectionStore.getActiveIndexProfileIdByCollectionId(id);
+    formState.activeIndexId = await collectionStore.getActiveIndexIdByCollectionId(id);
   })
   .catch((e) => {
     message.error(`Failed to load collection: ${errToString(e)}`);

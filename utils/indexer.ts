@@ -3,7 +3,7 @@ import { Embeddings } from 'langchain/embeddings';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { PineconeStore, VectorStore } from 'langchain/vectorstores';
 import {
-  CollectionOnIndexProfileWithAll,
+  CollectionIndexWithAll,
   Document,
   DocumentChunk,
   getEmbeddingVectorByMd5hash,
@@ -23,23 +23,23 @@ export class Indexer {
     public tracer: Tracer,
   ) {}
 
-  static async create(collectionOnIndex: CollectionOnIndexProfileWithAll, tracer: Tracer) {
-    const namespace = collectionOnIndex.id;
+  static async create(collectionIndex: CollectionIndexWithAll, tracer: Tracer) {
+    const namespace = collectionIndex.id;
     const embeddings = await createEmbeddings(
-      collectionOnIndex.index.embeddingsClient,
-      collectionOnIndex.index.embeddingsConfig,
+      collectionIndex.index.embeddingsClient,
+      collectionIndex.index.embeddingsConfig,
     );
     const vectorstore = await createVectorstore(
-      collectionOnIndex.index.vectorDbClient,
-      collectionOnIndex.index.vectorDbConfig,
+      collectionIndex.index.vectorDbClient,
+      collectionIndex.index.vectorDbConfig,
       embeddings,
       namespace,
     );
     return new Indexer(
       embeddings,
       vectorstore,
-      collectionOnIndex.index.embeddingsConfigId,
-      collectionOnIndex.index.splitting,
+      collectionIndex.index.embeddingsConfigId,
+      collectionIndex.index.splitting,
       tracer,
     );
   }
@@ -47,9 +47,9 @@ export class Indexer {
   /**
    * Sync the index with the given sync status.
    */
-  async sync(status: IndexSyncStatus, indexProfile: CollectionOnIndexProfileWithAll) {
-    const deleted = await this.deleteVectors(status.toDeleted, indexProfile);
-    const indexed = await this.indexDocuments(...status.toIndexed);
+  async sync(status: IndexSyncStatus, index: CollectionIndexWithAll) {
+    const deleted = await this.deleteVectors(status.toDeleted, index);
+    const indexed = await this.indexDocuments(index, ...status.toIndexed);
     status.toIndexed = [];
     status.toDeleted = [];
     return {
@@ -58,7 +58,7 @@ export class Indexer {
     };
   }
 
-  async deleteVectors(toDeleted: number[], indexProfile: CollectionOnIndexProfileWithAll) {
+  async deleteVectors(toDeleted: number[], index: CollectionIndexWithAll) {
     this.tracer.onStepStart('Deleting', `vectors of ${toDeleted.length} obstacle documents...`, undefined);
 
     if (toDeleted.length == 0) {
@@ -69,7 +69,7 @@ export class Indexer {
 
     this.tracer.log('fetching vectors to delete...');
     const vectorIds = await getChunkMd5hashesByDocumentsAndSplitting(toDeleted, {
-      Id: indexProfile.index.splittingId,
+      Id: index.index.splittingId,
     }).then((vectors) => vectors.map((vectors) => vectors.md5Hash));
     this.tracer.log(`fetched vectors to delete: ${vectorIds.length}`);
 
@@ -77,12 +77,15 @@ export class Indexer {
     if (this.vectorstore instanceof PineconeStore) {
       await this.vectorstore.pineconeIndex.delete1({
         ids: vectorIds,
-        namespace: indexProfile.id,
+        namespace: index.id,
+        deleteAll: false,
       });
     } else {
       message.warn('Deleting vectors is not supported for this vector store.');
     }
 
+    await removeDocumentsFromCollectionIndex(index.id, toDeleted);
+    index.indexedDocuments.filter((document) => !toDeleted.includes(document.id));
     this.tracer.onStepEnd();
     return vectorIds.length;
   }
@@ -92,14 +95,13 @@ export class Indexer {
    * Each document will be split into chunks first, each of which will be embedded with an Embeddings. After embedding,
    * all the embedding vectors will be uploaded into the given vectorstore for indexing.
    *
+   * @param index The collection index.
    * @param documents An array of documents.
    */
-  async indexDocuments(...documents: Document[]) {
+  async indexDocuments(index: CollectionIndexWithAll, ...documents: Document[]) {
     this.tracer.onStepStart('Indexing', `${documents.length} new documents...`, documents.length);
     for (const document of documents) {
-      this.tracer.onStepStart(document.filename, '', undefined);
-      await this.indexOneDocument(document);
-      this.tracer.onStepEnd();
+      await this.indexOneDocument(index, document);
     }
     this.tracer.onStepEnd();
     return documents.length;
@@ -110,9 +112,10 @@ export class Indexer {
    * The document will be split into chunks first, each of which will be embedded with an Embeddings. After embedding,
    * all the embedding vectors will be uploaded into the given vectorstore for indexing.
    *
+   * @param index The collection index.
    * @param document An array of documents.
    */
-  async indexOneDocument(document: Document) {
+  async indexOneDocument(index: CollectionIndexWithAll, document: Document) {
     this.tracer.onStepStart(document.filename, '', undefined);
 
     this.tracer.log(`Fetching chunks of ${document.filename} from database...`);
@@ -129,6 +132,8 @@ export class Indexer {
     const vectors = await this.embeddingChunksAndStoreIntoDb(chunksBeingIndexed);
     await this.uploadEmbeddingVectors(vectors, chunksBeingIndexed);
 
+    const upserted = await upsertDocumentsInCollectionIndex(index.id, [document.id]);
+    index.indexedDocuments.push(...upserted);
     this.tracer.onStepEnd();
   }
 

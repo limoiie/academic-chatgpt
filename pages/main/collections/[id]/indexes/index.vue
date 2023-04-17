@@ -29,7 +29,7 @@ const collectionId = parseInt(route.params['id'] as string);
 await Promise.resolve((loading.value = true))
   .then(() => collectionStore.load())
   .then(async () => {
-    const active = await collectionStore.getActiveIndexProfileByCollectionId(collectionId);
+    const active = await collectionStore.getActiveIndexByCollectionId(collectionId);
     if (active) {
       navigateTo(`${route.path}/${active.indexId}`);
     } else {

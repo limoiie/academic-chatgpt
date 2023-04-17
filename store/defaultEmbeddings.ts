@@ -3,7 +3,7 @@ import {
   EmbeddingsClientExData,
   getEmbeddingsClientById,
   getEmbeddingsConfigById,
-  GetEmbeddingsConfigData,
+  EmbeddingsConfigExData,
   upsertEmbeddingsClient,
   upsertEmbeddingsConfig,
 } from '~/utils/bindings';
@@ -26,7 +26,7 @@ export const useDefaultEmbeddingsStore = defineStore('defaultEmbeddings', () => 
     type: 'openai' as EmbeddingsClientType,
     info: {},
   });
-  const defaultConfig = ref<GetEmbeddingsConfigData>({
+  const defaultConfig = ref<EmbeddingsConfigExData>({
     id: -1,
     name: 'openai',
     clientType: 'openai' as EmbeddingsClientType,

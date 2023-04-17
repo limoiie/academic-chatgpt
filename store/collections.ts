@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { Ref } from 'vue';
 import {
-  CollectionOnIndexProfileWithAll,
+  CollectionIndexWithAll,
   CollectionWithIndexes,
   createCollection as createDbCollection,
   deleteCollectionById as deleteDbCollectionById,
@@ -10,7 +10,7 @@ import {
 
 interface CollectionsStore {
   activeCollectionId: number | undefined;
-  activeIndexProfileIdByCollectionId: Map<number, string>;
+  activeIndexIdByCollectionId: Map<number, string>;
 }
 
 const STORE_KEY = 'collectionsStore';
@@ -20,17 +20,17 @@ export const useCollectionStore = defineStore('collections', () => {
   const loaded = ref(false);
   const cache = ref<CollectionsStore>({
     activeCollectionId: undefined,
-    activeIndexProfileIdByCollectionId: new Map(),
+    activeIndexIdByCollectionId: new Map(),
   });
 
   const collections: Ref<CollectionWithIndexes[]> = ref([]);
   const collectionNames = computed(() => collections.value.map((c) => c.name));
-  const indexProfilesByCollectionId: Ref<Map<number, CollectionOnIndexProfileWithAll[]>> = ref(new Map());
+  const indexesByCollectionId: Ref<Map<number, CollectionIndexWithAll[]>> = ref(new Map());
 
   async function load() {
     if (!loaded.value) {
       await loadCollectionsFromDatabase();
-      await loadIndexProfilesFromDatabase();
+      await loadIndexesFromDatabase();
       await loadCacheFromTauriStore();
       loaded.value = true;
     }
@@ -41,7 +41,7 @@ export const useCollectionStore = defineStore('collections', () => {
     if (stored == null) return false;
     cache.value = {
       ...stored,
-      activeIndexProfileIdByCollectionId: new Map(stored.activeIndexProfileIdByCollectionId),
+      activeIndexIdByCollectionId: new Map(stored.activeIndexIdByCollectionId),
     };
     // Check if the active collection is still valid. If not, reset the active collection.
     if (stored.activeCollectionId != null) {
@@ -56,36 +56,35 @@ export const useCollectionStore = defineStore('collections', () => {
   async function storeCacheToTauriStore() {
     await $tauriStore.set(STORE_KEY, {
       ...cache.value,
-      activeIndexProfileIdByCollectionId: [...cache.value.activeIndexProfileIdByCollectionId.entries()],
+      activeIndexIdByCollectionId: [...cache.value.activeIndexIdByCollectionId.entries()],
     });
     await $tauriStore.save();
     return true;
   }
 
   async function loadCollectionsFromDatabase() {
-    collections.value = (await getCollectionsWithIndexProfiles()) || [];
+    collections.value = (await getCollectionsWithIndexes()) || [];
   }
 
-  async function loadIndexProfilesFromDatabase() {
+  async function loadIndexesFromDatabase() {
     const map = new Map();
     for (const collection of collections.value) {
-      const indexProfiles = await getCollectionsOnIndexesByCollectionIdWithAll(collection.id);
-      map.set(collection.id, indexProfiles);
+      const indexes = await getCollectionIndexesByCollectionIdWithAll(collection.id);
+      map.set(collection.id, indexes);
     }
-    indexProfilesByCollectionId.value = map;
+    indexesByCollectionId.value = map;
   }
 
   async function createCollection(defaultIndexProfile: IndexProfileWithAll) {
     const newCollectionName = uniqueName('Collection', collectionNames.value);
     const collection = await createDbCollection({ documents: [], name: newCollectionName });
-    const collectionIndex = await createCollectionOnIndex({
+    const collectionIndex = await createCollectionIndex({
       name: defaultIndexProfile.name,
       collectionId: collection.id,
       indexId: defaultIndexProfile.id,
-      indexedDocuments: '',
     });
 
-    cache.value.activeIndexProfileIdByCollectionId.set(collection.id, collectionIndex.id);
+    cache.value.activeIndexIdByCollectionId.set(collection.id, collectionIndex.id);
     await storeCacheToTauriStore();
 
     await reloadCollectionById(collection.id);
@@ -93,7 +92,7 @@ export const useCollectionStore = defineStore('collections', () => {
   }
 
   async function reloadCollectionById(id: number) {
-    const all = await getCollectionsWithIndexProfiles();
+    const all = await getCollectionsWithIndexes();
     const freshCollection = all.find((c) => c.id == id);
     const k = collections.value.findIndex((c) => c.id == id);
     if (k == -1) {
@@ -108,8 +107,8 @@ export const useCollectionStore = defineStore('collections', () => {
       }
     }
 
-    const indexProfiles = await getCollectionsOnIndexesByCollectionIdWithAll(id);
-    indexProfilesByCollectionId.value.set(id, indexProfiles);
+    const indexes = await getCollectionIndexesByCollectionIdWithAll(id);
+    indexesByCollectionId.value.set(id, indexes);
   }
 
   async function deleteCollectionById(id: number) {
@@ -119,9 +118,9 @@ export const useCollectionStore = defineStore('collections', () => {
     await deleteDbCollectionById(id);
     const deleted = collections.value[i];
     collections.value = [...collections.value.slice(0, i), ...collections.value.slice(i + 1)];
-    indexProfilesByCollectionId.value.delete(id);
+    indexesByCollectionId.value.delete(id);
 
-    cache.value.activeIndexProfileIdByCollectionId.delete(id);
+    cache.value.activeIndexIdByCollectionId.delete(id);
     await storeCacheToTauriStore();
 
     if (cache.value.activeCollectionId != id) {
@@ -133,42 +132,42 @@ export const useCollectionStore = defineStore('collections', () => {
     return { deleted, fallback };
   }
 
-  function getCollectionOnIndexProfileById(collectionId: number, indexProfileId: number) {
-    return getCollectionOnIndexProfilesByCollectionId(collectionId)?.find((c) => c.indexId == indexProfileId);
+  function getCollectionIndexById(collectionId: number, indexProfileId: number) {
+    return getCollectionIndexesByCollectionId(collectionId)?.find((c) => c.indexId == indexProfileId);
   }
 
-  function getCollectionOnIndexProfilesByCollectionId(id: number) {
-    return indexProfilesByCollectionId.value.get(id);
+  function getCollectionIndexesByCollectionId(id: number) {
+    return indexesByCollectionId.value.get(id);
   }
 
-  async function getActiveIndexProfileByCollectionId(id: number) {
-    const defaultIndexId = cache.value.activeIndexProfileIdByCollectionId.get(id);
-    if (defaultIndexId) {
-      const indexProfile = getCollectionOnIndexProfilesByCollectionId(id)?.find((c) => c.id == defaultIndexId);
-      if (indexProfile) return indexProfile;
+  async function getActiveIndexByCollectionId(id: number) {
+    const activeIndexId = cache.value.activeIndexIdByCollectionId.get(id);
+    if (activeIndexId) {
+      const activeIndex = getCollectionIndexesByCollectionId(id)?.find((c) => c.id == activeIndexId);
+      if (activeIndex) return activeIndex;
     }
 
-    // fallback to first index profile
-    const fallbackIndexProfile = getCollectionOnIndexProfilesByCollectionId(id)?.[0];
-    if (fallbackIndexProfile) {
-      cache.value.activeIndexProfileIdByCollectionId.set(id, fallbackIndexProfile.id);
+    // fallback to first index
+    const fallbackActiveIndex = getCollectionIndexesByCollectionId(id)?.[0];
+    if (fallbackActiveIndex) {
+      cache.value.activeIndexIdByCollectionId.set(id, fallbackActiveIndex.id);
       await storeCacheToTauriStore();
     }
-    return fallbackIndexProfile;
+    return fallbackActiveIndex;
   }
 
-  async function getActiveIndexProfileIdByCollectionId(id: number) {
-    const defaultIndexId = cache.value.activeIndexProfileIdByCollectionId.get(id);
-    if (defaultIndexId) return defaultIndexId;
+  async function getActiveIndexIdByCollectionId(id: number) {
+    const activeIndexId = cache.value.activeIndexIdByCollectionId.get(id);
+    if (activeIndexId) return activeIndexId;
 
-    // fallback to first index profile
-    const fallbackIndexId = getCollectionOnIndexProfilesByCollectionId(id)?.[0].id;
-    if (!fallbackIndexId) {
+    // fallback to first index
+    const fallbackActiveIndexId = getCollectionIndexesByCollectionId(id)?.[0].id;
+    if (!fallbackActiveIndexId) {
       throw Error('No index profile found for collection')
     }
-    cache.value.activeIndexProfileIdByCollectionId.set(id, fallbackIndexId);
+    cache.value.activeIndexIdByCollectionId.set(id, fallbackActiveIndexId);
     await storeCacheToTauriStore();
-    return fallbackIndexId;
+    return fallbackActiveIndexId;
   }
 
   async function setActiveCollectionId(id: number) {
@@ -183,15 +182,15 @@ export const useCollectionStore = defineStore('collections', () => {
   return {
     collections,
     collectionNames,
-    indexProfilesByCollectionId,
+    indexesByCollectionId,
     load,
     createCollection,
     reloadCollectionById,
     deleteCollectionById,
-    loadIndexProfilesFromDatabase,
-    getCollectionOnIndexProfileById,
-    getActiveIndexProfileByCollectionId,
-    getActiveIndexProfileIdByCollectionId,
+    loadIndexesFromDatabase,
+    getCollectionIndexById,
+    getActiveIndexByCollectionId,
+    getActiveIndexIdByCollectionId,
     setActiveCollectionId,
     getActiveCollectionId,
   };

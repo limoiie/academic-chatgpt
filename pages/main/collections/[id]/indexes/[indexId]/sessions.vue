@@ -13,9 +13,9 @@
       <a-tab-pane v-for="session in sessions" :key="session.key" :tab="session.title" :closable="session.closable">
         <!--suppress TypeScriptUnresolvedReference -->
         <ChatSession
-          v-if="data?.collectionOnIndex"
+          v-if="data?.collectionIndex"
           :session="session.origin"
-          :collection-on-index="data?.collectionOnIndex!"
+          :collection-index="data?.collectionIndex!"
         />
       </a-tab-pane>
     </a-tabs>
@@ -34,7 +34,7 @@
 import { useAsyncData } from '#app';
 import { message } from 'ant-design-vue';
 import { useCollectionStore } from '~/store/collections';
-import { createSession, getSessionsByCollectionOnIndexId } from '~/utils/bindings';
+import { createSession, getSessionsByIndexId } from '~/utils/bindings';
 import { uniqueName } from '~/utils/strings';
 const isLoading = ref<boolean>(false);
 
@@ -47,14 +47,14 @@ const { data } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${i
   return await Promise.resolve((isLoading.value = true))
     .then(() => collectionStore.load())
     .then(async () => {
-      const index = collectionStore.getCollectionOnIndexProfileById(collectionId, indexId);
+      const index = collectionStore.getCollectionIndexById(collectionId, indexId);
       if (!index) {
         throw new Error('Collection not found');
       }
 
-      const chatSessions = await getSessionsByCollectionOnIndexId(index.id);
+      const chatSessions = await getSessionsByIndexId(index.id);
       return {
-        collectionOnIndex: index,
+        collectionIndex: index,
         chatSessions: chatSessions,
       };
     })
@@ -106,7 +106,7 @@ async function addSession() {
   }
 
   const chatSession = await createSession({
-    indexProfileId: data.value.collectionOnIndex.id,
+    indexId: data.value.collectionIndex.id,
     name: uniqueName(
       'Chat',
       sessions.value.map((s) => s.title),

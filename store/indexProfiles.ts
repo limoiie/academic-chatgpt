@@ -3,7 +3,7 @@ import { Ref } from 'vue';
 import {
   CreateIndexProfileData,
   EmbeddingsClientExData,
-  GetEmbeddingsConfigData,
+  EmbeddingsConfigExData,
   getIndexProfilesWithAll,
   IndexProfile,
   IndexProfileWithAll,
@@ -73,7 +73,7 @@ export const useIndexProfilesStore = defineStore('indexProfiles', () => {
 
   async function upsertDefaultIndexProfile(
     embeddingsClient: EmbeddingsClientExData,
-    embeddingsConfig: GetEmbeddingsConfigData,
+    embeddingsConfig: EmbeddingsConfigExData,
     vectorDbClient: VectorDbClientExData,
     vectorDbConfig: VectorDbConfigExData,
     name: string = '',

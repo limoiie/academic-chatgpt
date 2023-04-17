@@ -35,7 +35,7 @@
 <script setup lang="ts">
 import { message } from 'ant-design-vue';
 import { ref } from 'vue';
-import { GetEmbeddingsConfigData } from '~/utils/bindings';
+import { EmbeddingsConfigExData } from '~/utils/bindings';
 
 const isLoadingConfigs = ref<boolean>(false);
 const isCreatingConfig = ref<boolean>(false);
@@ -46,7 +46,7 @@ const {
   value,
 } = defineProps<{
   id?: number;
-  value: GetEmbeddingsConfigData | undefined;
+  value: EmbeddingsConfigExData | undefined;
   clientType?: string;
 }>();
 const emits = defineEmits(['update:id', 'update:value']);
@@ -58,7 +58,7 @@ watch(selectedConfigId, (newConfigId) => {
   emits('update:value', value);
 });
 
-function dbDataToUi(config: GetEmbeddingsConfigData) {
+function dbDataToUi(config: EmbeddingsConfigExData) {
   return {
     value: config.id,
     label: config.name,
@@ -73,7 +73,7 @@ const formState = ref<CreateEmbeddingsConfigFormState>({
 
 const { data: availableConfigs } = useAsyncData('availableEmbeddingsConfigs', async () => {
   isLoadingConfigs.value = true;
-  let data: GetEmbeddingsConfigData[] = [];
+  let data: EmbeddingsConfigExData[] = [];
   try {
     data = await getEmbeddingsConfigs();
     selectedConfigId.value = selectedConfigId.value || data[0]?.id;

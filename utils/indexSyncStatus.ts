@@ -1,4 +1,4 @@
-import { CollectionOnIndexProfileWithAll, Document } from '~/utils/bindings';
+import { CollectionIndexWithAll, Document } from '~/utils/bindings';
 
 export class IndexSyncStatus {
   constructor(
@@ -23,10 +23,10 @@ export class IndexSyncStatus {
    * Compute the sync status from the given documents and index profile.
    *
    * @param documents
-   * @param indexProfile
+   * @param index
    */
-  static compute(documents: Document[], indexProfile: CollectionOnIndexProfileWithAll) {
-    const indexed: Set<number> = new Set(JSON.parse(indexProfile.indexedDocuments || '[]'));
+  static compute(documents: Document[], index: CollectionIndexWithAll) {
+    const indexed: Set<number> = new Set(index.indexedDocuments.map((d) => d.id));
     const toIndexed = documents.filter((document) => {
       if (indexed.has(document.id)) {
         indexed.delete(document.id);

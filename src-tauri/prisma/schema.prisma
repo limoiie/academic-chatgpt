@@ -56,14 +56,15 @@ model Document {
   collections    CollectionsOnDocuments[]
   splitings      SplittingsOnDocuments[]
   documentChunks DocumentChunk[]
+  indexes        CollectionIndexOnDocument[]
 }
 
 model Collection {
   id   Int    @id @default(autoincrement())
   name String
 
-  documents     CollectionsOnDocuments[]
-  indexProfiles CollectionsOnIndexProfiles[]
+  documents CollectionsOnDocuments[]
+  indexes   CollectionIndex[]
 }
 
 model CollectionsOnDocuments {
@@ -142,29 +143,40 @@ model IndexProfile {
   vectorDbClientId   Int
   vectorDbConfigId   Int
 
-  collections CollectionsOnIndexProfiles[]
+  indexes CollectionIndex[]
 }
 
-model CollectionsOnIndexProfiles {
-  id               String       @id @default(uuid())
-  name             String
-  collection       Collection   @relation(fields: [collectionId], references: [id])
-  index            IndexProfile @relation(fields: [indexId], references: [id])
-  indexedDocuments String
+model CollectionIndex {
+  id         String       @id @default(uuid())
+  name       String
+  collection Collection   @relation(fields: [collectionId], references: [id])
+  index      IndexProfile @relation(fields: [indexId], references: [id])
 
   collectionId Int
   indexId      Int
 
-  sessions Session[]
+  sessions         Session[]
+  indexedDocuments CollectionIndexOnDocument[]
 
   @@unique([collectionId, name])
 }
 
-model Session {
-  id           Int                        @id @default(autoincrement())
-  name         String
-  indexProfile CollectionsOnIndexProfiles @relation(fields: [indexProfileId], references: [id])
-  history      String
+model CollectionIndexOnDocument {
+  id       Int             @id @default(autoincrement())
+  index    CollectionIndex @relation(fields: [indexId], references: [id])
+  document Document        @relation(fields: [documentId], references: [id])
 
-  indexProfileId String
+  indexId    String
+  documentId Int
+
+  @@unique([indexId, documentId])
+}
+
+model Session {
+  id      Int             @id @default(autoincrement())
+  name    String
+  index   CollectionIndex @relation(fields: [indexId], references: [id])
+  history String
+
+  indexId String
 }

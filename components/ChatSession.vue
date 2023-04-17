@@ -50,11 +50,11 @@ import { UiChatConversation, UiChatDialogue } from '~/composables/beans/Chats';
 import { useDefaultCompleteStore } from '~/store/defaultComplete';
 import { noHistoryVectorDbQA } from '~/utils/aichains/noHistoryVectorDbQA';
 import { rephraseVectorDbQA } from '~/utils/aichains/rephraseVectorDbQA';
-import { CollectionOnIndexProfileWithAll, Session, updateSession } from '~/utils/bindings';
+import { CollectionIndexWithAll, Session, updateSession } from '~/utils/bindings';
 import { createVectorstore } from '~/utils/vectorstores';
 
-const { collectionOnIndex, session } = defineProps<{
-  collectionOnIndex: CollectionOnIndexProfileWithAll;
+const { collectionIndex, session } = defineProps<{
+  collectionIndex: CollectionIndexWithAll;
   session: Session;
 }>();
 
@@ -90,26 +90,26 @@ const completionConfig = reactive<CompletionConfig>({
 });
 
 interface Context {
-  collectionOnIndex: CollectionOnIndexProfileWithAll;
+  collectionIndex: CollectionIndexWithAll;
   vectorstore: VectorStore;
   embeddings: Embeddings;
 }
 
 const { data: context } = useAsyncData(`contextOfSession#${session.id}`, async () => {
-  const namespace = collectionOnIndex.id;
+  const namespace = collectionIndex.id;
   const embeddings = await createEmbeddings(
-    collectionOnIndex.index.embeddingsClient,
-    collectionOnIndex.index.embeddingsConfig,
+    collectionIndex.index.embeddingsClient,
+    collectionIndex.index.embeddingsConfig,
   );
   const vectorstore = await createVectorstore(
-    collectionOnIndex.index.vectorDbClient,
-    collectionOnIndex.index.vectorDbConfig,
+    collectionIndex.index.vectorDbClient,
+    collectionIndex.index.vectorDbConfig,
     embeddings,
     namespace,
   );
 
   return {
-    collectionOnIndex,
+    collectionIndex,
     vectorstore,
     embeddings,
   } as Context;
