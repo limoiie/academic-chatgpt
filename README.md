@@ -52,6 +52,7 @@ So, please follow the following instructions to create accounts for both openai 
 
 - create your openai api key at [here](https://platform.openai.com/account/api-keys);
 - create your pinecone api key and index at [here](https://app.pinecone.io/);
+  - **NOTE**: when dimension of the index should be 1536, as it is embedding size of openai embeddings;
   - retrieve the environment bound with api key and index name from the console.
 
 You will be asked for providing these keys when you first run the application.
