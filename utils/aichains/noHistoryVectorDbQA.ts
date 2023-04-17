@@ -6,18 +6,18 @@ import { VectorStore } from 'langchain/vectorstores';
 
 /**
  * A prompt for formatting answer format
+ *
+ * Referring to https://github.com/mayooear/gpt4-pdf-chatbot-langchain
  */
 const QA_PROMPT = PromptTemplate.fromTemplate(
-  `You are an AI assistant providing helpful advice. You are given the following extracted parts of a long document and a question. Provide a conversational answer based on the context provided.
-You should only provide hyperlinks that reference the context below. Do NOT make up hyperlinks.
-If you can't find the answer in the context below, just say "Hmm, I'm not sure." Don't try to make up an answer.
-If the question is not related to the context, politely respond that you are tuned to only answer questions that are related to the context.
+  `You are an AI assistant helping user understanding documents. You need to answer a given question by referencing a few given sections of a collection of documents.
+The sections as context are wrapped between two ========= tags. If you can't find answer in the context, just say "Sorry, I cannot find references from the document collection".
 
 Question: {question}
 =========
 {context}
 =========
-Answer in Markdown:`,
+Answer in Markdown (Code block MUST have a correct language tag):`,
 );
 
 export const noHistoryVectorDbQA = (
