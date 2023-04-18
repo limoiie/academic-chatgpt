@@ -33,7 +33,10 @@
         ]
       },
       "http": {
-        "all": true
+        "all": true,
+        "scope": [
+          "https://**", "http://**"
+        ]
       },
       "path": {
         "all": true

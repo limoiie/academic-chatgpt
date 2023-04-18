@@ -68,15 +68,18 @@ pub(crate) struct CreateCollectionData {
     documents: Vec<CreateDocumentData>,
 }
 
+// noinspection RsWrongGenericArgumentsNumber
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn create_collection(
+    app: tauri::AppHandle,
     db: DbState<'_>,
     data: CreateCollectionData,
 ) -> crate::Result<collection::Data> {
     let collection = db.collection().create(data.name, vec![]).exec().await?;
     for doc_create_data in data.documents {
-        let doc = documents::get_or_create_document(db.clone(), doc_create_data).await?;
+        let doc =
+            documents::get_or_create_document(app.clone(), db.clone(), doc_create_data).await?;
         db.collections_on_documents()
             .create(
                 collection::id::equals(collection.id),

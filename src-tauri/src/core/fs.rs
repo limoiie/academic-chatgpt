@@ -17,3 +17,8 @@ pub(crate) async fn hash_file_in_md5<P: AsRef<std::path::Path>>(
     let digest = context.compute();
     Ok(format!("{:x}", digest))
 }
+
+pub(crate) async fn hash_in_md5<T: AsRef<[u8]>>(data: T) -> std::io::Result<String> {
+    let digest = md5::compute(data);
+    Ok(format!("{:x}", digest))
+}

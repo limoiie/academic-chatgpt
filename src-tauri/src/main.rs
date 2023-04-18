@@ -24,7 +24,6 @@ async fn main() {
             db::documents::get_documents,
             db::documents::get_documents_by_collection_id,
             db::documents::get_or_create_document,
-            db::documents::create_document,
             db::documents::add_documents,
             db::collections_on_documents::delete_collection_on_documents,
             db::collections_on_documents::delete_documents_in_collection,
@@ -82,6 +81,7 @@ async fn main() {
     )
     .unwrap();
 
+    // todo: invoke via http server only if the feature is enabled
     let http = crate::core::http_invoke::Invoke::new(
         if cfg!(feature = "custom-protocol") {
             ["tauri://localhost"]
@@ -102,7 +102,6 @@ async fn main() {
             db::documents::get_documents,
             db::documents::get_documents_by_collection_id,
             db::documents::get_or_create_document,
-            db::documents::create_document,
             db::documents::add_documents,
             db::collections_on_documents::delete_collection_on_documents,
             db::collections_on_documents::delete_documents_in_collection,

@@ -1,4 +1,4 @@
-if (!isInTauri()) {
+if (!IN_TAURI) {
   injectTauriHttpInvoke();
 }
 

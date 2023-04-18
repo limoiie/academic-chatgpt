@@ -27,6 +27,7 @@
 
     <a-space class="w-full" direction="vertical">
       <a-space>
+        <file-selector :options="openOptions" @select="addDocuments"></file-selector>
         <a-button v-if="!hasSelected" class="ant-btn-with-icon" @click="addDocuments">
           <template #icon>
             <PlusCircleOutlined />
@@ -113,7 +114,6 @@ import {
   PlusCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons-vue';
-import { open } from '@tauri-apps/api/dialog';
 import { message, TableColumnType } from 'ant-design-vue';
 import { basename } from 'pathe';
 import { storeToRefs } from 'pinia';
@@ -178,6 +178,16 @@ const showDetails = ref<string>('0');
 const progress = new ProgressLogger();
 const indexTracer = new IndexTracer();
 
+const openOptions = {
+  multiple: true,
+  filters: [
+    {
+      name: 'Documents',
+      extensions: ['pdf', 'doc', 'md'],
+    },
+  ],
+};
+
 /// documents and related status
 const selectedDocumentIds = ref<number[]>([]);
 const hasSelected = computed(() => selectedDocumentIds.value.length != 0);
@@ -196,7 +206,7 @@ const uiDocuments = computed(() => {
       (d) =>
         ({
           key: d.id,
-          filename: basename(d.filepath),
+          filename: d.filename,
           filepath: d.filepath,
           md5: d.md5Hash,
         } as DocumentUiData),
@@ -239,20 +249,10 @@ await Promise.resolve((isLoading.value = true))
   .finally(() => (isLoading.value = false));
 
 /**
- * Open a file selection dialog, and add the selected documents into the collection.
+ * Add the selected documents into the collection.
  */
-async function addDocuments() {
-  // Open a selection dialog, and collection documents
-  const newDocuments = await open({
-    multiple: true,
-    filters: [
-      {
-        name: 'Documents',
-        extensions: ['pdf', 'doc', 'md'],
-      },
-    ],
-  });
-  if (newDocuments == null) {
+async function addDocuments(selected: File[] | string[] | null) {
+  if (selected == null) {
     return;
   }
 
@@ -260,23 +260,32 @@ async function addDocuments() {
    * Add documents to collection by inserting into database
    * After all, reload the documents list.
    *
-   * @param filepaths The filepaths of the documents to add
+   * @param files The file objects or paths of the documents to add
    */
-  async function addToDatabase(filepaths: string[]) {
-    const documents = filepaths.map((filepath) => {
-      return {
-        filename: basename(filepath),
-        filepath: filepath,
-      } as CreateDocumentData;
-    });
-
+  async function addToDatabase(files: File[] | string[]) {
     const documentIds = [];
-    progress.totalNum.value = documents.length;
-    for (const document of documents) {
-      progress.info(`Collecting ${document.filename}...`);
-      workingOn.value = document.filename;
-      const data = await $tauriCommands.getOrCreateDocument(document);
-      documentIds.push(data.id);
+    progress.totalNum.value = files.length;
+    for (const file of files) {
+      const data =
+        typeof file == 'string'
+          ? {
+              Path: {
+                filename: basename(file),
+                filepath: file,
+              },
+            }
+          : {
+              File: {
+                filename: file.name,
+                content: Array.from(new Uint8Array(await file.arrayBuffer())),
+              },
+            };
+
+      workingOn.value = data.File ? data.File.filename : data.Path.filename;
+      progress.info(`Collecting ${workingOn.value}...`);
+      console.log('data file length', data.File?.content.length);
+      const document = await $tauriCommands.getOrCreateDocument(data);
+      documentIds.push(document.id);
       progress.advance();
     }
 
@@ -289,7 +298,7 @@ async function addDocuments() {
 
   await Promise.resolve((isAdding.value = true))
     .then(async () => {
-      const added = await addToDatabase(typeof newDocuments === 'string' ? [newDocuments] : newDocuments);
+      const added = await addToDatabase(selected);
       message.info(`Added ${added.length} documents into collection ${id}`);
     })
     .catch((error) => {
