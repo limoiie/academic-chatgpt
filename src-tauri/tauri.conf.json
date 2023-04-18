@@ -1,9 +1,9 @@
 {
   "build": {
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run generate",
     "beforeDevCommand": "npm run dev",
     "devPath": "http://localhost:3000",
-    "distDir": "../.nuxt/dist"
+    "distDir": "../dist"
   },
   "package": {
     "productName": "academic-chatgpt",

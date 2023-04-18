@@ -4,25 +4,22 @@
     windows_subsystem = "windows"
 )]
 
-use std::sync::Arc;
-
-use specta::collect_types;
+use tauri::Manager;
 
 use crate::commands::db;
 pub(crate) use crate::core::result::Result;
-use crate::prisma::*;
 
 mod commands;
 mod core;
-pub(crate) mod prisma;
+mod prisma;
+
+const DB_NAME: &str = "dev.db";
 
 #[tokio::main]
 async fn main() {
-    let db = PrismaClient::_builder().build().await.unwrap();
-
     #[cfg(debug_assertions)]
     tauri_specta::ts::export(
-        collect_types![
+        specta::collect_types![
             db::splittings::get_or_create_splitting,
             db::documents::get_documents,
             db::documents::get_documents_by_collection_id,
@@ -85,10 +82,7 @@ async fn main() {
     )
     .unwrap();
 
-    #[cfg(debug_assertions)]
-    db._db_push().await.unwrap();
-
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             db::splittings::get_or_create_splitting,
             db::documents::get_documents,
@@ -148,8 +142,28 @@ async fn main() {
             db::sessions::create_session,
             db::sessions::update_session
         ])
-        .manage(Arc::new(db))
         .plugin(tauri_plugin_store::Builder::default().build())
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    let db = {
+        let app_config_dir = tauri::api::path::app_config_dir(app.config().as_ref())
+            .expect("error while getting app config dir");
+        let url = "file:".to_string()
+            + app_config_dir
+                .join(DB_NAME)
+                .to_str()
+                .expect("error while getting db path");
+        prisma::PrismaClient::_builder()
+            .with_url(url)
+            .build()
+            .await
+            .expect("error while building prisma client")
+    };
+
+    #[cfg(debug_assertions)]
+    db._db_push().await.expect("error while pushing db");
+
+    app.manage(std::sync::Arc::new(db));
+    app.run(|_, _| {});
 }
