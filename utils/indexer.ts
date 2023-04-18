@@ -2,26 +2,25 @@ import { message } from 'ant-design-vue';
 import { Embeddings } from 'langchain/embeddings';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { PineconeStore, VectorStore } from 'langchain/vectorstores';
-import {
-  CollectionIndexWithAll,
-  Document,
-  DocumentChunk,
-  getEmbeddingVectorByMd5hash,
-  Splitting,
-} from '~/utils/bindings';
+import { CollectionIndexWithAll, Document, DocumentChunk, Splitting } from '~/plugins/tauri/bindings';
 import { dbDocumentChunk2Ui, uiDocumentChunks2Db } from '~/utils/db';
 import { IndexSyncStatus } from '~/utils/indexSyncStatus';
 import { asyncFilter } from '~/utils/itertools';
 import { Tracer } from '~/utils/tracer';
 
 export class Indexer {
+  tauriCommands: typeof import('~/plugins/tauri/bindings');
+
   constructor(
     public embeddings: Embeddings,
     public vectorstore: VectorStore,
     public embeddingsConfigId: number,
     public splitting: Splitting,
     public tracer: Tracer,
-  ) {}
+  ) {
+    const { $tauriCommands } = useNuxtApp();
+    this.tauriCommands = $tauriCommands;
+  }
 
   static async create(collectionIndex: CollectionIndexWithAll, tracer: Tracer) {
     const namespace = collectionIndex.id;
@@ -79,9 +78,11 @@ export class Indexer {
     }
 
     this.tracer.log('fetching vectors to delete...');
-    const vectorIds = await getChunkMd5hashesByDocumentsAndSplitting(toDeleted, {
-      Id: index.index.splittingId,
-    }).then((vectors) => vectors.map((vectors) => vectors.md5Hash));
+    const vectorIds = await this.tauriCommands
+      .getChunkMd5hashesByDocumentsAndSplitting(toDeleted, {
+        Id: index.index.splittingId,
+      })
+      .then((vectors) => vectors.map((vectors) => vectors.md5Hash));
     this.tracer.log(`fetched vectors to delete: ${vectorIds.length}`);
 
     this.tracer.log('deleting vectors from vector database...');
@@ -94,16 +95,14 @@ export class Indexer {
         })
         .catch((e) => {
           message.warn(
-            'Deleting vectors failed: ' +
-              errToString(e) +
-              '. If you are using Pinecone, you may ignore this.',
+            'Deleting vectors failed: ' + errToString(e) + '. If you are using Pinecone, you may ignore this.',
           );
         });
     } else {
       message.warn('Deleting vectors is not supported for this vector store.');
     }
 
-    const deleted = await removeDocumentsFromCollectionIndex(index.id, toDeleted);
+    const deleted = await this.tauriCommands.removeDocumentsFromCollectionIndex(index.id, toDeleted);
     index.indexedDocuments.filter((document) => !toDeleted.includes(document.id));
     this.tracer.onStepEnd();
     return deleted;
@@ -151,7 +150,7 @@ export class Indexer {
     const vectors = await this.embeddingChunksAndStoreIntoDb(chunksBeingIndexed);
     await this.uploadEmbeddingVectors(vectors, chunksBeingIndexed);
 
-    const upserted = await upsertDocumentsInCollectionIndex(index.id, [document.id]);
+    const upserted = await this.tauriCommands.upsertDocumentsInCollectionIndex(index.id, [document.id]);
     index.indexedDocuments.push(...upserted);
     this.tracer.onStepEnd();
   }
@@ -160,7 +159,7 @@ export class Indexer {
    * Fetch existing chunks if there were.
    */
   private async fetchChunksFromDb(document: Document) {
-    return await getDocumentChunks(document.id, { Id: this.splitting.id });
+    return await this.tauriCommands.getDocumentChunks(document.id, { Id: this.splitting.id });
   }
 
   /**
@@ -175,7 +174,7 @@ export class Indexer {
     const vectors: number[][] = [];
     const chunksBeingUploaded: DocumentChunk[] = [];
     const chunksBeingIndexed = await asyncFilter(chunks, async (chunk) => {
-      const embeddingsResult = await getEmbeddingVectorByMd5hash({
+      const embeddingsResult = await this.tauriCommands.getEmbeddingVectorByMd5hash({
         embeddingsConfigId: this.embeddingsConfigId,
         md5Hash: chunk.md5Hash,
       });
@@ -198,7 +197,7 @@ export class Indexer {
     const vectors = await this.embeddings.embedDocuments(chunks.map((c) => c.content));
 
     this.tracer.log(`Storing embedding vectors into database...`);
-    await upsertEmbeddingVectorByMd5hashInBatch(
+    await this.tauriCommands.upsertEmbeddingVectorByMd5hashInBatch(
       chunks
         .map((chunk, i) => {
           return { chunk: chunk, vector: vectors[i] };
@@ -246,7 +245,7 @@ export class Indexer {
       }),
     );
     // store into db
-    return await createChunksByDocument({
+    return await this.tauriCommands.createChunksByDocument({
       chunks: rawChunks.map(uiDocumentChunks2Db),
       documentId: document.id,
       splitting: { Id: this.splitting.id },

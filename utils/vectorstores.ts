@@ -1,6 +1,6 @@
 import { Embeddings } from 'langchain/embeddings';
 import { PineconeStore, VectorStore } from 'langchain/vectorstores';
-import { VectorDbClient, VectorDbConfig } from '~/utils/bindings';
+import { VectorDbClient, VectorDbConfig } from '~/plugins/tauri/bindings';
 import { CrossPineconeClient } from '~/utils/pinecone';
 
 export async function createVectorstore(

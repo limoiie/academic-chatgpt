@@ -34,10 +34,12 @@
 <script setup lang="ts">
 import { message } from 'ant-design-vue';
 import { ref } from 'vue';
-import { EmbeddingsClientExData } from '~/utils/bindings';
+import { EmbeddingsClientExData } from '~/plugins/tauri/bindings';
 
 const { id = null, value } = defineProps<{ id?: number; value: EmbeddingsClientExData | undefined }>();
 const emits = defineEmits(['update:id', 'update:value']);
+
+const { $tauriCommands } = useNuxtApp();
 
 const selectedId = ref<number | null>(id);
 watch(selectedId, async (newId) => {
@@ -73,7 +75,7 @@ const { data: availableClients } = useAsyncData('availableEmbeddingsClients', as
   isLoading.value = true;
   let clients: EmbeddingsClientExData[] = [];
   try {
-    clients = await getEmbeddingsClients();
+    clients = await $tauriCommands.getEmbeddingsClients();
     selectedId.value = selectedId.value || clients[0]?.id;
   } catch (e) {
     message.error('Failed to load Embeddings configs');
@@ -89,7 +91,7 @@ async function onCreate() {
       // todo: validate
 
       // update db
-      const newDbConf = await createEmbeddingsClient({
+      const newDbConf = await $tauriCommands.createEmbeddingsClient({
         type: formState.value.type,
         name: formState.value.name,
         info: formState.value.info,

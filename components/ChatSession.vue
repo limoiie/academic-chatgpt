@@ -53,18 +53,20 @@ import { VectorStore } from 'langchain/vectorstores';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { UiChatConversation, UiChatDialogue } from '~/composables/beans/Chats';
+import { CollectionIndexWithAll, Session } from '~/plugins/tauri/bindings';
 import { useDefaultCompleteStore } from '~/store/defaultComplete';
 import { chatCompletion } from '~/utils/aichains/chatCompletion';
 import { completion } from '~/utils/aichains/completion';
 import { noHistoryVectorDbQA } from '~/utils/aichains/noHistoryVectorDbQA';
 import { rephraseVectorDbQA } from '~/utils/aichains/rephraseVectorDbQA';
-import { CollectionIndexWithAll, Session, updateSession } from '~/utils/bindings';
 import { createVectorstore } from '~/utils/vectorstores';
 
 const { collectionIndex, session } = defineProps<{
   collectionIndex: CollectionIndexWithAll;
   session: Session;
 }>();
+
+const { $tauriCommands } = useNuxtApp();
 
 const input = ref('');
 const isCompleting = ref(false);
@@ -138,7 +140,7 @@ function loadConversationHistory() {
 
 async function saveConversationHistory() {
   session.history = UiChatDialogue.dumpArray(conversation.value.dialogues);
-  await updateSession({
+  await $tauriCommands.updateSession({
     id: session.id,
     history: session.history,
     name: session.name,

@@ -1,12 +1,5 @@
 import { defineStore } from 'pinia';
-import {
-  EmbeddingsClientExData,
-  getEmbeddingsClientById,
-  getEmbeddingsConfigById,
-  EmbeddingsConfigExData,
-  upsertEmbeddingsClient,
-  upsertEmbeddingsConfig,
-} from '~/utils/bindings';
+import { EmbeddingsClientExData, EmbeddingsConfigExData } from '~/plugins/tauri/bindings';
 
 export type EmbeddingsClientType = 'openai';
 
@@ -18,7 +11,7 @@ interface DefaultEmbeddingsStore {
 const STORE_KEY = 'defaultEmbeddingsStore';
 
 export const useDefaultEmbeddingsStore = defineStore('defaultEmbeddings', () => {
-  const { $tauriStore } = useNuxtApp();
+  const { $tauriStore, $tauriCommands } = useNuxtApp();
 
   const defaultClient = ref<EmbeddingsClientExData>({
     id: -1,
@@ -36,8 +29,8 @@ export const useDefaultEmbeddingsStore = defineStore('defaultEmbeddings', () => 
   async function load() {
     const stored = await $tauriStore.get<DefaultEmbeddingsStore>(STORE_KEY);
     if (stored) {
-      const client = await getEmbeddingsClientById(stored.defaultClientId);
-      const config = await getEmbeddingsConfigById(stored.defaultConfigId);
+      const client = await $tauriCommands.getEmbeddingsClientById(stored.defaultClientId);
+      const config = await $tauriCommands.getEmbeddingsConfigById(stored.defaultConfigId);
       client != null ? (defaultClient.value = client) : null;
       config != null ? (defaultConfig.value = config) : null;
       return client != null && config != null;
@@ -57,12 +50,12 @@ export const useDefaultEmbeddingsStore = defineStore('defaultEmbeddings', () => 
 
   async function persistDefaultEmbeddingsClientAndConfig() {
     validateStore();
-    defaultClient.value = await upsertEmbeddingsClient(defaultClient.value.id, {
+    defaultClient.value = await $tauriCommands.upsertEmbeddingsClient(defaultClient.value.id, {
       name: defaultClient.value.name,
       type: defaultClient.value.type,
       info: defaultClient.value.info,
     });
-    defaultConfig.value = await upsertEmbeddingsConfig(defaultConfig.value.id, {
+    defaultConfig.value = await $tauriCommands.upsertEmbeddingsConfig(defaultConfig.value.id, {
       name: defaultConfig.value.name,
       clientType: defaultConfig.value.clientType,
       meta: defaultConfig.value.meta,

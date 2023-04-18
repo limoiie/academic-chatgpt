@@ -34,13 +34,15 @@
 import { useAsyncData } from '#app';
 import { message } from 'ant-design-vue';
 import { useCollectionStore } from '~/store/collections';
-import { createSession, getSessionsByIndexId } from '~/utils/bindings';
 import { uniqueName } from '~/utils/strings';
+
 const isLoading = ref<boolean>(false);
 
 const route = useRoute();
 const collectionId = parseInt(route.params['id'] as string);
 const indexId = parseInt(route.params['indexId'] as string);
+
+const { $tauriCommands } = useNuxtApp();
 
 const collectionStore = useCollectionStore();
 const { data } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${indexId}`, async () => {
@@ -52,7 +54,7 @@ const { data } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${i
         throw new Error('Collection not found');
       }
 
-      const chatSessions = await getSessionsByIndexId(index.id);
+      const chatSessions = await $tauriCommands.getSessionsByIndexId(index.id);
       return {
         collectionIndex: index,
         chatSessions: chatSessions,
@@ -105,7 +107,8 @@ async function addSession() {
     return;
   }
 
-  const chatSession = await createSession({
+  // noinspection TypeScriptValidateJSTypes
+  const chatSession = await $tauriCommands.createSession({
     indexId: data.value.collectionIndex.id,
     name: uniqueName(
       'Chat',
@@ -131,7 +134,7 @@ async function removeSession(targetSessionId: number) {
   if (sessions && sessions.length) {
     let currTabIndex = sessions.findIndex((session) => session.id === targetSessionId);
     if (currTabIndex >= 0) {
-      await deleteSessionById(targetSessionId);
+      await $tauriCommands.deleteSessionById(targetSessionId);
       data.value.chatSessions = sessions.filter((session) => session.id !== targetSessionId);
       if (activeSessionId.value === targetSessionId) {
         await switchToSessionTabByIndex(currTabIndex - 1);

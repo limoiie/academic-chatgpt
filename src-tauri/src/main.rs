@@ -78,11 +78,25 @@ async fn main() {
             db::sessions::create_session,
             db::sessions::update_session
         ],
-        "../utils/bindings.ts",
+        "../plugins/tauri/bindings.ts",
     )
     .unwrap();
 
+    let http = crate::core::http_invoke::Invoke::new(
+        if cfg!(feature = "custom-protocol") {
+            ["tauri://localhost"]
+        } else {
+            ["http://localhost:3000"]
+        },
+        8080,
+    );
+
     let app = tauri::Builder::default()
+        .invoke_system(http.initialization_script(), http.responder())
+        .setup(move |app| {
+            http.start(app.handle());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             db::splittings::get_or_create_splitting,
             db::documents::get_documents,

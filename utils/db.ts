@@ -1,5 +1,5 @@
 import { Document as DocumentPart } from 'langchain/docstore';
-import { CreateChunkData, DocumentChunk } from '~/utils/bindings';
+import { CreateChunkData, DocumentChunk } from '~/plugins/tauri/bindings';
 
 export function dbDocumentChunk2Ui(document: DocumentChunk) {
   const metadata = JSON.parse(document.meta);

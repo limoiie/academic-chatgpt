@@ -65,6 +65,8 @@ const route = useRoute();
 const id = parseInt(route.params['id'] as string);
 const activeTab = ref<'documents' | 'indexes'>('documents');
 
+const { $tauriCommands } = useNuxtApp();
+
 const collectionStore = useCollectionStore();
 const { collections, collectionNames } = storeToRefs(collectionStore);
 const collection = computed(() => {
@@ -113,7 +115,7 @@ async function tryUpdateCollectionName() {
   }
 
   await Promise.resolve((isUpdatingName.value = true))
-    .then(() => updateCollectionName(id, formState.name))
+    .then(() => $tauriCommands.updateCollectionName(id, formState.name))
     .then(async (data) => {
       await collectionStore.reloadCollectionById(id);
       message.info(`Updated name as '${data.name}'`);

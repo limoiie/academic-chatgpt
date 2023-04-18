@@ -118,16 +118,9 @@ import { message, TableColumnType } from 'ant-design-vue';
 import { basename } from 'pathe';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
+import { CollectionIndexWithAll, CreateDocumentData, Document } from '~/plugins/tauri/bindings';
 import { useCollectionStore } from '~/store/collections';
 import { ProgressLogger } from '~/types';
-import {
-  CollectionIndexWithAll,
-  CreateDocumentData,
-  deleteDocumentsInCollection,
-  Document,
-  getDocumentsByCollectionId,
-  getOrCreateDocument,
-} from '~/utils/bindings';
 import { IndexSyncStatus } from '~/utils/indexSyncStatus';
 import { IndexTracer } from '~/utils/indexTracer';
 
@@ -173,6 +166,8 @@ const props = defineProps<{ id: number; indexId: string | undefined }>();
 const { id } = props;
 const indexId = toRef(props, 'indexId');
 
+const { $tauriCommands } = useNuxtApp();
+
 const isLoading = ref<boolean>(false);
 const isAdding = ref<boolean>(false);
 const isComputingSync = ref<boolean>(false);
@@ -188,7 +183,7 @@ const selectedDocumentIds = ref<number[]>([]);
 const hasSelected = computed(() => selectedDocumentIds.value.length != 0);
 const { data: documents, refresh: reloadDocuments } = useAsyncData(`documentsOfCollection#${id}`, async () => {
   return await Promise.resolve((isLoading.value = true))
-    .then(() => getDocumentsByCollectionId(id))
+    .then(() => $tauriCommands.getDocumentsByCollectionId(id))
     .catch((e) => {
       message.error(`Failed to load documents: ${errToString(e)}`);
       return null;
@@ -280,12 +275,12 @@ async function addDocuments() {
     for (const document of documents) {
       progress.info(`Collecting ${document.filename}...`);
       workingOn.value = document.filename;
-      const data = await getOrCreateDocument(document);
+      const data = await $tauriCommands.getOrCreateDocument(document);
       documentIds.push(data.id);
       progress.advance();
     }
 
-    return await addDocumentsToCollection(id, documentIds).then(async (added) => {
+    return await $tauriCommands.addDocumentsToCollection(id, documentIds).then(async (added) => {
       progress.info('Reloading...');
       await reloadDocuments();
       return added;
@@ -325,7 +320,7 @@ async function removeSelectedDocuments() {
  * Remove documents from the collection.
  */
 async function removeDocuments(keys: number[]) {
-  const deleted = await deleteDocumentsInCollection(id, keys);
+  const deleted = await $tauriCommands.deleteDocumentsInCollection(id, keys);
   documents.value = documents.value?.filter((e) => !keys.includes(e.id)) || null;
   message.info(`Deleted ${deleted} document(s)!`);
   return deleted;
@@ -355,7 +350,7 @@ async function computeIndexSyncStatus(
         ? status.clean
           ? message.success('Index is synced.')
           : message.info(
-              `Computed sync status: ${status.toIndexed.length} to index, ${status.toDeleted.length} to delete.`
+              `Computed sync status: ${status.toIndexed.length} to index, ${status.toDeleted.length} to delete.`,
             )
         : undefined;
     })

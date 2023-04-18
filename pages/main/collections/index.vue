@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
 import { useCollectionStore } from '~/store/collections';
-import { CollectionWithIndexes } from '~/utils/bindings';
+import { CollectionWithIndexes } from '~/plugins/tauri/bindings';
 
 const isLoading = ref<boolean>(false);
 const errorMessage = ref<string>('');

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { VectorDbClientExData, VectorDbConfigExData } from '~/utils/bindings';
+import { VectorDbClientExData, VectorDbConfigExData } from '~/plugins/tauri/bindings';
 
 export type VectorDbClientType = 'pinecone';
 
@@ -20,7 +20,7 @@ const STORE_KEY = 'defaultVectorDbStore';
  * provide any VectorDbConfig.
  */
 export const useDefaultVectorDbStore = defineStore('defaultVectorDb', () => {
-  const { $tauriStore } = useNuxtApp();
+  const { $tauriStore, $tauriCommands } = useNuxtApp();
 
   /**
    * Default VectorDBClient.
@@ -68,8 +68,8 @@ export const useDefaultVectorDbStore = defineStore('defaultVectorDb', () => {
     const stored = await $tauriStore.get<DefaultVectorDbStore>(STORE_KEY).then();
     if (stored == null) return false;
 
-    const client = await getVectorDbClientById(stored.defaultClientId);
-    const config = await getVectorDbConfigById(stored.defaultConfigId);
+    const client = await $tauriCommands.getVectorDbClientById(stored.defaultClientId);
+    const config = await $tauriCommands.getVectorDbConfigById(stored.defaultConfigId);
     client != null ? (defaultClient.value = client) : null;
     config != null ? (defaultConfig.value = config) : null;
     return client != null && config != null;
@@ -88,12 +88,12 @@ export const useDefaultVectorDbStore = defineStore('defaultVectorDb', () => {
   async function persistDefaultVectorDbConfig() {
     validateStore();
 
-    defaultClient.value = await upsertVectorDbClient(defaultClient.value.id, {
+    defaultClient.value = await $tauriCommands.upsertVectorDbClient(defaultClient.value.id, {
       name: defaultClient.value.name,
       type: defaultClient.value.type,
       info: defaultClient.value.info,
     });
-    defaultConfig.value = await upsertVectorDbConfig(defaultConfig.value.id, {
+    defaultConfig.value = await $tauriCommands.upsertVectorDbConfig(defaultConfig.value.id, {
       name: defaultConfig.value.name,
       clientType: defaultConfig.value.clientType,
       meta: defaultConfig.value.meta,

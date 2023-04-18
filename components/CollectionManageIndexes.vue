@@ -72,8 +72,8 @@ import { message, TableColumnsType, TableColumnType } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { stringify } from 'yaml';
+import { CollectionIndexWithAll } from '~/plugins/tauri/bindings';
 import { useCollectionStore } from '~/store/collections';
-import { CollectionIndexWithAll, deleteCollectionIndexesById } from '~/utils/bindings';
 
 const columns = ref<TableColumnsType>([
   {
@@ -115,6 +115,8 @@ const columns = ref<TableColumnsType>([
 const route = useRoute();
 const collectionStore = useCollectionStore();
 const collectionId = parseInt(route.params['id'] as string);
+
+const { $tauriCommands } = useNuxtApp();
 
 const loading = ref<boolean>(false);
 const selectedRawKeys = ref<string[]>([]);
@@ -181,7 +183,7 @@ async function removeSelected() {
 
 async function removeIndexProfiles(indexProfileIds: string[]) {
   if (indexProfileIds.length > 0) {
-    const deleted = await deleteCollectionIndexesById(indexProfileIds);
+    const deleted = await $tauriCommands.deleteCollectionIndexesById(indexProfileIds);
     if (deleted != indexProfileIds.length) {
       message.warn(`Failed to delete: ${indexProfileIds.length} to delete, only ${deleted} deleted`);
     }

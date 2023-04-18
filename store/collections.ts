@@ -1,13 +1,7 @@
 import { message } from 'ant-design-vue';
 import { defineStore } from 'pinia';
 import { Ref } from 'vue';
-import {
-  CollectionIndexWithAll,
-  CollectionWithIndexes,
-  createCollection as createDbCollection,
-  deleteCollectionById as deleteDbCollectionById,
-  IndexProfileWithAll,
-} from '~/utils/bindings';
+import { CollectionIndexWithAll, CollectionWithIndexes, IndexProfileWithAll } from '~/plugins/tauri/bindings';
 import { deleteIndexFromVectorstore } from '~/utils/vectorstores';
 
 interface CollectionsStore {
@@ -18,7 +12,7 @@ interface CollectionsStore {
 const STORE_KEY = 'collectionsStore';
 
 export const useCollectionStore = defineStore('collections', () => {
-  const { $tauriStore } = useNuxtApp();
+  const { $tauriStore, $tauriCommands } = useNuxtApp();
   const loaded = ref(false);
   const cache = ref<CollectionsStore>({
     activeCollectionId: undefined,
@@ -65,13 +59,13 @@ export const useCollectionStore = defineStore('collections', () => {
   }
 
   async function loadCollectionsFromDatabase() {
-    collections.value = (await getCollectionsWithIndexes()) || [];
+    collections.value = (await $tauriCommands.getCollectionsWithIndexes()) || [];
   }
 
   async function loadIndexesFromDatabase() {
     const map = new Map();
     for (const collection of collections.value) {
-      const indexes = await getCollectionIndexesByCollectionIdWithAll(collection.id);
+      const indexes = await $tauriCommands.getCollectionIndexesByCollectionIdWithAll(collection.id);
       map.set(collection.id, indexes);
     }
     indexesByCollectionId.value = map;
@@ -79,8 +73,8 @@ export const useCollectionStore = defineStore('collections', () => {
 
   async function createCollection(defaultIndexProfile: IndexProfileWithAll) {
     const newCollectionName = uniqueName('Collection', collectionNames.value);
-    const collection = await createDbCollection({ documents: [], name: newCollectionName });
-    const collectionIndex = await createCollectionIndex({
+    const collection = await $tauriCommands.createCollection({ documents: [], name: newCollectionName });
+    const collectionIndex = await $tauriCommands.createCollectionIndex({
       name: defaultIndexProfile.name,
       collectionId: collection.id,
       indexId: defaultIndexProfile.id,
@@ -94,7 +88,7 @@ export const useCollectionStore = defineStore('collections', () => {
   }
 
   async function reloadCollectionById(id: number) {
-    const all = await getCollectionsWithIndexes();
+    const all = await $tauriCommands.getCollectionsWithIndexes();
     const freshCollection = all.find((c) => c.id == id);
     const k = collections.value.findIndex((c) => c.id == id);
     if (k == -1) {
@@ -109,7 +103,7 @@ export const useCollectionStore = defineStore('collections', () => {
       }
     }
 
-    const indexes = await getCollectionIndexesByCollectionIdWithAll(id);
+    const indexes = await $tauriCommands.getCollectionIndexesByCollectionIdWithAll(id);
     indexesByCollectionId.value.set(id, indexes);
   }
 
@@ -128,7 +122,7 @@ export const useCollectionStore = defineStore('collections', () => {
     }
 
     // remove from local database
-    await deleteDbCollectionById(id);
+    await $tauriCommands.deleteCollectionById(id);
     const deleted = collections.value[i];
     collections.value = [...collections.value.slice(0, i), ...collections.value.slice(i + 1)];
 

@@ -35,7 +35,7 @@
 <script setup lang="ts">
 import { message } from 'ant-design-vue';
 import { ref } from 'vue';
-import { EmbeddingsConfigExData } from '~/utils/bindings';
+import { EmbeddingsConfigExData } from '~/plugins/tauri/bindings';
 
 const isLoadingConfigs = ref<boolean>(false);
 const isCreatingConfig = ref<boolean>(false);
@@ -50,6 +50,8 @@ const {
   clientType?: string;
 }>();
 const emits = defineEmits(['update:id', 'update:value']);
+
+const { $tauriCommands } = useNuxtApp();
 
 const selectedConfigId = ref<number | null>(id);
 watch(selectedConfigId, (newConfigId) => {
@@ -75,7 +77,7 @@ const { data: availableConfigs } = useAsyncData('availableEmbeddingsConfigs', as
   isLoadingConfigs.value = true;
   let data: EmbeddingsConfigExData[] = [];
   try {
-    data = await getEmbeddingsConfigs();
+    data = await $tauriCommands.getEmbeddingsConfigs();
     selectedConfigId.value = selectedConfigId.value || data[0]?.id;
   } catch (e) {
     message.error('Failed to load Embeddings configs');
@@ -91,8 +93,8 @@ async function onCreate() {
       // todo: validate
 
       // update db
-      const newDbConf = await createEmbeddingsConfig({
-        client_type: formState.value.clientType,
+      const newDbConf = await $tauriCommands.createEmbeddingsConfig({
+        clientType: formState.value.clientType,
         name: formState.value.name,
         meta: formState.value.meta,
       });

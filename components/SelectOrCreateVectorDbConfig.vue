@@ -55,13 +55,15 @@
 <script setup lang="ts">
 import { message } from 'ant-design-vue';
 import { ref } from 'vue';
-import { VectorDbConfigExData, getVectorDbConfigs } from '~/utils/bindings';
+import { VectorDbConfigExData } from '~/plugins/tauri/bindings';
 
 const isLoadingConfigs = ref(false);
 const isCreatingConfig = ref(false);
 
 const { id = null, value } = defineProps<{ id?: number; value: VectorDbConfigExData | undefined }>();
 const emits = defineEmits(['update:id', 'update:value']);
+
+const { $tauriCommands } = useNuxtApp();
 
 const pineconeMetrics = [
   {
@@ -97,7 +99,7 @@ const { data: availableConfigs } = useAsyncData('availableVectorDbConfigs', asyn
   isLoadingConfigs.value = true;
   let data: VectorDbConfigExData[] = [];
   try {
-    data = await getVectorDbConfigs();
+    data = await $tauriCommands.getVectorDbConfigs();
     selectedConfigId.value = selectedConfigId.value || data[0]?.id;
   } catch (e) {
     message.error('Failed to load index configs');
@@ -113,7 +115,7 @@ async function onCreate() {
       // todo: validate
 
       // update db
-      const newDbConf = await createVectorDbConfig({
+      const newDbConf = await $tauriCommands.createVectorDbConfig({
         clientType: formState.value.clientType,
         name: formState.value.name,
         meta: formState.value.meta,

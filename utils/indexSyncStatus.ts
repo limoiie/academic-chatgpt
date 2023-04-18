@@ -1,4 +1,4 @@
-import { CollectionIndexWithAll, Document } from '~/utils/bindings';
+import { CollectionIndexWithAll, Document } from '~/plugins/tauri/bindings';
 
 export class IndexSyncStatus {
   constructor(

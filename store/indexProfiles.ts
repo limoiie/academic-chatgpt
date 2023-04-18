@@ -4,12 +4,11 @@ import {
   CreateIndexProfileData,
   EmbeddingsClientExData,
   EmbeddingsConfigExData,
-  getIndexProfilesWithAll,
   IndexProfile,
   IndexProfileWithAll,
   VectorDbClientExData,
   VectorDbConfigExData,
-} from '~/utils/bindings';
+} from '~/plugins/tauri/bindings';
 
 interface IndexProfilesStore {
   defaultIndexProfileId: number | undefined;
@@ -18,7 +17,7 @@ interface IndexProfilesStore {
 const STORE_KEY = 'indexProfilesStore';
 
 export const useIndexProfilesStore = defineStore('indexProfiles', () => {
-  const { $tauriStore } = useNuxtApp();
+  const { $tauriStore, $tauriCommands } = useNuxtApp();
 
   const loaded = ref(false);
 
@@ -46,7 +45,7 @@ export const useIndexProfilesStore = defineStore('indexProfiles', () => {
   }
 
   async function loadDataFromDatabase() {
-    indexProfiles.value = (await getIndexProfilesWithAll()) || [];
+    indexProfiles.value = (await $tauriCommands.getIndexProfilesWithAll()) || [];
   }
 
   /**
@@ -105,7 +104,7 @@ export const useIndexProfilesStore = defineStore('indexProfiles', () => {
     } as CreateIndexProfileData;
 
     await ensureCreateIndexProfileData(data, embeddingsClient, vectorDbClient);
-    const newIndexProfile = await createIndexProfileWithAll(data);
+    const newIndexProfile = await $tauriCommands.createIndexProfileWithAll(data);
     indexProfiles.value.push(newIndexProfile);
     cache.value.defaultIndexProfileId = newIndexProfile.id;
   }
@@ -126,7 +125,7 @@ export const useIndexProfilesStore = defineStore('indexProfiles', () => {
     }
 
     if (data.splittingId === -1) {
-      const splitting = await getOrCreateSplitting({
+      const splitting = await $tauriCommands.getOrCreateSplitting({
         chunkOverlap: 200,
         chunkSize: 1000,
       });

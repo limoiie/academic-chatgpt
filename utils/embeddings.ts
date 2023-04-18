@@ -1,5 +1,5 @@
 import { OpenAIEmbeddings } from 'langchain/embeddings';
-import { EmbeddingsClient, EmbeddingsConfig } from '~/utils/bindings';
+import { EmbeddingsClient, EmbeddingsConfig } from '~/plugins/tauri/bindings';
 
 export async function createEmbeddings(client: EmbeddingsClient, config: EmbeddingsConfig) {
   const clientInfo = JSON.parse(client.info);
