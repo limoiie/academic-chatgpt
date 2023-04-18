@@ -112,6 +112,8 @@ export class ProgressLogger {
 
   reset() {
     this.updated.value = 0;
+    this.completedNum.value = 0;
+    this.totalNum.value = null;
     this.logs.value = [];
     this.percentage.value = 0;
     this.status.value = 'ready';

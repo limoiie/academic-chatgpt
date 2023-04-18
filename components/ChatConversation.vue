@@ -25,11 +25,16 @@ import { UiChatConversation } from '~/composables/beans/Chats';
 const chatBottom: Ref<Element | undefined> = ref(undefined);
 
 /// Define properties
-const props = defineProps<{ scrollToEnd: boolean; conversation: UiChatConversation }>();
+const props = defineProps<{
+  /// increment this value to trigger a scroll to the end of the chat
+  scrollToEnd: number;
+  conversation: UiChatConversation;
+}>();
 const { conversation } = props;
 const { scrollToEnd } = toRefs(props);
 
-watch(scrollToEnd, () => {
+/// Scroll to the end of the chat when the last message changes or the scrollToEnd value changes
+watch([scrollToEnd, () => conversation.dialogues.at(-1)?.chosenAnswer?.message.text], () => {
   chatBottom.value?.scrollIntoView({ behavior: 'smooth', block: 'end' });
 });
 </script>
