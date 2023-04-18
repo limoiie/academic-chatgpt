@@ -1,9 +1,21 @@
 <template>
-  <div class="h-full flex flex-col">
-    <div v-if="isLoading">
-      <a-spin :spinning="isLoading" />
+  <div class="w-full h-full flex">
+    <div v-if="isLoading" class="m-auto flex flex-col">
+      <div class="flex flex-col items-center">
+        <a-spin class="m-auto!" :spinning="isLoading" />
+        <div>Loading sessions...</div>
+      </div>
+    </div>
+    <div v-else-if="!hasSession" class="w-full h-full flex flex-row items-center">
+      <a-empty class="w-full mb-24! flex flex-col items-center">
+        <template #description>
+          <span> No session yet </span>
+        </template>
+        <a-button type="primary" @click="addSession">Create Now</a-button>
+      </a-empty>
     </div>
     <a-tabs
+      v-else
       id="chatSessions"
       v-model:activeKey="activeSessionId"
       class="flex flex-1"
@@ -19,14 +31,6 @@
         />
       </a-tab-pane>
     </a-tabs>
-    <div v-if="hasNoSession" class="w-full h-full flex flex-row items-center">
-      <a-empty class="w-full mb-24! flex flex-col items-center">
-        <template #description>
-          <span> No session yet </span>
-        </template>
-        <a-button type="primary" @click="addSession">Create Now</a-button>
-      </a-empty>
-    </div>
   </div>
 </template>
 
@@ -69,7 +73,7 @@ const { data } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${i
 });
 
 const activeSessionId = ref<number | undefined>(undefined);
-const hasNoSession = computed(() => !data.value?.chatSessions.length);
+const hasSession = computed(() => data.value?.chatSessions.length);
 const sessions = computed(() => {
   if (!data.value?.chatSessions.length) {
     return [];
