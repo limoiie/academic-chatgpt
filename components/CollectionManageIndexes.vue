@@ -73,7 +73,7 @@ import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { stringify } from 'yaml';
 import { CollectionIndexWithAll } from '~/plugins/tauri/bindings';
-import { useCollectionStore } from '~/store/collections';
+import { useCollectionsStore } from '~/store/collections';
 
 const columns = ref<TableColumnsType>([
   {
@@ -113,7 +113,7 @@ const columns = ref<TableColumnsType>([
 ]);
 
 const route = useRoute();
-const collectionStore = useCollectionStore();
+const collectionStore = useCollectionsStore();
 const collectionId = parseInt(route.params['id'] as string);
 
 const { $tauriCommands } = useNuxtApp();

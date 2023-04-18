@@ -118,8 +118,8 @@ import { message, TableColumnType } from 'ant-design-vue';
 import { basename } from 'pathe';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
-import { CollectionIndexWithAll, CreateDocumentData, Document } from '~/plugins/tauri/bindings';
-import { useCollectionStore } from '~/store/collections';
+import { CollectionIndexWithAll, Document } from '~/plugins/tauri/bindings';
+import { useCollectionsStore } from '~/store/collections';
 import { ProgressLogger } from '~/types';
 import { IndexSyncStatus } from '~/utils/indexSyncStatus';
 import { IndexTracer } from '~/utils/indexTracer';
@@ -205,7 +205,7 @@ const uiDocuments = computed(() => {
 });
 
 /// collectionIndex and related status
-const collectionStore = useCollectionStore();
+const collectionStore = useCollectionsStore();
 const { indexesByCollectionId } = storeToRefs(collectionStore);
 const index = computed(() => {
   if (indexId.value == null) {

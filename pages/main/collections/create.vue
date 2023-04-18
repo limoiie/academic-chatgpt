@@ -19,13 +19,13 @@
 import { errToString } from '#imports';
 import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
-import { useCollectionStore } from '~/store/collections';
+import { useCollectionsStore } from '~/store/collections';
 import { useIndexProfilesStore } from '~/store/indexProfiles';
 
 const isLoading = ref<boolean>(false);
 const errorMessage = ref<string>('');
 
-const collectionStore = useCollectionStore();
+const collectionStore = useCollectionsStore();
 const indexProfilesStore = useIndexProfilesStore();
 
 const { defaultIndexProfile } = storeToRefs(indexProfilesStore);

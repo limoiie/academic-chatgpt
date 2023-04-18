@@ -58,14 +58,14 @@ import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { upperFirst } from 'scule';
 import { ref } from 'vue';
-import { useCollectionStore } from '~/store/collections';
+import { useCollectionsStore } from '~/store/collections';
 
 const colorMode = useColorMode();
 const collapsed = ref<boolean>(false);
 const selectedKeys = ref([]);
 const isLoading = ref<boolean>(false);
 
-const collectionStore = useCollectionStore();
+const collectionStore = useCollectionsStore();
 const { collections } = storeToRefs(collectionStore);
 
 await Promise.resolve((isLoading.value = true))

@@ -37,7 +37,7 @@
 <script setup lang="ts">
 import { useAsyncData } from '#app';
 import { message } from 'ant-design-vue';
-import { useCollectionStore } from '~/store/collections';
+import { useCollectionsStore } from '~/store/collections';
 import { uniqueName } from '~/utils/strings';
 
 const isLoading = ref<boolean>(false);
@@ -48,7 +48,7 @@ const indexId = parseInt(route.params['indexId'] as string);
 
 const { $tauriCommands } = useNuxtApp();
 
-const collectionStore = useCollectionStore();
+const collectionStore = useCollectionsStore();
 const { data } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${indexId}`, async () => {
   return await Promise.resolve((isLoading.value = true))
     .then(() => collectionStore.load())

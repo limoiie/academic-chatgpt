@@ -11,7 +11,7 @@ interface CollectionsStore {
 
 const STORE_KEY = 'collectionsStore';
 
-export const useCollectionStore = defineStore('collections', () => {
+export const useCollectionsStore = defineStore('collections', () => {
   const { $tauriStore, $tauriCommands } = useNuxtApp();
   const loaded = ref(false);
   const cache = ref<CollectionsStore>({

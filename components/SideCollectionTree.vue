@@ -58,7 +58,7 @@ import {
 import { createVNode } from '@vue/runtime-core';
 import { message, Modal } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
-import { useCollectionStore } from '~/store/collections';
+import { useCollectionsStore } from '~/store/collections';
 
 const isLoading = ref<boolean>(false);
 const activeCollectionId = ref<number>();
@@ -68,7 +68,7 @@ watch(route, async () => {
   await updateActiveCollection();
 });
 
-const collectionStore = useCollectionStore();
+const collectionStore = useCollectionsStore();
 const { collections } = storeToRefs(collectionStore);
 
 await Promise.resolve((isLoading.value = true))

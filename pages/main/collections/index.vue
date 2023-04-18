@@ -25,13 +25,13 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
-import { useCollectionStore } from '~/store/collections';
+import { useCollectionsStore } from '~/store/collections';
 import { CollectionWithIndexes } from '~/plugins/tauri/bindings';
 
 const isLoading = ref<boolean>(false);
 const errorMessage = ref<string>('');
 
-const collectionStore = useCollectionStore();
+const collectionStore = useCollectionsStore();
 const { collections } = storeToRefs(collectionStore);
 
 await Promise.resolve((isLoading.value = true))

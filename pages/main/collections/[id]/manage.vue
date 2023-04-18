@@ -59,7 +59,7 @@ import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { reactive, ref } from 'vue';
 import CollectionManageIndexes from '~/components/CollectionManageIndexes.vue';
-import { useCollectionStore } from '~/store/collections';
+import { useCollectionsStore } from '~/store/collections';
 
 const route = useRoute();
 const id = parseInt(route.params['id'] as string);
@@ -67,7 +67,7 @@ const activeTab = ref<'documents' | 'indexes'>('documents');
 
 const { $tauriCommands } = useNuxtApp();
 
-const collectionStore = useCollectionStore();
+const collectionStore = useCollectionsStore();
 const { collections, collectionNames } = storeToRefs(collectionStore);
 const collection = computed(() => {
   const collection = collections.value.find((e) => e.id == id);
