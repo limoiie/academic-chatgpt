@@ -219,12 +219,12 @@ const collectionStore = useCollectionsStore();
 const { indexesByCollectionId } = storeToRefs(collectionStore);
 const index = computed(() => {
   if (indexId.value == null) {
-    message.warn('No index profile selected for this collection. Please select one in the collection manage page.');
+    // message.warn('No index profile selected for this collection. Please select one in the collection manage page.');
     return undefined;
   }
   const indexProfiles = indexesByCollectionId.value.get(id);
   if (!indexProfiles) {
-    message.warn('No index profile for this collection. Please add in the collection manage > indexes page.');
+    // message.warn('No index profile for this collection. Please add in the collection manage > indexes page.');
     return undefined;
   }
   return indexProfiles.find((p) => p.id == indexId.value);

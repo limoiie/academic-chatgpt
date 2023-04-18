@@ -174,14 +174,25 @@ export const useCollectionsStore = defineStore('collections', () => {
     return fallbackActiveIndexId;
   }
 
+  /**
+   * Set active collection by index in collections array.
+   *
+   * If no collection left, set active collection to null.
+   * If already active, return undefined.
+   * Otherwise, return the active collection.
+   *
+   * @param no the index of the collection in collections to be set as active
+   */
   async function setActiveCollectionIdByNo(no: number) {
     no = Math.min(no, collections.value.length - 1);
     const activeCollection = collections.value.at(no);
     if (!activeCollection) {
-      return undefined;
+      // there is no collection left
+      return null;
     }
     if (activeCollection.id == cache.value.activeCollectionId) {
-      return;
+      // already active, skip
+      return undefined;
     }
 
     cache.value.activeCollectionId = activeCollection.id;
