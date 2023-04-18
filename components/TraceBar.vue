@@ -23,7 +23,6 @@
 
 <script setup lang="ts">
 import { DownCircleOutlined, UpCircleOutlined } from '@ant-design/icons-vue';
-import { defineProps } from 'vue';
 import { TracerStatus } from '~/utils/tracer';
 
 const { tracerStatus } = defineProps<{ tracerStatus: TracerStatus }>();
