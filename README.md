@@ -17,7 +17,7 @@ Collection dashboard.
 Academic-chatgpt is built on [Nuxt 3](https://nuxt.com/) + [tauri](https://tauri.app/). So before you start, make sure you have the following installed:
 
 - [Node.js](https://nodejs.org/en/) for using yarn/npm/pnpm;
-- [Rust](https://www.rust-lang.org/tools/install) for using cargo.
+- [Tauri](https://tauri.app/v1/guides/getting-started/prerequisites) for using `cargo tauri`.
 
 Once you have prepared the build env, clone the repository and install the dependencies:
 
@@ -31,6 +31,9 @@ yarn install
 npm install
 # or pnpm
 pnpm install
+
+# install the tauri cli
+cargo install tauri-cli
 ```
 
 After that, run following command to initialize the database schema at your first run:
