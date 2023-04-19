@@ -78,6 +78,7 @@ name = "app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "dotenv",
  "log",
  "md5",
  "prisma-client-rust",

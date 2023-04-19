@@ -16,6 +16,7 @@ tauri-build = { version = "1.2.1", features = [] }
 
 [dependencies]
 anyhow = "1.0.69"
+dotenv = "0.15.0"
 log = "0.4.17"
 md5 = "0.7.0"
 prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.7", default-features = false, features = ["sqlite", "migrations", "specta", "mocking"] }
@@ -23,10 +24,10 @@ serde_json = "1.0"
 serde-error = "0.1.2"
 serde = { version = "1.0", features = ["derive"] }
 specta = "1.0.0"
-tiny_http = "0.12.0"
 tauri = { version = "1.2.4", features = ["dialog-all", "fs-create-dir", "fs-exists", "fs-read-dir", "fs-read-file", "fs-remove-dir", "fs-remove-file", "fs-write-file", "global-shortcut-all", "http-all", "os-all", "path-all", "process-all", "window-all"] }
 tauri-specta = { version = "1.0.0", features = ["typescript"] }
 tauri-plugin-store = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "dev" }
+tiny_http = { version = "0.12.0", optional = true }
 tokio = { version = "1.25.0", features = ["full"] }
 
 [features]
@@ -36,3 +37,4 @@ default = ["custom-protocol"]
 # this feature is used for production builds where `devPath` points to the filesystem
 # DO NOT remove this
 custom-protocol = ["tauri/custom-protocol"]
+http-invoke = ["tiny_http/default"]

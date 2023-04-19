@@ -2,6 +2,12 @@ if (!IN_TAURI) {
   injectTauriHttpInvoke();
 }
 
+/**
+ * Injects the Tauri HTTP as a mimic IPC into the window object.
+ *
+ * This is a workaround for the fact that Tauri app does not run in a browser
+ * context out of box.
+ */
 function injectTauriHttpInvoke() {
   // @ts-ignore
   window.__TAURI_IPC__ = function (message: any) {
@@ -62,7 +68,11 @@ function injectTauriHttpInvoke() {
     return identifier;
   }
 
+  let invokePort: any = undefined;
+
   function postMessage(message: any) {
+    if (!invokePort) initInvokePort();
+
     const request = new XMLHttpRequest();
     request.addEventListener('load', function () {
       let arg;
@@ -76,9 +86,14 @@ function injectTauriHttpInvoke() {
       // @ts-ignore
       window[`_${success ? message.callback : message.error}`](arg);
     });
-    request.open('POST', 'http://localhost:8080/' + 'main', true);
+    request.open('POST', `http://localhost:${invokePort}/main`, true);
     request.setRequestHeader('Content-Type', 'application/json');
     request.send(JSON.stringify(message));
+  }
+
+  function initInvokePort() {
+    const runtimeConfig = useRuntimeConfig();
+    invokePort = runtimeConfig.invokePort || 8080;
   }
 
   function uid() {
