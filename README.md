@@ -55,6 +55,14 @@ Build the application for production:
 cargo tauri build
 ```
 
+## Run as a Browser Application
+
+Start the development application with feature `http-invoke` enabled:
+
+```bash
+cargo tauri dev --features http-invoke
+```
+
 ## Usage
 
 Academic-chatgpt needs [openai api](https://platform.openai.com/overview) to embedding documents and [pinecone api](https://www.pinecone.io/) for storing, indexing and searching the documents by the embeddings.
