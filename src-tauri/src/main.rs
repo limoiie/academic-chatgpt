@@ -1,4 +1,3 @@
-#![feature(slice_as_chunks)]
 #![cfg_attr(
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
@@ -238,6 +237,9 @@ async fn prepare_prisma_db(app: &tauri::App<tauri::Wry>) {
     let db = {
         let app_config_dir = tauri::api::path::app_config_dir(app.config().as_ref())
             .expect("error while getting app config dir");
+        if !app_config_dir.exists() {
+            std::fs::create_dir_all(&app_config_dir).expect("error while creating app config dir");
+        }
         let url = "file:".to_string()
             + app_config_dir
                 .join(DB_NAME)

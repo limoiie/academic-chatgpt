@@ -42,10 +42,9 @@ pub(crate) async fn get_embedding_vector_by_md5hash(
             md_5_hash: data.md_5_hash,
             vector: data
                 .vector
-                .as_chunks::<4>()
-                .0
-                .iter()
-                .map(|b| f32::from_be_bytes(*b))
+                .chunks(4)
+                .map(|b| b.try_into().unwrap())
+                .map(f32::from_be_bytes)
                 .collect(),
             embeddings_config_id: data.embeddings_config_id,
         }))
