@@ -129,6 +129,9 @@ export class UiChatConversation {
     return [
       this.prompt,
       ...this.dialogues.flatMap((dialogue) => {
+        if (dialogue.error != undefined) {
+          return [];
+        }
         if (!dialogue.answers || !dialogue.answers[dialogue.chosen]) {
           return [dialogue.question.message];
         }
@@ -142,9 +145,12 @@ export class UiChatConversation {
   }
 
   extractHistoryAsQAPairs(): [string, string][] {
-    return this.dialogues.slice(0, -1).map((dialogue) => {
-      return [dialogue.question.message.text, dialogue.chosenAnswer.message.text];
-    });
+    return this.dialogues
+      .slice(0, -1)
+      .filter((dialogue) => dialogue.error == undefined)
+      .map((dialogue) => {
+        return [dialogue.question.message.text, dialogue.chosenAnswer.message.text];
+      });
   }
 
   async question(text: string) {
