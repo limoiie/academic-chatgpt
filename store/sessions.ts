@@ -31,9 +31,10 @@ export const useSessionsStore = defineStore('sessions', () => {
 
   const defaultCompleteStore = useDefaultCompleteStore();
   const { defaultCompleteConfig } = storeToRefs(defaultCompleteStore);
-  const defaultSessionProfile = ref<SessionProfile>({
-    completionChainMode: DEFAULT_COMPLETION_CHAIN_MODE,
-    completionConfig: defaultCompleteConfig.value,
+  const defaultSessionProfile = computed(() => {
+    return { completionChainMode: DEFAULT_COMPLETION_CHAIN_MODE,
+      completionConfig: defaultCompleteConfig.value,
+    };
   });
 
   async function load() {
