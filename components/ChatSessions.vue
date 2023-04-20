@@ -33,6 +33,8 @@
             ref="viewCollectionName"
             v-model:value="formState.name"
             :bordered="false"
+            @input="onEditSessionName"
+            @pressEnter="tryUpdateSessionName"
             placeholder="Collection Name"
           />
         </template>
@@ -77,8 +79,7 @@
 
           <!--suppress TypeScriptUnresolvedReference -->
           <ChatSession
-            v-if="data?.collectionIndex"
-            :collection-index="data?.collectionIndex!"
+            :collection-index="index"
             :session="session.origin"
             :session-profile="session.profile"
           />
@@ -92,42 +93,30 @@
 import { BarsOutlined, CloseOutlined, EditOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { reactive } from 'vue';
-import { useCollectionsStore } from '~/store/collections';
+import { CollectionIndexWithAll } from '~/plugins/tauri/bindings';
 import { useSessionsStore } from '~/store/sessions';
 import { uniqueName } from '~/utils/strings';
 
+const { index } = defineProps<{
+  index: CollectionIndexWithAll;
+}>();
+
 const isLoading = ref<boolean>(false);
 const isUpdatingName = ref<boolean>(false);
-const isSessionNameChanged = computed(() => {
-  return activeSession.value?.name != formState.name;
-});
+const isSessionNameChanged = ref<boolean>(false);
 const showTabBar = ref<boolean>(true);
 
-const route = useRoute();
-const collectionId = parseInt(route.params['id'] as string);
-const indexId = parseInt(route.params['indexId'] as string);
+const collectionId = index.collectionId;
+const indexId = index.indexId;
 
 const { $tauriCommands } = useNuxtApp();
 
 const sessionsStore = useSessionsStore();
-const collectionStore = useCollectionsStore();
-const { data } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${indexId}`, async () => {
+const { data: chatSessions } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${indexId}`, async () => {
   return await Promise.resolve((isLoading.value = true))
+    .then(async () => await sessionsStore.load())
     .then(async () => {
-      await sessionsStore.load();
-      await collectionStore.load();
-    })
-    .then(async () => {
-      const index = collectionStore.getCollectionIndexById(collectionId, indexId);
-      if (!index) {
-        throw new Error('Collection not found');
-      }
-
-      const chatSessions = await $tauriCommands.getSessionsByIndexId(index.id);
-      return {
-        collectionIndex: index,
-        chatSessions: chatSessions,
-      };
+      return await $tauriCommands.getSessionsByIndexId(index.id);
     })
     .catch((e) => {
       message.error(`Failed to load index profile: ${e}, jump to manage page.`);
@@ -137,22 +126,36 @@ const { data } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${i
     .finally(() => (isLoading.value = false));
 });
 
+interface FormState {
+  name: string;
+}
+
+const formState = reactive<FormState>({
+  name: '',
+});
+
 const activeSessionId = sessionsStore.getActiveSessionId(collectionId, indexId);
+// update the active session when the active session id changed by selecting on the tab bar
 const activeSession = computed(() => {
-  if (!data.value?.chatSessions.length) {
+  if (!chatSessions.value?.length) {
     return undefined;
   }
-  const session = data.value.chatSessions.find((session) => session.id === activeSessionId.value);
+  const session = chatSessions.value.find((session) => session.id === activeSessionId.value);
   formState.name = session?.name || '';
   return session;
 });
-const hasSession = computed(() => data.value?.chatSessions.length);
+// update the session name on the top bar when active session changed
+watch(activeSession, (session) => {
+  formState.name = session?.name || '';
+});
+
+const hasSession = computed(() => chatSessions.value?.length);
 const sessionsUiData = computed(() => {
-  if (!data.value?.chatSessions.length) {
+  if (!chatSessions.value?.length) {
     return [];
   }
   return (
-    data.value.chatSessions.map((session) => {
+    chatSessions.value.map((session) => {
       return {
         key: session.id,
         title: session.name,
@@ -163,10 +166,10 @@ const sessionsUiData = computed(() => {
   );
 });
 const sessionNames = computed(() => {
-  if (!data.value?.chatSessions.length) {
+  if (!chatSessions.value?.length) {
     return [];
   }
-  return data.value.chatSessions.map((session) => session.name);
+  return chatSessions.value.map((session) => session.name);
 });
 watch(sessionsUiData, (newSessions) => {
   if (!newSessions.length) {
@@ -176,13 +179,12 @@ watch(sessionsUiData, (newSessions) => {
   }
 });
 
-interface FormState {
-  name: string;
+/**
+ * Update status when name changed.
+ */
+function onEditSessionName() {
+  isSessionNameChanged.value = activeSession.value?.name != formState.name;
 }
-
-const formState = reactive<FormState>({
-  name: '',
-});
 
 /**
  * Update session name
@@ -209,13 +211,14 @@ async function tryUpdateSessionName() {
     )
     .then(async (data) => {
       session.name = data.name;
-      message.info(`Updated name as '${data.name}'`);
+      message.info(`Updated name as '${data.name}'`, 0.6);
     })
     .catch((e) => {
-      message.error(`Failed to update name: ${errToString(e)}`);
+      message.error(`Failed to update name: ${errToString(e)}`, 0.6);
     })
     .finally(() => {
       isUpdatingName.value = false;
+      onEditSessionName();
     });
 }
 
@@ -234,17 +237,17 @@ function onEditSession(targetSessionId: number | MouseEvent, action: string) {
  * Create a new session, and allocate a new tab for it.
  */
 async function addSession() {
-  if (!data.value) {
+  if (!chatSessions.value) {
     return;
   }
 
   // noinspection TypeScriptValidateJSTypes
   const chatSession = await $tauriCommands.createSession({
-    indexId: data.value.collectionIndex.id,
+    indexId: index.id,
     name: uniqueName('Chat', sessionNames.value),
     history: '{}',
   });
-  data.value.chatSessions = [...(data.value.chatSessions || []), chatSession];
+  chatSessions.value = [...(chatSessions.value || []), chatSession];
   activeSessionId.value = chatSession.id;
 }
 
@@ -254,16 +257,16 @@ async function addSession() {
  * If the session is the active one, switch to the previous one.
  */
 async function removeSession(targetSessionId: number) {
-  if (!data.value) {
+  if (!chatSessions.value) {
     return;
   }
 
-  const sessions = data.value?.chatSessions;
+  const sessions = chatSessions.value;
   if (sessions && sessions.length) {
     let currTabIndex = sessions.findIndex((session) => session.id === targetSessionId);
     if (currTabIndex >= 0) {
       await $tauriCommands.deleteSessionById(targetSessionId);
-      data.value.chatSessions = sessions.filter((session) => session.id !== targetSessionId);
+      chatSessions.value = sessions.filter((session) => session.id !== targetSessionId);
       if (activeSessionId.value === targetSessionId) {
         await switchToSessionTabByIndex(currTabIndex - 1);
       }
@@ -275,11 +278,11 @@ async function removeSession(targetSessionId: number) {
  * Switch to a session tab by index.
  */
 async function switchToSessionTabByIndex(tabIndex: number) {
-  if (!data.value) {
+  if (!chatSessions.value) {
     return;
   }
 
-  const sessions = data.value.chatSessions;
+  const sessions = chatSessions.value;
   if (sessions && sessions.length) {
     const safeTabIndex = tabIndex >= 0 && sessions.length > tabIndex ? tabIndex : 0;
     activeSessionId.value = sessions[safeTabIndex].id;
