@@ -14,33 +14,98 @@
         <a-button type="primary" @click="addSession">Create Now</a-button>
       </a-empty>
     </div>
-    <a-tabs
-      v-else
-      id="chatSessions"
-      v-model:activeKey="activeSessionId"
-      class="flex flex-1"
-      type="editable-card"
-      @edit="onEditSession"
-    >
-      <a-tab-pane v-for="session in sessions" :key="session.key" :tab="session.title" :closable="session.closable">
-        <!--suppress TypeScriptUnresolvedReference -->
-        <ChatSession
-          v-if="data?.collectionIndex"
-          :session="session.origin"
-          :collection-index="data?.collectionIndex!"
-        />
-      </a-tab-pane>
-    </a-tabs>
+    <a-layout v-else class="flex flex-col flex-1">
+      <a-page-header
+        class="bg-white border-b-1 z-10"
+        title="Chat"
+        @back="() => $router.go(-1)"
+      >
+        <template #subTitle>
+          <a-button
+            v-show="isSessionNameChanged"
+            shape="circle"
+            size="small"
+            :disabled="!isSessionNameChanged"
+            :loading="isUpdatingName"
+            @click="tryUpdateSessionName"
+          >
+            <template #icon>
+              <EditOutlined />
+            </template>
+          </a-button>
+          <a-input
+            ref="viewCollectionName"
+            v-model:value="formState.name"
+            :bordered="false"
+            placeholder="Collection Name"
+          />
+        </template>
+
+        <template #extra>
+          <a-tooltip title="Toggle tab bar">
+            <a-button
+              shape="circle"
+              :type="showTabBar ? 'dashed' : 'primary'"
+              @click="() => (showTabBar = !showTabBar)"
+            >
+              <template #icon>
+                <BarsOutlined />
+              </template>
+            </a-button>
+          </a-tooltip>
+        </template>
+      </a-page-header>
+      <a-tabs
+        id="chatSessions"
+        v-model:activeKey="activeSessionId"
+        class="flex flex-1"
+        type="editable-card"
+        @edit="onEditSession"
+      >
+        <!--suppress VueUnrecognizedSlot -->
+        <template v-if="!showTabBar" #renderTabBar></template>
+        <!--suppress VueUnrecognizedSlot -->
+        <template #addIcon>
+          <PlusCircleOutlined />
+        </template>
+        <a-tab-pane
+          v-for="session in sessionsUiData"
+          :key="session.key"
+          :tab="session.title"
+          :closable="session.closable"
+        >
+          <!--suppress VueUnrecognizedSlot -->
+          <template v-if="true" #closeIcon>
+            <CloseOutlined class="group-hover:bg-orange-400" />
+          </template>
+
+          <!--suppress TypeScriptUnresolvedReference -->
+          <ChatSession
+            v-if="data?.collectionIndex"
+            :session="session.origin"
+            :collection-index="data?.collectionIndex!"
+          />
+        </a-tab-pane>
+      </a-tabs>
+    </a-layout>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useAsyncData } from '#app';
+import { BarsOutlined, CloseOutlined, EditOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
+import { reactive } from 'vue';
 import { useCollectionsStore } from '~/store/collections';
 import { uniqueName } from '~/utils/strings';
+import { useSessionsStore } from "~/store/sessions";
 
 const isLoading = ref<boolean>(false);
+const isUpdatingName = ref<boolean>(false);
+const isSessionNameChanged = computed(() => {
+  return activeSession.value?.name != formState.name;
+});
+const showTabBar = ref<boolean>(true);
 
 const route = useRoute();
 const collectionId = parseInt(route.params['id'] as string);
@@ -72,9 +137,18 @@ const { data } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${i
     .finally(() => (isLoading.value = false));
 });
 
-const activeSessionId = ref<number | undefined>(undefined);
+const sessionsStore = useSessionsStore();
+const activeSessionId = sessionsStore.getActiveSessionId(collectionId, indexId);
+const activeSession = computed(() => {
+  if (!data.value?.chatSessions.length) {
+    return undefined;
+  }
+  const session = data.value.chatSessions.find((session) => session.id === activeSessionId.value);
+  formState.name = session?.name || '';
+  return session;
+});
 const hasSession = computed(() => data.value?.chatSessions.length);
-const sessions = computed(() => {
+const sessionsUiData = computed(() => {
   if (!data.value?.chatSessions.length) {
     return [];
   }
@@ -84,13 +158,62 @@ const sessions = computed(() => {
     }) || []
   );
 });
-watch(sessions, (newSessions) => {
+const sessionNames = computed(() => {
+  if (!data.value?.chatSessions.length) {
+    return [];
+  }
+  return data.value.chatSessions.map((session) => session.name);
+});
+watch(sessionsUiData, (newSessions) => {
   if (!newSessions.length) {
     activeSessionId.value = undefined;
   } else if (activeSessionId.value == null) {
     activeSessionId.value = newSessions[0].key;
   }
 });
+
+interface FormState {
+  name: string;
+}
+
+const formState = reactive<FormState>({
+  name: '',
+});
+
+/**
+ * Update session name
+ */
+async function tryUpdateSessionName() {
+  const session= activeSession.value;
+  if (!session) {
+    message.error('No session selected!');
+    return;
+  }
+
+  if (sessionNames.value.includes(formState.name)) {
+    message.error('Failed to update name: already existing!');
+    return;
+  }
+
+  await Promise.resolve((isUpdatingName.value = true))
+    .then(() =>
+      $tauriCommands.updateSession({
+        id: session.id,
+        name: formState.name,
+        history: null,
+      }),
+    )
+    .then(async (data) => {
+      session.name = data.name;
+      message.info(`Updated name as '${data.name}'`);
+    })
+    .catch((e) => {
+      message.error(`Failed to update name: ${errToString(e)}`);
+    })
+    .finally(() => {
+      isUpdatingName.value = false;
+    });
+}
 
 /**
  * Either delete or add a session tab according the given action.
@@ -114,10 +237,7 @@ async function addSession() {
   // noinspection TypeScriptValidateJSTypes
   const chatSession = await $tauriCommands.createSession({
     indexId: data.value.collectionIndex.id,
-    name: uniqueName(
-      'Chat',
-      sessions.value.map((s) => s.title),
-    ),
+    name: uniqueName('Chat', sessionNames.value),
     history: '{}',
   });
   data.value.chatSessions = [...(data.value.chatSessions || []), chatSession];
@@ -171,12 +291,23 @@ async function switchToSessionTabByIndex(tabIndex: number) {
   .ant-tabs-nav
     margin-bottom: 0 !important
 
-  .ant-tabs-nav-wrap
-    height: 42px
-
+  // fix the tab text & button align issue
   .ant-tabs-tab
-    border: 0 !important
+    display: flex !important
+    align-items: flex-start !important
+    border-top: 0
+    border-left: 0
+    border-radius: 0
 
-button.ant-tabs-tab-remove, .ant-tabs-tab-btn
-  height: 18px
+  // fix the blinking issue when switching tabs
+  .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn
+    text-shadow: 0 0 1px currentcolor
+
+  // fix the tab add button align issue
+  button.ant-tabs-nav-add
+    display: flex !important
+    align-items: center !important
+    justify-content: center !important
+    background: transparent !important
+    border: 0 !important
 </style>

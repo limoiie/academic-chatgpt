@@ -11,9 +11,10 @@
     <!--suppress TypeScriptUnresolvedReference -->
     <a-menu-item :key="col.id" v-for="col in collections" @click="navigateToActiveIndexProfile(col.id)">
       <template #icon>
-        <FolderOutlined />
+        <FolderOpenOutlined v-if="col.id == activeCollectionId" />
+        <FolderOutlined v-else />
       </template>
-      <div class="flex flex-row group">
+      <div class="flex flex-row group h-6 items-center">
         <!--suppress TypeScriptUnresolvedReference -->
         <div class="flex flex-grow overflow-scroll">{{ col.name }}</div>
         <div class="hidden group-hover:flex flex-row my-auto ms-2">
@@ -54,6 +55,7 @@ import {
   ExclamationCircleOutlined,
   FolderAddOutlined,
   FolderOutlined,
+  FolderOpenOutlined,
 } from '@ant-design/icons-vue';
 import { createVNode } from '@vue/runtime-core';
 import { message, Modal } from 'ant-design-vue';
