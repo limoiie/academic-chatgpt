@@ -9,11 +9,11 @@ export async function createVectorstore(
   embeddings: Embeddings,
   namespace: string,
 ): Promise<VectorStore> {
-  const clientInfo = JSON.parse(vectorstoreClient.info);
-  const configMeta = JSON.parse(vectorstoreConfig.meta);
-
   switch (vectorstoreConfig.clientType) {
     case 'pinecone':
+      const clientInfo = JSON.parse(vectorstoreClient.info) as PineconeVectorstoreClientInfo;
+      const configMeta = JSON.parse(vectorstoreConfig.meta) as PineconeVectorstoreConfigMeta;
+
       const client = new CrossPineconeClient();
       await client.init({
         environment: clientInfo.environment,

@@ -1,39 +1,8 @@
 import { defineStore } from 'pinia';
-
-export type CompleteClientType = 'openai';
-
-export type OpenAIGpt3Model =
-  | 'gpt-3.5-turbo'
-  | 'gpt-3.5-turbo-0301'
-  | 'text-davinci-003'
-  | 'text-davinci-002'
-  | 'code-davinci-002';
-export type OpenAIGpt4Model = 'gpt-4' | 'gpt-4-0314' | 'gpt-4-32k' | 'gpt-4-32k-0314';
-export type OpenAIModel = OpenAIGpt3Model | OpenAIGpt4Model;
-
-export type CompleteModelType = OpenAIModel;
-
-export const allCompleteClients = ['openai'];
-
-export const allOpenAIModels = [
-  'gpt-3.5-turbo',
-  'gpt-3.5-turbo-0301',
-  'text-davinci-003',
-  'text-davinci-002',
-  'code-davinci-002',
-  'gpt-4',
-  'gpt-4-0314',
-  'gpt-4-32k',
-  'gpt-4-32k-0314',
-];
+import { CompletionClientType, CompletionModelType } from '~/types';
 
 interface DefaultCompleteStore {
-  defaultConfig: CompleteConfig;
-}
-
-interface CompleteConfig {
-  client: string;
-  meta: Record<string, any>;
+  defaultConfig: CompletionConfig;
 }
 
 const STORE_KEY = 'defaultCompleteStore';
@@ -49,10 +18,10 @@ export const useDefaultCompleteStore = defineStore('defaultComplete', () => {
   const { $tauriStore } = useNuxtApp();
 
   /// Set openai as the default completion agent.
-  const defaultConfig = ref<CompleteConfig>({
-    client: 'openai' as CompleteClientType,
+  const defaultConfig = ref<CompletionConfig>({
+    client: 'openai' as CompletionClientType,
     meta: {
-      model: 'gpt-3.5-turbo' as CompleteModelType,
+      model: 'gpt-3.5-turbo' as CompletionModelType,
       apiKey: undefined,
     },
   });

@@ -5,7 +5,7 @@ import {
   ResponseError,
   VectorOperationsApi,
 } from '@pinecone-database/pinecone/dist/pinecone-generated-ts-fetch';
-import { useTauriFetch } from '~/composables/UseTauriFetch';
+import { useTauriFetch } from '~/composables/useTauriFetch';
 
 class ErrorWithoutStackTrace extends Error {
   constructor(message: string) {

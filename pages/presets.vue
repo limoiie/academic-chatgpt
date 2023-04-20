@@ -34,18 +34,19 @@
 <script setup lang="ts">
 import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
-import { allCompleteClients, allOpenAIModels, useDefaultCompleteStore } from '~/store/defaultComplete';
+import { useDefaultCompleteStore } from '~/store/defaultComplete';
 import { useDefaultEmbeddingsStore } from '~/store/defaultEmbeddings';
-import { useIndexProfilesStore } from '~/store/indexProfiles';
 import { allVectorDbClients, useDefaultVectorDbStore } from '~/store/defaultVectorDb';
+import { useIndexProfilesStore } from '~/store/indexProfiles';
+import { allCompletionClients, allCompletionOpenAIModels } from '~/types';
 import { errToString } from '~/utils/strings';
 
 const errorMessage = ref('');
-const defaultClientOptions = allCompleteClients.map((client) => {
+const defaultClientOptions = allCompletionClients.map((client) => {
   return { label: client, value: client };
 });
 const defaultModelOptions = {
-  openai: allOpenAIModels.map((model) => {
+  openai: allCompletionOpenAIModels.map((model) => {
     return { label: model, value: model };
   }),
 };
