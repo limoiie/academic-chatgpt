@@ -1,24 +1,7 @@
 <template>
   <a-space class="w-full" direction="vertical">
     <a-modal title="Adding..." :visible="isAdding" :closable="false">
-      <a-space class="w-full" direction="vertical">
-        <p class="whitespace-nowrap overflow-scroll">Working on {{ workingOn }}...</p>
-        <a-progress :percent="progress.percentage.value" />
-        <p class="whitespace-nowrap overflow-scroll">{{ progress.inlineMessage.value }}</p>
-        <a-collapse v-model:activeKey="showDetails" ghost>
-          <template #expandIcon></template>
-          <a-collapse-panel key="1">
-            <template #header>
-              <a-button :type="showDetails == '1' ? 'primary' : 'dashed'" size="small" round>Details</a-button>
-            </template>
-            <LogConsole
-              class="border-0 max-h-32 overflow-scroll"
-              :scroll-to-end="progress.updated.value % 2 == 1"
-              :logs="progress.logs.value"
-            />
-          </a-collapse-panel>
-        </a-collapse>
-      </a-space>
+      <TraceBar :tracer-status="addTracer" />
     </a-modal>
 
     <a-modal title="Syncing..." :visible="isSyncing" :closable="false" @cancel="() => (isSyncing = false)">
@@ -27,13 +10,7 @@
 
     <a-space class="w-full" direction="vertical">
       <a-space>
-        <file-selector :options="openOptions" @select="addDocuments"></file-selector>
-        <a-button v-if="!hasSelected" class="ant-btn-with-icon" @click="addDocuments">
-          <template #icon>
-            <PlusCircleOutlined />
-          </template>
-          Add
-        </a-button>
+        <file-selector v-if="!hasSelected" :options="openOptions" @select="addDocuments"></file-selector>
         <a-button v-if="hasSelected" class="ant-btn-with-icon" @click="removeSelectedDocuments" danger>
           <template #icon>
             <DeleteOutlined />
@@ -51,6 +28,7 @@
           :color="indexSyncStatus?.clean ? 'green' : 'orange'"
         >
           <a-button
+            v-if="!hasSelected"
             :loading="isSyncing || isComputingSync"
             :disabled="isAdding || isLoading || !indexSyncStatus"
             :type="indexSyncStatus?.clean ? 'dashed' : 'primary'"
@@ -64,6 +42,7 @@
         </a-tooltip>
         <a-tooltip title="Reload sync status">
           <a-button
+            v-if="!hasSelected"
             :loading="isComputingSync"
             :disabled="isAdding || isLoading"
             :type="'dashed'"
@@ -107,22 +86,15 @@
 </template>
 
 <script setup lang="ts">
-import {
-  CloudSyncOutlined,
-  DeleteOutlined,
-  DiffOutlined,
-  PlusCircleOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons-vue';
+import { CloudSyncOutlined, DeleteOutlined, DiffOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import { message, TableColumnType } from 'ant-design-vue';
 import { basename } from 'pathe';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { CollectionIndexWithAll, Document } from '~/plugins/tauri/bindings';
 import { useCollectionsStore } from '~/store/collections';
-import { ProgressLogger } from '~/types';
 import { IndexSyncStatus } from '~/utils/indexSyncStatus';
-import { IndexTracer } from '~/utils/indexTracer';
+import { NestedStepTracer } from '~/utils/tracer';
 
 const columns = [
   {
@@ -173,10 +145,8 @@ const isAdding = ref<boolean>(false);
 const isComputingSync = ref<boolean>(false);
 const isSyncing = ref<boolean>(false);
 
-const workingOn = ref<string | null>(null);
-const showDetails = ref<string>('0');
-const progress = new ProgressLogger();
-const indexTracer = new IndexTracer();
+const indexTracer = new NestedStepTracer();
+const addTracer = new NestedStepTracer();
 
 const openOptions = {
   multiple: true,
@@ -263,8 +233,9 @@ async function addDocuments(selected: File[] | string[] | null) {
    * @param files The file objects or paths of the documents to add
    */
   async function addToDatabase(files: File[] | string[]) {
-    const documentIds = [];
-    progress.totalNum.value = files.length;
+    addTracer.onStepStart('Adding', `${files.length} new documents...`, files.length);
+
+    const documentIds: number[] = [];
     for (const file of files) {
       const data =
         typeof file == 'string'
@@ -281,15 +252,21 @@ async function addDocuments(selected: File[] | string[] | null) {
               },
             };
 
-      workingOn.value = data.File ? data.File.filename : data.Path.filename;
-      progress.info(`Collecting ${workingOn.value}...`);
-      const document = await $tauriCommands.getOrCreateDocument(data);
-      documentIds.push(document.id);
-      progress.advance();
+      const filename = data.File ? data.File.filename : data.Path.filename;
+      await Promise.resolve(() => addTracer.onStepStart(filename, '', undefined))
+        .then(() => $tauriCommands.getOrCreateDocument(data))
+        .then((document) => {
+          documentIds.push(document.id);
+        })
+        .catch((error) => {
+          message.error(`Failed to add document ${filename}: ${errToString(error)}`);
+          return null;
+        })
+        .finally(() => addTracer.onStepEnd());
     }
 
     return await $tauriCommands.addDocumentsToCollection(id, documentIds).then(async (added) => {
-      progress.info('Reloading...');
+      addTracer.log('Reloading...');
       await reloadDocuments();
       return added;
     });
@@ -297,16 +274,18 @@ async function addDocuments(selected: File[] | string[] | null) {
 
   await Promise.resolve((isAdding.value = true))
     .then(async () => {
-      const added = await addToDatabase(selected);
+      addTracer.start();
+      return await addToDatabase(selected);
+    })
+    .then((added) => {
+      addTracer.finish();
       message.info(`Added ${added.length} documents into collection ${id}`);
     })
     .catch((error) => {
+      addTracer.fail();
       message.error(`Failed to add documents: ${errToString(error)}`);
     })
-    .finally(() => {
-      isAdding.value = false;
-      progress.reset();
-    });
+    .finally(() => (isAdding.value = false));
 }
 
 /**

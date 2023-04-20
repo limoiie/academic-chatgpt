@@ -16,9 +16,11 @@
 </template>
 
 <script setup lang="ts">
+import { LogEntry } from "~/utils/tracer";
+
 const viewBottom = ref<Element | null>(null);
 
-const props = defineProps<{ logs: LogMessage[] }>();
+const props = defineProps<{ logs: LogEntry[] }>();
 const { logs } = toRefs(props);
 watch(logs, scrollToConsoleEnd, { deep: true });
 
