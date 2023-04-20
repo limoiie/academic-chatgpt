@@ -15,11 +15,7 @@
       </a-empty>
     </div>
     <a-layout v-else class="flex flex-col flex-1">
-      <a-page-header
-        class="bg-white border-b-1 z-10"
-        title="Chat"
-        @back="() => $router.go(-1)"
-      >
+      <a-page-header class="bg-white border-b-1 z-10" title="Chat" @back="() => $router.go(-1)">
         <template #subTitle>
           <a-button
             v-show="isSessionNameChanged"
@@ -82,8 +78,9 @@
           <!--suppress TypeScriptUnresolvedReference -->
           <ChatSession
             v-if="data?.collectionIndex"
-            :session="session.origin"
             :collection-index="data?.collectionIndex!"
+            :session="session.origin"
+            :session-profile="session.profile"
           />
         </a-tab-pane>
       </a-tabs>
@@ -92,13 +89,12 @@
 </template>
 
 <script setup lang="ts">
-import { useAsyncData } from '#app';
 import { BarsOutlined, CloseOutlined, EditOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { reactive } from 'vue';
 import { useCollectionsStore } from '~/store/collections';
+import { useSessionsStore } from '~/store/sessions';
 import { uniqueName } from '~/utils/strings';
-import { useSessionsStore } from "~/store/sessions";
 
 const isLoading = ref<boolean>(false);
 const isUpdatingName = ref<boolean>(false);
@@ -113,10 +109,14 @@ const indexId = parseInt(route.params['indexId'] as string);
 
 const { $tauriCommands } = useNuxtApp();
 
+const sessionsStore = useSessionsStore();
 const collectionStore = useCollectionsStore();
 const { data } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${indexId}`, async () => {
   return await Promise.resolve((isLoading.value = true))
-    .then(() => collectionStore.load())
+    .then(async () => {
+      await sessionsStore.load();
+      await collectionStore.load();
+    })
     .then(async () => {
       const index = collectionStore.getCollectionIndexById(collectionId, indexId);
       if (!index) {
@@ -137,7 +137,6 @@ const { data } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${i
     .finally(() => (isLoading.value = false));
 });
 
-const sessionsStore = useSessionsStore();
 const activeSessionId = sessionsStore.getActiveSessionId(collectionId, indexId);
 const activeSession = computed(() => {
   if (!data.value?.chatSessions.length) {
@@ -154,7 +153,12 @@ const sessionsUiData = computed(() => {
   }
   return (
     data.value.chatSessions.map((session) => {
-      return { key: session.id, title: session.name, origin: session };
+      return {
+        key: session.id,
+        title: session.name,
+        origin: session,
+        profile: sessionsStore.getSessionProfile(session.id),
+      };
     }) || []
   );
 });
@@ -184,7 +188,7 @@ const formState = reactive<FormState>({
  * Update session name
  */
 async function tryUpdateSessionName() {
-  const session= activeSession.value;
+  const session = activeSession.value;
   if (!session) {
     message.error('No session selected!');
     return;
@@ -310,4 +314,6 @@ async function switchToSessionTabByIndex(tabIndex: number) {
     justify-content: center !important
     background: transparent !important
     border: 0 !important
+    margin-top: 12px
+    margin-bottom: 12px
 </style>

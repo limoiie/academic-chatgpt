@@ -7,7 +7,7 @@
     <div class="w-full flex flex-col items-center absolute bottom-0 left-0">
       <div class="mr-12 self-end hover:shadow-lg duration-300">
         <a-tooltip title="Chat Mode">
-          <a-select v-model:value="currentChainMode" :options="availableChainModeOptions"></a-select>
+          <a-select v-model:value="sessionProfile.completionChainMode" :options="availableChainModeOptions"></a-select>
         </a-tooltip>
       </div>
       <div class="w-full h-2 z-10 bg-gradient-to-t from-[#FFFFFF]" />
@@ -48,23 +48,24 @@
 import { ClearOutlined, SendOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { Embeddings } from 'langchain/embeddings';
-import { ChainValues, SystemChatMessage } from 'langchain/schema';
+import { SystemChatMessage } from 'langchain/schema';
 import { VectorStore } from 'langchain/vectorstores';
-import { storeToRefs } from 'pinia';
-import { ref } from 'vue';
+import { ref, toRef } from 'vue';
 import { UiChatConversation, UiChatDialogue } from '~/composables/beans/Chats';
 import { CollectionIndexWithAll, Session } from '~/plugins/tauri/bindings';
-import { useDefaultCompleteStore } from '~/store/defaultComplete';
-import { chatCompletion } from '~/utils/aichains/chatCompletion';
-import { completion } from '~/utils/aichains/completion';
-import { noHistoryVectorDbQA } from '~/utils/aichains/noHistoryVectorDbQA';
-import { rephraseVectorDbQA } from '~/utils/aichains/rephraseVectorDbQA';
+import { SessionProfile } from '~/store/sessions';
+import { allCompletionChainModes } from '~/types';
+import { runChain } from '~/utils/completionChains';
+import { createEmbeddings } from '~/utils/embeddings';
 import { createVectorstore } from '~/utils/vectorstores';
 
-const { collectionIndex, session } = defineProps<{
+const props = defineProps<{
   collectionIndex: CollectionIndexWithAll;
   session: Session;
+  sessionProfile: SessionProfile;
 }>();
+const { collectionIndex, session } = props;
+const sessionProfile = toRef(props, 'sessionProfile');
 
 const { $tauriCommands } = useNuxtApp();
 
@@ -76,27 +77,13 @@ const conversation = ref<UiChatConversation>(
   new UiChatConversation(new SystemChatMessage('You are an assistant and going to help my to summary documents.')),
 );
 
-const availableChainModes = ref(['WithoutHistory', 'RephraseHistory', 'Completion', 'ChatCompletion']);
+const availableChainModes = computed(() => {
+  return allCompletionChainModes[sessionProfile.value.completionConfig.client] || [];
+});
 const availableChainModeOptions = computed(() => {
   return availableChainModes.value.map((m) => {
     return { label: m, value: m };
   });
-});
-const currentChainMode = ref('WithoutHistory');
-
-const defaultCompleteStore = useDefaultCompleteStore();
-const { defaultCompleteConfig } = storeToRefs(defaultCompleteStore);
-
-interface CompletionConfig {
-  client: string;
-  apiKey: string;
-  model: string;
-}
-
-const completionConfig = reactive<CompletionConfig>({
-  client: defaultCompleteConfig.value.client,
-  apiKey: defaultCompleteConfig.value.meta.apiKey,
-  model: defaultCompleteConfig.value.meta.model,
 });
 
 interface Context {
@@ -110,13 +97,19 @@ const { data: context } = useAsyncData(`contextOfSession#${session.id}`, async (
   const embeddings = await createEmbeddings(
     collectionIndex.index.embeddingsClient,
     collectionIndex.index.embeddingsConfig,
-  );
+  ).catch((e: any) => {
+    message.error(`Failed to create embeddings: ${e.toString()}`);
+    throw e;
+  });
   const vectorstore = await createVectorstore(
     collectionIndex.index.vectorDbClient,
     collectionIndex.index.vectorDbConfig,
     embeddings,
     namespace,
-  );
+  ).catch((e: any) => {
+    message.error(`Failed to create vectorstore: ${e.toString()}`);
+    throw e;
+  });
 
   return {
     collectionIndex,
@@ -126,7 +119,6 @@ const { data: context } = useAsyncData(`contextOfSession#${session.id}`, async (
 });
 
 await Promise.resolve().then(async () => {
-  await defaultCompleteStore.load();
   loadConversationHistory();
 });
 
@@ -160,6 +152,12 @@ async function requestChatCompletion() {
   if (!latestInput) return;
   input.value = '';
 
+  const contextValue = context.value;
+  if (!contextValue) {
+    message.error('Profile not load: maybe reload would solve the problem');
+    return;
+  }
+
   // construct the new dialogue
   const dialogue = await conversation.value.question(latestInput);
 
@@ -179,8 +177,15 @@ async function requestChatCompletion() {
   await Promise.resolve((isCompleting.value = true))
     .then(async () => {
       ++scrollToEnd.value;
-      // update the memory by extracting from ui
-      const response = await buildAndExecChain(latestInput, onTokenStream);
+      const vectorstore = toRaw<VectorStore>(contextValue.vectorstore);
+      const response = await runChain(
+        sessionProfile.value.completionConfig,
+        sessionProfile.value.completionChainMode,
+        latestInput,
+        conversation.value,
+        vectorstore,
+        onTokenStream,
+      );
       if (response) {
         await dialogue.answerChainValues(response);
         await saveConversationHistory();
@@ -197,58 +202,6 @@ async function requestChatCompletion() {
       isCompleting.value = false;
       ++scrollToEnd.value;
     });
-}
-
-/**
- * Build the completion chain and execute it.
- *
- * @param question
- * @param onTokenStream
- */
-async function buildAndExecChain(question: string, onTokenStream: (token: string) => void) {
-  const contextValue = context.value;
-  if (!contextValue) {
-    message.error('Profile not load: maybe reload would solve the problem');
-    return;
-  }
-
-  const { client, apiKey, model } = completionConfig;
-  if (!client || !apiKey || !model) {
-    message.error('Invalid completion client: please specify a client');
-    return;
-  }
-
-  const vectorstore = toRaw<VectorStore>(contextValue.vectorstore);
-  switch (client) {
-    case 'openai':
-      switch (currentChainMode.value) {
-        case 'RephraseHistory':
-          const chain1 = rephraseVectorDbQA(apiKey, model, vectorstore, onTokenStream);
-          return await chain1.call({
-            question: question,
-            chat_history: conversation.value.extractHistoryAsQAPairs(),
-          });
-        case 'WithoutHistory':
-          const chain2 = noHistoryVectorDbQA(apiKey, model, vectorstore, onTokenStream);
-          return await chain2.call({
-            query: question,
-          });
-        case 'ChatCompletion':
-          const history = conversation.value.extractHistoryInOpenAIChatCompletion();
-          const normalChatChain = chatCompletion(apiKey, model, history, onTokenStream);
-          return {
-            text: await normalChatChain.call(question),
-          } as ChainValues;
-        default:
-          const normalChain = completion(apiKey, model, onTokenStream);
-          return {
-            text: await normalChain.call(question),
-          } as ChainValues;
-      }
-    default:
-      message.error(`Unsupported AI completion client: ${client}`);
-      return;
-  }
 }
 
 /**
