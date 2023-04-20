@@ -14,32 +14,40 @@
         <a-button type="primary" @click="addSession">Create Now</a-button>
       </a-empty>
     </div>
-    <a-layout v-else class="flex flex-col flex-1">
+    <a-layout v-else class="w-full flex flex-col flex-1">
       <a-page-header class="bg-white border-b-1 z-10" title="Chat" @back="() => $router.go(-1)">
         <template #subTitle>
-          <a-button
-            v-show="isSessionNameChanged"
-            shape="circle"
-            size="small"
-            :disabled="!isSessionNameChanged"
-            :loading="isUpdatingName"
-            @click="tryUpdateSessionName"
-          >
-            <template #icon>
-              <EditOutlined />
-            </template>
-          </a-button>
-          <a-input
-            ref="viewCollectionName"
-            v-model:value="formState.name"
-            :bordered="false"
-            @input="onEditSessionName"
-            @pressEnter="tryUpdateSessionName"
-            placeholder="Collection Name"
-          />
+          <div class="flex flex-row items-center">
+            <a-button
+              v-show="isSessionNameChanged"
+              shape="circle"
+              size="small"
+              :disabled="!isSessionNameChanged"
+              :loading="isUpdatingName"
+              @click="tryUpdateSessionName"
+            >
+              <template #icon>
+                <EditOutlined />
+              </template>
+            </a-button>
+            <a-input
+              ref="viewCollectionName"
+              v-model:value="formState.name"
+              :bordered="false"
+              @input="onEditSessionName"
+              @pressEnter="tryUpdateSessionName"
+              placeholder="Collection Name"
+            />
+          </div>
         </template>
 
         <template #extra>
+          <a-button v-if="showTabBar" shape="circle" @click="() => (showTabBarOnLeft = !showTabBarOnLeft)">
+            <template #icon>
+              <BorderLeftOutlined v-if="showTabBarOnLeft" />
+              <BorderTopOutlined v-else />
+            </template>
+          </a-button>
           <a-tooltip title="Toggle tab bar">
             <a-button
               shape="circle"
@@ -58,6 +66,7 @@
         v-model:activeKey="activeSessionId"
         class="flex flex-1"
         type="editable-card"
+        :tab-position="showTabBarOnLeft ? 'left' : 'top'"
         @edit="onEditSession"
       >
         <!--suppress VueUnrecognizedSlot -->
@@ -78,11 +87,7 @@
           </template>
 
           <!--suppress TypeScriptUnresolvedReference -->
-          <ChatSession
-            :collection-index="index"
-            :session="session.origin"
-            :session-profile="session.profile"
-          />
+          <ChatSession :collection-index="index" :session="session.origin" :session-profile="session.profile" />
         </a-tab-pane>
       </a-tabs>
     </a-layout>
@@ -90,7 +95,14 @@
 </template>
 
 <script setup lang="ts">
-import { BarsOutlined, CloseOutlined, EditOutlined, PlusCircleOutlined } from '@ant-design/icons-vue';
+import {
+  BarsOutlined,
+  BorderLeftOutlined,
+  BorderTopOutlined,
+  CloseOutlined,
+  EditOutlined,
+  PlusCircleOutlined,
+} from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { reactive } from 'vue';
 import { CollectionIndexWithAll } from '~/plugins/tauri/bindings';
@@ -105,6 +117,7 @@ const isLoading = ref<boolean>(false);
 const isUpdatingName = ref<boolean>(false);
 const isSessionNameChanged = ref<boolean>(false);
 const showTabBar = ref<boolean>(true);
+const showTabBarOnLeft = ref<boolean>(false);
 
 const collectionId = index.collectionId;
 const indexId = index.indexId;
@@ -297,6 +310,15 @@ async function switchToSessionTabByIndex(tabIndex: number) {
 
   .ant-tabs-nav
     margin-bottom: 0 !important
+
+  &.ant-tabs-left
+    .ant-tabs-nav
+      width: 120px
+      margin-right: 0 !important
+      margin-bottom: 8px !important
+
+    .ant-tabs-tabpane
+      padding-left: 0 !important
 
   // fix the tab text & button align issue
   .ant-tabs-tab
