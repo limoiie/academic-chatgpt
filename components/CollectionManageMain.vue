@@ -283,7 +283,6 @@ async function addDocuments(selected: File[] | string[] | null) {
 
       workingOn.value = data.File ? data.File.filename : data.Path.filename;
       progress.info(`Collecting ${workingOn.value}...`);
-      console.log('data file length', data.File?.content.length);
       const document = await $tauriCommands.getOrCreateDocument(data);
       documentIds.push(document.id);
       progress.advance();

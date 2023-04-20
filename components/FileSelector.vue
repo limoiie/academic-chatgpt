@@ -44,7 +44,7 @@ function onOpenFileSelectorDialogInBrowser(file: File, fileList: File[]) {
 
 async function openFileSelectionDialogInTauri() {
   const selected = await open(options.value);
-  const selectedList = Array.isArray(selected) ? selected : [selected];
+  const selectedList = !selected ? selected : Array.isArray(selected) ? selected : [selected];
   emits('select', selectedList);
 }
 </script>
