@@ -5,11 +5,17 @@
       <ChatConversation class="w-full max-w-4xl" :conversation="conversation" :scroll-to-end="scrollToEnd" />
     </div>
     <div class="w-full flex flex-col items-center absolute bottom-0 left-0">
-      <div class="mr-12 self-end hover:shadow-lg duration-300">
+      <a-space class="mr-12 self-end">
+        <a-tooltip title="Completion Model">
+          <a-select
+            v-model:value="sessionProfile.completionConfig.meta.model"
+            :options="allCompletionModelOptions"
+          ></a-select>
+        </a-tooltip>
         <a-tooltip title="Chat Mode">
           <a-select v-model:value="sessionProfile.completionChainMode" :options="availableChainModeOptions"></a-select>
         </a-tooltip>
-      </div>
+      </a-space>
       <div class="w-full h-2 z-10 bg-gradient-to-t from-[#FFFFFF]" />
       <div class="w-full flex flex-row items-center bg-white pr-12 pb-6 rounded">
         <a-button class="mx-4" type="primary" shape="circle" @click="clearDialogues">
@@ -54,7 +60,7 @@ import { ref, toRef } from 'vue';
 import { UiChatConversation, UiChatDialogue } from '~/composables/beans/Chats';
 import { CollectionIndexWithAll, Session } from '~/plugins/tauri/bindings';
 import { SessionProfile } from '~/store/sessions';
-import { allCompletionChainModes } from '~/types';
+import { allCompletionChainModes, allCompletionModels } from '~/types';
 import { runChain } from '~/utils/completionChains';
 import { createEmbeddings } from '~/utils/embeddings';
 import { createVectorstore } from '~/utils/vectorstores';
@@ -77,12 +83,19 @@ const conversation = ref<UiChatConversation>(
   new UiChatConversation(new SystemChatMessage('You are an assistant and going to help my to summary documents.')),
 );
 
-const availableChainModes = computed(() => {
-  return allCompletionChainModes[sessionProfile.value.completionConfig.client] || [];
-});
 const availableChainModeOptions = computed(() => {
-  return availableChainModes.value.map((m) => {
+  const modes = allCompletionChainModes[sessionProfile.value.completionConfig.client] || [];
+  return modes.map((m) => {
     return { label: m, value: m };
+  });
+});
+const allCompletionModelOptions = computed(() => {
+  const models = allCompletionModels[sessionProfile.value.completionConfig.client] || [];
+  return models.map((model) => {
+    return {
+      label: model,
+      value: model,
+    };
   });
 });
 

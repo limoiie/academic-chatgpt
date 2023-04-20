@@ -57,30 +57,46 @@ export const allCompletionClients = ['openai'];
  * The model type of the completion.
  */
 
-export type CompletionOpenAIGpt3ModelType =
+export type CompletionOpenAIChatCompletionModelType =
+  // GPT-4
+  | 'gpt-4'
+  | 'gpt-4-0314'
+  | 'gpt-4-32k'
+  | 'gpt-4-32k-0314'
+  // GPT-3.5
   | 'gpt-3.5-turbo'
-  | 'gpt-3.5-turbo-0301'
+  | 'gpt-3.5-turbo-0301';
+
+export type CompletionOpenAICompletionModelType =
+  // GPT-3.5
   | 'text-davinci-003'
   | 'text-davinci-002'
-  | 'code-davinci-002';
+  // GPT-3
+  | 'text-curie-001'
+  | 'text-babbage-001'
+  | 'text-ada-001';
 
-export type CompletionOpenAIGpt4ModelType = 'gpt-4' | 'gpt-4-0314' | 'gpt-4-32k' | 'gpt-4-32k-0314';
-
-export type CompletionOpenAIModelType = CompletionOpenAIGpt3ModelType | CompletionOpenAIGpt4ModelType;
+export type CompletionOpenAIModelType = CompletionOpenAIChatCompletionModelType | CompletionOpenAICompletionModelType;
 
 export type CompletionModelType = CompletionOpenAIModelType;
 
-export const allCompletionOpenAIModels = [
-  'gpt-3.5-turbo',
-  'gpt-3.5-turbo-0301',
-  'text-davinci-003',
-  'text-davinci-002',
-  'code-davinci-002',
+export const allCompletionOpenAIModels: CompletionOpenAIModelType[] = [
   'gpt-4',
   'gpt-4-0314',
   'gpt-4-32k',
   'gpt-4-32k-0314',
+  'gpt-3.5-turbo',
+  'gpt-3.5-turbo-0301',
+  'text-davinci-003',
+  'text-davinci-002',
+  'text-curie-001',
+  'text-babbage-001',
+  'text-ada-001',
 ];
+
+export const allCompletionModels: { [client: string]: CompletionModelType[] } = {
+  openai: allCompletionOpenAIModels,
+};
 
 /**
  * The mode of the completion chain.
