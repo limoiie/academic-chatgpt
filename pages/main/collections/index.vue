@@ -25,8 +25,8 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
+import { Collection } from '~/plugins/tauri/bindings';
 import { useCollectionsStore } from '~/store/collections';
-import { CollectionWithIndexes } from '~/plugins/tauri/bindings';
 
 const isLoading = ref<boolean>(false);
 const errorMessage = ref<string>('');
@@ -44,7 +44,7 @@ await Promise.resolve((isLoading.value = true))
   })
   .finally(() => (isLoading.value = false));
 
-function navigate(collections: CollectionWithIndexes[]) {
+function navigate(collections: Collection[]) {
   const collection = collections[0];
   if (collection) {
     navigateTo(`/main/collections/${collection.id}`);

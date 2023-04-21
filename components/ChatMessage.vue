@@ -2,9 +2,15 @@
   <div class="w-full pt-4 px-16">
     <div class="mb-2">{{ value.username }} [{{ value.message._getType() }}]</div>
     <div v-show="rendered" v-html="rendered" />
-    <div v-if="answering">
+    <div v-if="answering" class="flex flex-row items-baseline gap-3">
       <a-spin size="small" />
+      <a-button shape="circle" size="small" type="primary" @click="stopAnswering">
+        <template #icon>
+          <PauseCircleOutlined />
+        </template>
+      </a-button>
     </div>
+
     <a-alert v-if="value.error" type="error" show-icon>
       <template #description>
         {{ value.error }}
@@ -14,11 +20,13 @@
 </template>
 
 <script setup lang="ts">
+import { PauseCircleOutlined } from '@ant-design/icons-vue';
 import { Ref } from 'vue';
 import { UiChatMessage } from '~/composables/beans/Chats';
 
 // noinspection JSUnusedGlobalSymbols
 const { $renderMarkdown } = useNuxtApp();
+const emits = defineEmits(['stopAnswering']);
 const {
   value,
   error,
@@ -34,6 +42,10 @@ watch(
     immediate: true,
   },
 );
+
+function stopAnswering() {
+  emits('stopAnswering', true);
+}
 </script>
 
 <style lang="sass">

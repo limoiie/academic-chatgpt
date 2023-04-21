@@ -29,8 +29,8 @@ export const useSessionsStore = defineStore('sessions', () => {
     sessionProfiles: new Map(),
   });
 
-  const defaultCompleteStore = useDefaultCompleteStore();
-  const { defaultCompleteConfig } = storeToRefs(defaultCompleteStore);
+  const defaultCompletionStore = useDefaultCompleteStore();
+  const { defaultCompleteConfig } = storeToRefs(defaultCompletionStore);
   const defaultSessionProfile = computed(() => {
     return { completionChainMode: DEFAULT_COMPLETION_CHAIN_MODE,
       completionConfig: defaultCompleteConfig.value,
@@ -38,7 +38,7 @@ export const useSessionsStore = defineStore('sessions', () => {
   });
 
   async function load() {
-    await defaultCompleteStore.load();
+    await defaultCompletionStore.load();
     if (!loaded.value) {
       await loadCacheFromTauriStore();
       loaded.value = true;

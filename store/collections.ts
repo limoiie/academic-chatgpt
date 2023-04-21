@@ -1,7 +1,7 @@
 import { message } from 'ant-design-vue';
 import { defineStore } from 'pinia';
 import { Ref } from 'vue';
-import { CollectionIndexWithAll, CollectionWithIndexes, IndexProfileWithAll } from '~/plugins/tauri/bindings';
+import { CollectionIndexWithAll, Collection, IndexProfileWithAll } from '~/plugins/tauri/bindings';
 import { deleteIndexFromVectorstore } from '~/utils/vectorstores';
 
 interface CollectionsStore {
@@ -19,7 +19,7 @@ export const useCollectionsStore = defineStore('collections', () => {
     activeIndexIdByCollectionId: new Map(),
   });
 
-  const collections: Ref<CollectionWithIndexes[]> = ref([]);
+  const collections: Ref<Collection[]> = ref([]);
   const collectionNames = computed(() => collections.value.map((c) => c.name));
   const indexesByCollectionId: Ref<Map<number, CollectionIndexWithAll[]>> = ref(new Map());
 
@@ -59,7 +59,7 @@ export const useCollectionsStore = defineStore('collections', () => {
   }
 
   async function loadCollectionsFromDatabase() {
-    collections.value = (await $tauriCommands.getCollectionsWithIndexes()) || [];
+    collections.value = (await $tauriCommands.getCollections()) || [];
   }
 
   async function loadIndexesFromDatabase() {
@@ -69,6 +69,10 @@ export const useCollectionsStore = defineStore('collections', () => {
       map.set(collection.id, indexes);
     }
     indexesByCollectionId.value = map;
+  }
+
+  async function getCollection(id: number) {
+    return collections.value.find((c) => c.id == id);
   }
 
   async function createCollection(defaultIndexProfile: IndexProfileWithAll) {
@@ -214,6 +218,7 @@ export const useCollectionsStore = defineStore('collections', () => {
     collectionNames,
     indexesByCollectionId,
     load,
+    getCollection,
     createCollection,
     reloadCollectionById,
     deleteCollectionById,

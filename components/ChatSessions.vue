@@ -15,7 +15,7 @@
       </a-empty>
     </div>
     <a-layout v-else class="w-full flex flex-col flex-1">
-      <a-page-header class="bg-white border-b-1 z-10" title="Chat" @back="() => $router.go(-1)">
+      <a-page-header class="bg-white border-b-1 z-10" :title="collection.name || '--'">
         <template #subTitle>
           <div class="flex flex-row items-center">
             <a-button
@@ -105,11 +105,12 @@ import {
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { reactive } from 'vue';
-import { CollectionIndexWithAll } from '~/plugins/tauri/bindings';
+import { CollectionIndexWithAll, Collection} from "~/plugins/tauri/bindings";
 import { useSessionsStore } from '~/store/sessions';
 import { uniqueName } from '~/utils/strings';
 
-const { index } = defineProps<{
+const { collection, index } = defineProps<{
+  collection: Collection;
   index: CollectionIndexWithAll;
 }>();
 

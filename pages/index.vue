@@ -8,10 +8,10 @@
 import { useDefaultCompleteStore } from '~/store/defaultComplete';
 import { useDefaultVectorDbStore } from '~/store/defaultVectorDb';
 
-const defaultCompleteStore = useDefaultCompleteStore();
+const defaultCompletionStore = useDefaultCompleteStore();
 const defaultVectorDbStore = useDefaultVectorDbStore();
 
-if ((await defaultCompleteStore.load()) && (await defaultVectorDbStore.load())) {
+if ((await defaultCompletionStore.load()) && (await defaultVectorDbStore.load())) {
   navigateTo('/main');
 } else {
   navigateTo('/presets');

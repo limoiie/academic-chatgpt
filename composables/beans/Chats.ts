@@ -114,6 +114,10 @@ export class UiChatDialogue {
     this.answering = undefined;
     this.chosenAnswer.error = error;
   }
+
+  stopAnswering() {
+    this.answering = undefined;
+  }
 }
 
 export class UiChatConversation {

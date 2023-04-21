@@ -5,7 +5,7 @@ interface DefaultCompleteStore {
   defaultConfig: CompletionConfig;
 }
 
-const STORE_KEY = 'defaultCompleteStore';
+const STORE_KEY = 'defaultCompletionStore';
 
 /**
  * Default completion agent store.

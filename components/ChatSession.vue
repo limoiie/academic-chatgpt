@@ -1,18 +1,29 @@
 <template>
   <div id="component" class="w-full h-full flex flex-col items-stretch flex-1 relative overflow-hidden">
     <div class="w-full h-2 z-10 absolute top-0 bg-gradient-to-b from-white"></div>
-    <div id="content" class="flex flex-col items-center flex-[1_1_0] overflow-auto">
-      <ChatConversation class="w-full max-w-4xl" :conversation="conversation" :scroll-to-end="scrollToEnd" />
+    <div id="content" class="flex flex-col items-center overflow-scroll">
+      <ChatConversation
+        class="w-full max-w-4xl"
+        :conversation="conversation"
+        :scroll-to-end="conversationUpdated"
+        :auto-scroll-to-end="autoScrollToEnd"
+        @stop-answering="onStopGenerating"
+      />
     </div>
     <div class="w-full flex flex-col items-center absolute bottom-0 left-0">
-      <a-space class="mr-12 self-end">
-        <a-tooltip title="Completion Model">
+      <a-space>
+        <a-button shape="circle" :type="autoScrollToEnd ? 'primary' : 'dashed'" @click="enableAutoScrollToEnd">
+          <template #icon>
+            <VerticalAlignBottomOutlined />
+          </template>
+        </a-button>
+        <a-tooltip title="Completion Model" placement="bottom">
           <a-select
             v-model:value="sessionProfile.completionConfig.meta.model"
             :options="allCompletionModelOptions"
           ></a-select>
         </a-tooltip>
-        <a-tooltip title="Chat Mode">
+        <a-tooltip title="Chat Mode" placement="bottom">
           <a-select v-model:value="sessionProfile.completionChainMode" :options="availableChainModeOptions"></a-select>
         </a-tooltip>
       </a-space>
@@ -23,11 +34,14 @@
             <ClearOutlined />
           </template>
         </a-button>
-        <div class="px-2 py-1 flex flex-1 flex-row items-center border-1 rounded">
+        <div
+          class="px-2 py-1 flex flex-1 flex-row items-center border-1 rounded hover:border-blue-400 focus-within:shadow focus-within:shadow-blue-400/50 duration-300"
+        >
           <a-textarea
+            id="input"
             v-model:value="input"
             allow-clear
-            placeholder="Input message"
+            placeholder="Ask something about the collection"
             class="ant-input-borderless"
             size="large"
             :auto-size="{ minRows: 1, maxRows: 5 }"
@@ -51,13 +65,14 @@
 </template>
 
 <script setup lang="ts">
-import { ClearOutlined, SendOutlined } from '@ant-design/icons-vue';
+import { ClearOutlined, SendOutlined, VerticalAlignBottomOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { Embeddings } from 'langchain/embeddings';
 import { SystemChatMessage } from 'langchain/schema';
 import { VectorStore } from 'langchain/vectorstores';
 import { ref, toRef } from 'vue';
 import { UiChatConversation, UiChatDialogue } from '~/composables/beans/Chats';
+import { useScrollOverflow } from '~/composables/useScrollOverflow';
 import { CollectionIndexWithAll, Session } from '~/plugins/tauri/bindings';
 import { SessionProfile } from '~/store/sessions';
 import { allCompletionChainModes, allCompletionModels } from '~/types';
@@ -77,7 +92,8 @@ const { $tauriCommands } = useNuxtApp();
 
 const input = ref('');
 const isCompleting = ref(false);
-const scrollToEnd = ref(0);
+const conversationUpdated = ref(0);
+const autoScrollToEnd = ref(false);
 
 const conversation = ref<UiChatConversation>(
   new UiChatConversation(new SystemChatMessage('You are an assistant and going to help my to summary documents.')),
@@ -133,7 +149,30 @@ const { data: context } = useAsyncData(`contextOfSession#${session.id}`, async (
 
 await Promise.resolve().then(async () => {
   loadConversationHistory();
+  // scroll to end when the conversation is loaded
+  setTimeout(enableAutoScrollToEnd, 400);
 });
+
+onMounted(() => {
+  const conversationContainerEl = document.getElementById('content');
+  if (conversationContainerEl) {
+    useScrollOverflow(conversationContainerEl, 20, autoScrollToEnd);
+  }
+
+  const inputEl = document.getElementById('input');
+  if (inputEl) {
+    inputEl.focus();
+  }
+});
+
+function enableAutoScrollToEnd() {
+  autoScrollToEnd.value = true;
+  scrollToEnd();
+}
+
+function scrollToEnd() {
+  ++conversationUpdated.value;
+}
 
 function loadConversationHistory() {
   try {
@@ -189,7 +228,7 @@ async function requestChatCompletion() {
 
   await Promise.resolve((isCompleting.value = true))
     .then(async () => {
-      ++scrollToEnd.value;
+      enableAutoScrollToEnd();
       const vectorstore = toRaw<VectorStore>(contextValue.vectorstore);
       const response = await runChain(
         sessionProfile.value.completionConfig,
@@ -199,6 +238,11 @@ async function requestChatCompletion() {
         vectorstore,
         onTokenStream,
       );
+      if (!dialogue.answering) {
+        // the dialogue has been stopped
+        await saveConversationHistory();
+        return true;
+      }
       if (response) {
         await dialogue.answerChainValues(response);
         await saveConversationHistory();
@@ -211,10 +255,19 @@ async function requestChatCompletion() {
       await saveConversationHistory();
       message.error(`Failed to complete: ${errToString(e)}`);
     })
-    .finally(() => {
-      isCompleting.value = false;
-      ++scrollToEnd.value;
+    .finally((stopped: boolean | void) => {
+      if (!stopped) {
+        isCompleting.value = false;
+      }
     });
+}
+
+/**
+ * Quickly recover the completion status on stop generating.
+ */
+function onStopGenerating(dialogue: UiChatDialogue) {
+  dialogue.stopAnswering();
+  isCompleting.value = false;
 }
 
 /**
