@@ -59,7 +59,7 @@
           <a-button
             type="primary"
             :disabled="!isValidating && !isPersisting && !isValid"
-            :loading="isValidating || isPersisting"
+            :loading="isValidating != 0 || isPersisting"
             @click="go"
           >
             Go

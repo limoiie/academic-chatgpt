@@ -10,7 +10,6 @@ export function useScrollOverflow(
 
   elem.addEventListener('scroll', (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target as HTMLElement;
-    console.log('scroll', scrollTop + clientHeight, scrollHeight);
     leaveEnd.value = reachEnd.value && scrollTop + clientHeight + threashold < scrollHeight;
     reachEnd.value = scrollTop + clientHeight + threashold >= scrollHeight;
   });
