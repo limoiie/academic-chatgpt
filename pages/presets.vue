@@ -58,8 +58,8 @@
           <div class="flex flex-grow" />
           <a-button
             type="primary"
+            :disabled="!isValidating && !isPersisting && !isValid"
             :loading="isValidating || isPersisting"
-            :disabled="!isValidating && !isValid"
             @click="go"
           >
             Go
@@ -81,7 +81,7 @@ import { useIndexProfilesStore } from '~/store/indexProfiles';
 import { errToString } from '~/utils/strings';
 
 const isPersisting = ref<boolean>(false);
-const isValidating = ref<boolean>(false);
+const isValidating = ref<number>(0);
 const isVectorstoreValid = ref<boolean>(false);
 const isCompleteValid = ref<boolean>(false);
 const isValid = computed(() => isVectorstoreValid.value && isCompleteValid.value);
@@ -149,7 +149,7 @@ function updateVectorstoreValid(valid: boolean) {
 }
 
 function updateValidating(validating: boolean) {
-  isValidating.value = validating;
+  validating ? ++isValidating.value : --isValidating.value;
 }
 
 function updateValidationError(error: string) {
