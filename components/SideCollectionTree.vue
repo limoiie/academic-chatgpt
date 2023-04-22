@@ -11,6 +11,7 @@
     <!--suppress TypeScriptUnresolvedReference -->
     <a-menu-item :key="col.id" v-for="col in collections" @click="navigateToActiveIndexProfile(col.id)">
       <template #icon>
+        <!--suppress TypeScriptUnresolvedReference -->
         <FolderOpenOutlined v-if="col.id == activeCollectionId" />
         <FolderOutlined v-else />
       </template>
@@ -63,7 +64,6 @@ import { storeToRefs } from 'pinia';
 import { useCollectionsStore } from '~/store/collections';
 
 const isLoading = ref<boolean>(false);
-const activeCollectionId = ref<number>();
 
 const route = useRoute();
 watch(route, async () => {
@@ -71,15 +71,14 @@ watch(route, async () => {
 });
 
 const collectionStore = useCollectionsStore();
-const { collections } = storeToRefs(collectionStore);
+const { collections, activeCollectionId } = storeToRefs(collectionStore);
 
 await Promise.resolve((isLoading.value = true))
   .then(() => collectionStore.load())
   .then(() => {
-    const historyActiveCollectionId = collectionStore.getActiveCollectionId();
-    if (historyActiveCollectionId != null) {
-      navigateToActiveIndexProfile(historyActiveCollectionId);
-    } else if (historyActiveCollectionId != activeCollectionId.value) {
+    if (activeCollectionId.value != null) {
+      navigateToActiveIndexProfile(activeCollectionId.value);
+    } else {
       navigateTo('/main/collections');
     }
   })

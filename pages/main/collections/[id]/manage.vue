@@ -28,7 +28,7 @@
         <a-tooltip title="Active Index Profile" placement="left">
           <a-select
             :value="formState.activeIndexId"
-            :options="collection?.indexes || []"
+            :options="indexes || []"
             :field-names="{ label: 'name', value: 'id', options: 'options' }"
           />
         </a-tooltip>
@@ -68,14 +68,23 @@ const activeTab = ref<'documents' | 'indexes'>('documents');
 const { $tauriCommands } = useNuxtApp();
 
 const collectionStore = useCollectionsStore();
-const { collections, collectionNames } = storeToRefs(collectionStore);
+const { collections, indexesByCollectionId, collectionNames } = storeToRefs(collectionStore);
 const collection = computed(() => {
   const collection = collections.value.find((e) => e.id == id);
   if (!collection) return null;
-
-  // todo: fetch all indexes here
   formState.name = collection.name;
   return collection;
+});
+const indexes = computed(() => {
+  const indexes = indexesByCollectionId.value.get(id)?.map((e) => {
+    return {
+      id: e.id,
+      name: e.name,
+      indexProfile: e.index
+    };
+  });
+  if (!indexes) return null;
+  return indexes
 });
 
 const isUpdatingName = ref<boolean>(false);
