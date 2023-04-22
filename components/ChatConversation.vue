@@ -3,16 +3,16 @@
     <!-- Question -->
     <!--suppress VueUnrecognizedSlot -->
     <template #renderItem="{ item }">
-      <a-list-item class="justify-center! hover:bg-[#e6f7ff] duration-300">
+      <a-list-item class="chat-entry bg-white dark:bg-[#1a1a1a]">
         <ChatMessage class="max-w-7xl" :value="item.question" :error="undefined">
           <template #avatar="{ username }">
-            <CharacterAvatar class="w-10 h-10 bg-blue-400 text-white text-1.1em" :value="username" />
+            <CharacterAvatar class="w-10! h-10! min-w-10 bg-blue-400 text-white text-1.1em" :value="username" />
           </template>
         </ChatMessage>
       </a-list-item>
       <!-- Answering -->
       <!--suppress TypeScriptUnresolvedReference -->
-      <a-list-item v-if="item.chosenAnswer" class="justify-center! bg-gray-50 hover:bg-[#e6f7ff] duration-300">
+      <a-list-item v-if="item.chosenAnswer" class="chat-entry dark:bg-[#1f1f1f]">
         <ChatMessage
           class="max-w-7xl"
           :value="item.chosenAnswer"
@@ -21,7 +21,7 @@
           @stop-answering="onStopAnswering(item)"
         >
           <template #avatar="{ username }">
-            <img src="@/assets/images/chatgpt-logo-pure.svg" class="w-10! h-10! bg-blue-200" :alt="username" />
+            <img src="@/assets/images/chatgpt-logo-pure.svg" class="w-10! h-10! min-w-10 bg-blue-200" :alt="username" />
           </template>
         </ChatMessage>
       </a-list-item>
@@ -68,4 +68,15 @@ function onStopAnswering(item: UiChatDialogue) {
 <style lang="sass">
 .ant-list-footer
   padding: 0 !important
+
+.chat-entry
+  justify-content: center !important
+  transition-duration: 300ms
+
+.chat-entry:hover
+  background-color: #e6f7ff
+
+.dark
+  .chat-entry:hover
+    background-color: #080e13
 </style>

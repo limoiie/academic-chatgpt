@@ -1,6 +1,6 @@
 <!--suppress VueUnrecognizedSlot -->
 <template>
-  <a-menu class="overflow-auto" :selected-keys="[activeCollectionId]" mode="inline" :theme="$colorMode.value">
+  <a-menu class="overflow-auto" :selected-keys="[activeCollectionId]" mode="inline">
     <a-menu-item key="create" class="!h-20" @click="newCollection">
       New Collection
       <template #icon>

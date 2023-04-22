@@ -1,6 +1,6 @@
 import { defineNuxtPlugin } from '#app';
 import Antd from 'ant-design-vue';
-import 'ant-design-vue/dist/antd.css';
+import '@/assets/scss/antd.scss';
 
 // noinspection JSUnusedGlobalSymbols
 export default defineNuxtPlugin((nuxtApp) => {

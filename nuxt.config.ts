@@ -8,7 +8,7 @@ export default defineNuxtConfig({
     invokePort: '',
     public: {
       invokePort: '',
-    }
+    },
   },
   ssr: false, // Disable Server Side Rendering as we want a desktop application,
   tailwindcss: {

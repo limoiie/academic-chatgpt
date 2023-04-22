@@ -1,6 +1,6 @@
 <template>
   <a-layout>
-    <a-page-header class="bg-white border-b-1 z-10" title="Manage" @back="() => $router.go(-1)">
+    <a-page-header class="border-b-1 z-10" title="Manage" @back="() => $router.go(-1)">
       <template #subTitle>
         <div class="flex flex-row items-center">
           <a-button
@@ -73,6 +73,7 @@ const collection = computed(() => {
   const collection = collections.value.find((e) => e.id == id);
   if (!collection) return null;
 
+  // todo: fetch all indexes here
   formState.name = collection.name;
   return collection;
 });

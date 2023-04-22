@@ -1,6 +1,6 @@
 <template>
   <div id="component" class="w-full h-full flex flex-col items-stretch flex-1 relative overflow-hidden">
-    <div class="w-full h-2 z-10 absolute top-0 bg-gradient-to-b from-white"></div>
+    <div class="w-full h-2 z-10 absolute top-0 bg-gradient-to-b from-white dark:from-black"></div>
     <div id="content" class="flex flex-col items-center overflow-scroll">
       <ChatConversation
         class="w-full"
@@ -11,7 +11,7 @@
       />
     </div>
     <div class="w-full flex flex-col items-center absolute bottom-0 left-0">
-      <a-space>
+      <a-space class="px-4">
         <a-tooltip title="Auto scroll to end">
           <a-button shape="circle" :type="autoScrollToEnd ? 'primary' : 'dashed'" @click="enableAutoScrollToEnd">
             <template #icon>
@@ -26,18 +26,21 @@
           ></a-select>
         </a-tooltip>
         <a-tooltip title="Chat Mode" placement="bottom">
-          <a-select v-model:value="sessionProfile.completionChainMode" :options="availableChainModeOptions"></a-select>
+          <a-select
+            v-model:value="sessionProfile.completionChainMode"
+            :options="availableChainModeOptions"
+          ></a-select>
         </a-tooltip>
       </a-space>
-      <div class="w-full h-2 z-10 bg-gradient-to-t from-[#FFFFFF]" />
-      <div class="w-full flex flex-row items-center bg-white pr-12 pb-6 rounded">
-        <a-button class="mx-4" type="primary" shape="circle" @click="clearDialogues">
+      <div class="w-full h-4 z-10 bg-gradient-to-t from-white dark:from-[#1f1f1f]" />
+      <div class="w-full flex flex-row items-center bg-white dark:bg-[#1f1f1f] pr-12 pb-6 rounded">
+        <a-button class="mx-4 dark:mx-4" type="primary" shape="circle" @click="clearDialogues">
           <template #icon>
             <ClearOutlined />
           </template>
         </a-button>
         <div
-          class="px-2 py-1 flex flex-1 flex-row items-center border-1 rounded hover:border-blue-400 focus-within:shadow focus-within:shadow-blue-400/50 duration-300"
+          class="px-2 py-1 flex flex-1 flex-row items-center border-1 dark:border-gray-600 rounded hover:border-blue-400 focus-within:shadow-md focus-within:shadow-blue-400 duration-300"
         >
           <a-textarea
             id="input"

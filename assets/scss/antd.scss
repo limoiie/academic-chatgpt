@@ -1,0 +1,55 @@
+@import "ant-design-vue/dist/antd.css";
+
+.dark {
+  @import "@/assets/scss/antd-dark";
+
+  body, .ant-layout {
+    background-color: #1f1f1f !important;
+    color: #fff !important;
+  }
+
+  body, .ant-layout, .ant-layout-sider {
+    background-color: #1f1f1f !important;
+    color: #fff !important;
+  }
+
+  .ant-layout-sider-trigger {
+    background-color: black !important;
+    color: #fff !important;
+  }
+
+  .ant-select, .ant-btn.ant-btn-dashed {
+    background-color: #1f1f1f !important;
+  }
+}
+
+body, .ant-layout {
+  background-color: #fcfcfc !important;
+  color: rgba(4, 0, 0, 0.8) !important;
+}
+
+.ant-layout-sider, .ant-layout-sider-trigger {
+  background-color: #fcfcfc !important;
+  color: rgba(4, 0, 0, 0.8) !important;
+}
+
+/// Correct the centering style of the icon inner button
+button.ant-pagination-item-link {
+  display: flex !important;
+  align-items: center;
+
+  span {
+    align-self: center;
+    margin: auto;
+  }
+}
+
+button.ant-btn-with-icon {
+  display: flex !important;
+  align-items: baseline !important;
+}
+
+.ant-message-custom-content {
+  display: flex !important;
+  align-items: baseline !important;
+}

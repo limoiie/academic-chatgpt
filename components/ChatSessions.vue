@@ -15,7 +15,7 @@
       </a-empty>
     </div>
     <a-layout v-else class="w-full flex flex-col flex-1">
-      <a-page-header class="bg-white border-b-1 z-10" :title="collection.name || '--'">
+      <a-page-header :title="collection.name || '--'">
         <template #subTitle>
           <div class="flex flex-row items-center">
             <a-button
