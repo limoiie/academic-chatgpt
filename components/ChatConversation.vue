@@ -1,23 +1,34 @@
 <template>
   <a-list :data-source="conversation.dialogues">
+    <!-- Question -->
     <!--suppress VueUnrecognizedSlot -->
     <template #renderItem="{ item }">
-      <a-list-item>
-        <ChatMessage :value="item.question" :error="undefined" />
+      <a-list-item class="justify-center! hover:bg-[#e6f7ff] duration-300">
+        <ChatMessage class="max-w-7xl" :value="item.question" :error="undefined">
+          <template #avatar="{ username }">
+            <CharacterAvatar class="w-10 h-10 bg-blue-400 text-white text-1.1em" :value="username" />
+          </template>
+        </ChatMessage>
       </a-list-item>
+      <!-- Answering -->
       <!--suppress TypeScriptUnresolvedReference -->
-      <a-list-item v-if="item.chosenAnswer">
+      <a-list-item v-if="item.chosenAnswer" class="justify-center! bg-gray-50 hover:bg-[#e6f7ff] duration-300">
         <ChatMessage
+          class="max-w-7xl"
           :value="item.chosenAnswer"
           :error="item.error"
           :answering="item.inAnswering"
           @stop-answering="onStopAnswering(item)"
-        />
+        >
+          <template #avatar="{ username }">
+            <img src="@/assets/images/chatgpt-logo-pure.svg" class="w-10! h-10! bg-blue-200" :alt="username" />
+          </template>
+        </ChatMessage>
       </a-list-item>
     </template>
 
     <template #footer>
-      <div ref="chatBottom" class="h-42" />
+      <div ref="chatBottom" class="h-54" />
     </template>
   </a-list>
 </template>
@@ -53,3 +64,8 @@ function onStopAnswering(item: UiChatDialogue) {
   emits('stopAnswering', item);
 }
 </script>
+
+<style lang="sass">
+.ant-list-footer
+  padding: 0 !important
+</style>

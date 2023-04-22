@@ -3,7 +3,7 @@
     <div class="w-full h-2 z-10 absolute top-0 bg-gradient-to-b from-white"></div>
     <div id="content" class="flex flex-col items-center overflow-scroll">
       <ChatConversation
-        class="w-full max-w-4xl"
+        class="w-full"
         :conversation="conversation"
         :scroll-to-end="conversationUpdated"
         :auto-scroll-to-end="autoScrollToEnd"
@@ -12,11 +12,13 @@
     </div>
     <div class="w-full flex flex-col items-center absolute bottom-0 left-0">
       <a-space>
-        <a-button shape="circle" :type="autoScrollToEnd ? 'primary' : 'dashed'" @click="enableAutoScrollToEnd">
-          <template #icon>
-            <VerticalAlignBottomOutlined />
-          </template>
-        </a-button>
+        <a-tooltip title="Auto scroll to end">
+          <a-button shape="circle" :type="autoScrollToEnd ? 'primary' : 'dashed'" @click="enableAutoScrollToEnd">
+            <template #icon>
+              <VerticalAlignBottomOutlined />
+            </template>
+          </a-button>
+        </a-tooltip>
         <a-tooltip title="Completion Model" placement="bottom">
           <a-select
             v-model:value="sessionProfile.completionConfig.meta.model"

@@ -1,14 +1,20 @@
 <template>
   <div class="w-full pt-4 px-16">
-    <div class="mb-2">{{ value.username }} [{{ value.message._getType() }}]</div>
-    <div v-show="rendered" v-html="rendered" />
-    <div v-if="answering" class="flex flex-row items-baseline gap-3">
-      <a-spin size="small" />
-      <a-button shape="circle" size="small" type="primary" @click="stopAnswering">
-        <template #icon>
-          <PauseCircleOutlined />
-        </template>
-      </a-button>
+    <div class="w-full mb-4 flex flex-row gap-4">
+      <slot name="avatar" :username="value.username">
+        {{ value.username }}
+      </slot>
+      <div class="w-full">
+        <div v-show="rendered" v-html="rendered" />
+        <div v-if="answering" class="flex flex-row items-baseline gap-3">
+          <a-spin size="small" />
+          <a-button shape="circle" size="small" type="primary" @click="stopAnswering">
+            <template #icon>
+              <PauseCircleOutlined />
+            </template>
+          </a-button>
+        </div>
+      </div>
     </div>
 
     <a-alert v-if="value.error" type="error" show-icon>
@@ -50,5 +56,5 @@ function stopAnswering() {
 
 <style lang="sass">
 code
-  border-radius: 2px
+  border-radius: 4px
 </style>
