@@ -83,7 +83,7 @@
         >
           <!--suppress VueUnrecognizedSlot -->
           <template v-if="true" #closeIcon>
-            <CloseOutlined class="group-hover:bg-orange-400" />
+            <CloseOutlined />
           </template>
 
           <!--suppress TypeScriptUnresolvedReference -->

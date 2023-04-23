@@ -50,6 +50,9 @@
         "relaunch": true,
         "relaunchDangerousAllowSymlinkMacos": true
       },
+      "shell": {
+        "all": true
+      },
       "window": {
         "all": true
       }

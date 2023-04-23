@@ -1,6 +1,6 @@
 <template>
   <div id="component" class="w-full h-full flex flex-col items-stretch flex-1 relative overflow-hidden">
-    <div class="w-full h-2 z-10 absolute top-0 bg-gradient-to-b from-white dark:from-black"></div>
+    <div class="w-full h-2 z-10 absolute top-0 bg-gradient-to-b from-gray-100 dark:from-black"></div>
     <div id="content" class="flex flex-col items-center overflow-scroll">
       <ChatConversation
         class="w-full"
@@ -32,8 +32,8 @@
           ></a-select>
         </a-tooltip>
       </a-space>
-      <div class="w-full h-4 z-10 bg-gradient-to-t from-white dark:from-[#1f1f1f]" />
-      <div class="w-full flex flex-row items-center bg-white dark:bg-[#1f1f1f] pr-12 pb-6 rounded">
+      <div class="w-full h-2 z-10 bg-gradient-to-t from-white dark:from-[#1f1f1f]" />
+      <div class="w-full pt-2 pr-8 pb-6 flex flex-row items-center bg-white dark:bg-[#1f1f1f] rounded">
         <a-button class="mx-4 dark:mx-4" type="primary" shape="circle" @click="clearDialogues">
           <template #icon>
             <ClearOutlined />
