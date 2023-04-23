@@ -1,6 +1,6 @@
 <template>
   <a-layout>
-    <a-page-header class="border-b-1 z-10" title="Manage" @back="() => $router.go(-1)">
+    <a-page-header class="border-b-1 z-10" title="Manage" @back="navigateToIndexes">
       <template #subTitle>
         <div class="flex flex-row items-center">
           <a-button
@@ -136,6 +136,10 @@ async function tryUpdateCollectionName() {
     .finally(() => {
       isUpdatingName.value = false;
     });
+}
+
+function navigateToIndexes() {
+  navigateTo(`/main/collections/${id}/indexes`);
 }
 </script>
 
