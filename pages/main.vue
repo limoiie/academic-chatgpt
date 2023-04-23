@@ -17,6 +17,7 @@
                 <SettingOutlined />
               </template>
             </a-menu-item>
+            <!--suppress TypeScriptUnresolvedReference -->
             <a-menu-item @click="toggleColorMode">
               {{ upperFirst(appSettings.colorMode.value) }} Mode
               <template #icon>
@@ -82,10 +83,3 @@ function toggleColorMode() {
 
 navigateTo('/main/collections');
 </script>
-
-<style lang="sass">
-.ant-menu-item
-  display: flex
-  flex-direction: row
-  align-items: center
-</style>

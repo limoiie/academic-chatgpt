@@ -1,36 +1,38 @@
 @import "ant-design-vue/dist/antd.css";
 
+$background-base: #fcfcfc;
+$color-base: #040000cc;
+
 .dark {
   @import "@/assets/scss/antd-dark";
 
-  body, .ant-layout {
-    background-color: #1f1f1f !important;
-    color: #fff !important;
-  }
+  $background-base: #1f1f1f;
+  $color-base: #fcffffcc;
 
   body, .ant-layout, .ant-layout-sider {
-    background-color: #1f1f1f !important;
-    color: #fff !important;
+    background-color: $background-base !important;
+    color: $color-base !important;
   }
 
   .ant-layout-sider-trigger {
     background-color: #141414 !important;
-    color: #fff !important;
+    color: $color-base !important;
   }
 
   .ant-select, .ant-btn.ant-btn-dashed {
-    background-color: #1f1f1f !important;
+    background-color: $background-base !important;
   }
+
 }
 
 body, .ant-layout {
-  background-color: #fcfcfc !important;
-  color: rgba(4, 0, 0, 0.8) !important;
+  background-color: $background-base !important;
+  color: $color-base !important;
 }
 
 .ant-layout-sider, .ant-layout-sider-trigger {
-  background-color: #fcfcfc !important;
-  color: rgba(4, 0, 0, 0.8) !important;
+  background-color: $background-base !important;
+  color: $color-base !important;
 }
 
 /// Correct the centering style of the icon inner button
@@ -52,4 +54,11 @@ button.ant-btn-with-icon {
 .ant-message-custom-content {
   display: flex !important;
   align-items: baseline !important;
+}
+
+/// Centralize the icon in the menu item
+.ant-menu-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
 }
