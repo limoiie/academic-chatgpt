@@ -11,6 +11,10 @@ import {
 } from '~/plugins/tauri/bindings';
 
 interface IndexProfilesStore {
+  defaultIndexProfileId: Ref<number | undefined>;
+}
+
+interface PersistentIndexProfilesStore {
   defaultIndexProfileId: number | undefined;
 }
 
@@ -21,14 +25,14 @@ export const useIndexProfilesStore = defineStore('indexProfiles', () => {
 
   const loaded = ref(false);
 
-  const cache = ref<IndexProfilesStore>({
-    defaultIndexProfileId: undefined,
-  });
+  const cache: IndexProfilesStore = {
+    defaultIndexProfileId: ref(undefined),
+  };
   const indexProfiles: Ref<IndexProfileWithAll[]> = ref([]);
   const indexProfileNames = computed(() => indexProfiles.value.map((c) => c.name));
   const defaultIndexProfile = computed(() => {
-    if (cache.value.defaultIndexProfileId == null) return undefined;
-    return indexProfiles.value.find((c) => c.id === cache.value.defaultIndexProfileId);
+    if (cache.defaultIndexProfileId.value == null) return undefined;
+    return indexProfiles.value.find((c) => c.id === cache.defaultIndexProfileId.value);
   });
 
   /**
@@ -54,18 +58,17 @@ export const useIndexProfilesStore = defineStore('indexProfiles', () => {
    * @returns true if default index profile is loaded successfully, false otherwise.
    */
   async function loadCacheFromTauriStore() {
-    const stored = await $tauriStore.get<IndexProfilesStore>(STORE_KEY);
-    cache.value = stored || {
-      defaultIndexProfileId: undefined,
-    };
-    if (cache.value.defaultIndexProfileId == null && indexProfiles.value.length > 0) {
-      cache.value.defaultIndexProfileId = indexProfiles.value[0].id;
+    const stored = await $tauriStore.get<PersistentIndexProfilesStore>(STORE_KEY);
+    fromPersistent(cache, stored);
+
+    if (cache.defaultIndexProfileId.value == null && indexProfiles.value.length > 0) {
+      cache.defaultIndexProfileId.value = indexProfiles.value[0].id;
       await storeCacheToTauriStore();
     }
   }
 
   async function storeCacheToTauriStore() {
-    await $tauriStore.set(STORE_KEY, cache);
+    await $tauriStore.set(STORE_KEY, toPersistent(cache));
     $tauriStore.save();
     return true;
   }
@@ -88,7 +91,7 @@ export const useIndexProfilesStore = defineStore('indexProfiles', () => {
       );
     }
 
-    const defaultIndexProfile = indexProfiles.value.find((c) => c.id === cache.value.defaultIndexProfileId);
+    const defaultIndexProfile = indexProfiles.value.find((c) => c.id === cache.defaultIndexProfileId.value);
     if (defaultIndexProfile && isNotChanged(defaultIndexProfile)) {
       // Default index profile is already set and not changed, skip.
       return;
@@ -106,7 +109,7 @@ export const useIndexProfilesStore = defineStore('indexProfiles', () => {
     await ensureCreateIndexProfileData(data, embeddingsClient, vectorDbClient);
     const newIndexProfile = await $tauriCommands.createIndexProfileWithAll(data);
     indexProfiles.value.push(newIndexProfile);
-    cache.value.defaultIndexProfileId = newIndexProfile.id;
+    cache.defaultIndexProfileId.value = newIndexProfile.id;
   }
 
   /**
@@ -156,3 +159,13 @@ export const useIndexProfilesStore = defineStore('indexProfiles', () => {
     upsertDefaultIndexProfile,
   };
 });
+
+function toPersistent(store: IndexProfilesStore): PersistentIndexProfilesStore {
+  return {
+    defaultIndexProfileId: store.defaultIndexProfileId.value,
+  };
+}
+
+function fromPersistent(cache: IndexProfilesStore, store: PersistentIndexProfilesStore | null) {
+    cache.defaultIndexProfileId.value = store?.defaultIndexProfileId
+}
