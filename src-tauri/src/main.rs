@@ -173,6 +173,10 @@ async fn prepare_prisma_db(app: &tauri::App<tauri::Wry>) {
 
     #[cfg(debug_assertions)]
     db._db_push().await.expect("error while pushing db");
+    #[cfg(not(debug_assertions))]
+    db._migrate_deploy()
+        .await
+        .expect("error while migrating db");
 
     app.manage(std::sync::Arc::new(db));
 }
