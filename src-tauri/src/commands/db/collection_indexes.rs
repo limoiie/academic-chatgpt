@@ -15,7 +15,7 @@ collection_index::include!(collection_index_with_all {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn delete_collection_indexes_by_id(
+pub async fn delete_collection_indexes_by_id(
     db: DbState<'_>,
     collection_index_ids: Vec<String>,
 ) -> crate::Result<i32> {
@@ -30,7 +30,7 @@ pub(crate) async fn delete_collection_indexes_by_id(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn remove_all_documents_from_collection_indexes(
+pub async fn remove_all_documents_from_collection_indexes(
     db: DbState<'_>,
     collection_index_ids: Vec<String>,
 ) -> crate::Result<i32> {
@@ -45,7 +45,7 @@ pub(crate) async fn remove_all_documents_from_collection_indexes(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn remove_documents_from_collection_index(
+pub async fn remove_documents_from_collection_index(
     db: DbState<'_>,
     index_id: String,
     document_ids: Vec<i32>,
@@ -62,7 +62,7 @@ pub(crate) async fn remove_documents_from_collection_index(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_collection_indexes_by_collection_id(
+pub async fn get_collection_indexes_by_collection_id(
     db: DbState<'_>,
     collection_id: i32,
 ) -> crate::Result<Vec<collection_index::Data>> {
@@ -75,7 +75,7 @@ pub(crate) async fn get_collection_indexes_by_collection_id(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_collection_indexes_by_collection_id_with_all(
+pub async fn get_collection_indexes_by_collection_id_with_all(
     db: DbState<'_>,
     collection_id: i32,
 ) -> crate::Result<Vec<collection_index_with_all::Data>> {
@@ -89,7 +89,7 @@ pub(crate) async fn get_collection_indexes_by_collection_id_with_all(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_collection_index_by_id(
+pub async fn get_collection_index_by_id(
     db: DbState<'_>,
     collection_index_id: String,
 ) -> crate::Result<Option<collection_index::Data>> {
@@ -101,7 +101,7 @@ pub(crate) async fn get_collection_index_by_id(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct CreateCollectionIndexData {
+pub struct CreateCollectionIndexData {
     name: String,
     #[serde(rename = "collectionId")]
     collection_id: i32,
@@ -111,7 +111,7 @@ pub(crate) struct CreateCollectionIndexData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn create_collection_index(
+pub async fn create_collection_index(
     db: DbState<'_>,
     data: CreateCollectionIndexData,
 ) -> crate::Result<collection_index::Data> {
@@ -129,7 +129,7 @@ pub(crate) async fn create_collection_index(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn upsert_documents_in_collection_index(
+pub async fn upsert_documents_in_collection_index(
     db: DbState<'_>,
     id: String,
     document_ids: Vec<i32>,

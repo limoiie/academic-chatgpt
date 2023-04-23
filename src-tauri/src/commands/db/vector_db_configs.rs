@@ -5,7 +5,7 @@ use crate::commands::db::DbState;
 use crate::prisma::vector_db_config;
 
 #[derive(Serialize, Type)]
-pub(crate) struct VectorDbConfigExData {
+pub struct VectorDbConfigExData {
     id: i32,
     name: String,
 
@@ -15,7 +15,7 @@ pub(crate) struct VectorDbConfigExData {
 }
 
 impl VectorDbConfigExData {
-    pub(crate) fn from_data(data: vector_db_config::Data) -> crate::Result<Self> {
+    pub fn from_data(data: vector_db_config::Data) -> crate::Result<Self> {
         Ok(Self {
             id: data.id,
             name: data.name,
@@ -27,7 +27,7 @@ impl VectorDbConfigExData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_vector_db_config_by_id(
+pub async fn get_vector_db_config_by_id(
     db: DbState<'_>,
     vector_db_config_id: i32,
 ) -> crate::Result<Option<VectorDbConfigExData>> {
@@ -40,9 +40,7 @@ pub(crate) async fn get_vector_db_config_by_id(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_vector_db_configs(
-    db: DbState<'_>,
-) -> crate::Result<Vec<VectorDbConfigExData>> {
+pub async fn get_vector_db_configs(db: DbState<'_>) -> crate::Result<Vec<VectorDbConfigExData>> {
     db.vector_db_config()
         .find_many(vec![])
         .exec()
@@ -55,7 +53,7 @@ pub(crate) async fn get_vector_db_configs(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct CreateVectorDbData {
+pub struct CreateVectorDbData {
     name: String,
     #[serde(rename = "clientType")]
     client_type: String,
@@ -64,7 +62,7 @@ pub(crate) struct CreateVectorDbData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn create_vector_db_config(
+pub async fn create_vector_db_config(
     db: DbState<'_>,
     data: CreateVectorDbData,
 ) -> crate::Result<VectorDbConfigExData> {
@@ -78,7 +76,7 @@ pub(crate) async fn create_vector_db_config(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn upsert_vector_db_config(
+pub async fn upsert_vector_db_config(
     db: DbState<'_>,
     config_id: i32,
     data: CreateVectorDbData,

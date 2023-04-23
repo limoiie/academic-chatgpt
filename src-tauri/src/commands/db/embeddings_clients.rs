@@ -5,7 +5,7 @@ use crate::commands::db::DbState;
 use crate::prisma::embeddings_client;
 
 #[derive(Serialize, Type)]
-pub(crate) struct EmbeddingsClientExData {
+pub struct EmbeddingsClientExData {
     id: i32,
     name: String,
     r#type: String,
@@ -13,7 +13,7 @@ pub(crate) struct EmbeddingsClientExData {
 }
 
 impl EmbeddingsClientExData {
-    pub(crate) fn from_data(data: embeddings_client::Data) -> crate::Result<Self> {
+    pub fn from_data(data: embeddings_client::Data) -> crate::Result<Self> {
         Ok(Self {
             id: data.id,
             name: data.name,
@@ -25,9 +25,7 @@ impl EmbeddingsClientExData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_embeddings_clients(
-    db: DbState<'_>,
-) -> crate::Result<Vec<EmbeddingsClientExData>> {
+pub async fn get_embeddings_clients(db: DbState<'_>) -> crate::Result<Vec<EmbeddingsClientExData>> {
     db.embeddings_client()
         .find_many(vec![])
         .exec()
@@ -41,7 +39,7 @@ pub(crate) async fn get_embeddings_clients(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_embeddings_client_by_id(
+pub async fn get_embeddings_client_by_id(
     db: DbState<'_>,
     client_id: i32,
 ) -> crate::Result<Option<EmbeddingsClientExData>> {
@@ -54,7 +52,7 @@ pub(crate) async fn get_embeddings_client_by_id(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct CreateEmbeddingsClientData {
+pub struct CreateEmbeddingsClientData {
     name: String,
     r#type: String,
     info: serde_json::Value,
@@ -62,7 +60,7 @@ pub(crate) struct CreateEmbeddingsClientData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn create_embeddings_client(
+pub async fn create_embeddings_client(
     db: DbState<'_>,
     data: CreateEmbeddingsClientData,
 ) -> crate::Result<EmbeddingsClientExData> {
@@ -76,7 +74,7 @@ pub(crate) async fn create_embeddings_client(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn upsert_embeddings_client(
+pub async fn upsert_embeddings_client(
     db: DbState<'_>,
     client_id: i32,
     data: CreateEmbeddingsClientData,

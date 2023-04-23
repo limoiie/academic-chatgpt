@@ -8,7 +8,7 @@ use specta::Type;
 ///
 
 #[derive(Deserialize, Type)]
-pub(crate) struct CreateGetOrCreateSplittingData {
+pub struct CreateGetOrCreateSplittingData {
     #[serde(rename = "chunkSize")]
     chunk_size: i32,
     #[serde(rename = "chunkOverlap")]
@@ -17,7 +17,7 @@ pub(crate) struct CreateGetOrCreateSplittingData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_or_create_splitting(
+pub async fn get_or_create_splitting(
     db: DbState<'_>,
     data: CreateGetOrCreateSplittingData,
 ) -> crate::Result<splitting::Data> {
@@ -41,14 +41,14 @@ pub(crate) async fn get_or_create_splitting(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) enum GetOrCreateSplittingData {
+pub enum GetOrCreateSplittingData {
     Id(i32),
     Config(CreateGetOrCreateSplittingData),
 }
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_or_create_splitting_id(
+pub async fn get_or_create_splitting_id(
     db: DbState<'_>,
     data: GetOrCreateSplittingData,
 ) -> crate::Result<i32> {

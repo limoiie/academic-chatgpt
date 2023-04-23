@@ -9,7 +9,7 @@ collection::include!(collection_with_indexes { indexes });
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn delete_collection_by_id(
+pub async fn delete_collection_by_id(
     db: DbState<'_>,
     collection_id: i32,
 ) -> crate::Result<collection::Data> {
@@ -32,7 +32,7 @@ pub(crate) async fn delete_collection_by_id(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_collection_by_id(
+pub async fn get_collection_by_id(
     db: DbState<'_>,
     collection_id: i32,
 ) -> crate::Result<Option<collection::Data>> {
@@ -45,7 +45,7 @@ pub(crate) async fn get_collection_by_id(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_collections_with_indexes(
+pub async fn get_collections_with_indexes(
     db: DbState<'_>,
 ) -> crate::Result<Vec<collection_with_indexes::Data>> {
     Ok(db
@@ -58,12 +58,12 @@ pub(crate) async fn get_collections_with_indexes(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_collections(db: DbState<'_>) -> crate::Result<Vec<collection::Data>> {
+pub async fn get_collections(db: DbState<'_>) -> crate::Result<Vec<collection::Data>> {
     Ok(db.collection().find_many(vec![]).exec().await?)
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct CreateCollectionData {
+pub struct CreateCollectionData {
     name: String,
     documents: Vec<CreateDocumentData>,
 }
@@ -71,7 +71,7 @@ pub(crate) struct CreateCollectionData {
 // noinspection RsWrongGenericArgumentsNumber
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn create_collection(
+pub async fn create_collection(
     app: tauri::AppHandle,
     db: DbState<'_>,
     data: CreateCollectionData,
@@ -94,7 +94,7 @@ pub(crate) async fn create_collection(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn update_collection_name(
+pub async fn update_collection_name(
     db: DbState<'_>,
     collection_id: i32,
     collection_name: String,

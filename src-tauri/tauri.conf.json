@@ -1,7 +1,7 @@
 {
   "build": {
-    "beforeBuildCommand": "npm run generate",
-    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "cargo run --bin specta && npm run generate",
+    "beforeDevCommand": "cargo run --bin specta && npm run dev",
     "devPath": "http://localhost:3000",
     "distDir": "../dist"
   },

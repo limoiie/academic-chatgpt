@@ -3,7 +3,7 @@ use crate::prisma::{collection, collections_on_documents, document};
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn delete_collection_on_documents(
+pub async fn delete_collection_on_documents(
     db: DbState<'_>,
     collection_id: i32,
 ) -> crate::Result<i32> {
@@ -18,7 +18,7 @@ pub(crate) async fn delete_collection_on_documents(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn delete_documents_in_collection(
+pub async fn delete_documents_in_collection(
     db: DbState<'_>,
     collection_id: i32,
     document_ids: Vec<i32>,
@@ -35,7 +35,7 @@ pub(crate) async fn delete_documents_in_collection(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn add_documents_to_collection(
+pub async fn add_documents_to_collection(
     db: DbState<'_>,
     collection_id: i32,
     document_ids: Vec<i32>,

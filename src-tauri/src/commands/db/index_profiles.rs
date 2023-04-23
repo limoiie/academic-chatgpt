@@ -13,7 +13,7 @@ index_profile::include!(index_profile_with_all {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_index_profiles_with_all(
+pub async fn get_index_profiles_with_all(
     db: DbState<'_>,
 ) -> crate::Result<Vec<index_profile_with_all::Data>> {
     Ok(db
@@ -26,13 +26,13 @@ pub(crate) async fn get_index_profiles_with_all(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_index_profiles(db: DbState<'_>) -> crate::Result<Vec<index_profile::Data>> {
+pub async fn get_index_profiles(db: DbState<'_>) -> crate::Result<Vec<index_profile::Data>> {
     Ok(db.index_profile().find_many(vec![]).exec().await?)
 }
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_index_profile_by_id(
+pub async fn get_index_profile_by_id(
     db: DbState<'_>,
     index_profile_id: i32,
 ) -> crate::Result<Option<index_profile::Data>> {
@@ -45,7 +45,7 @@ pub(crate) async fn get_index_profile_by_id(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_index_profile_with_all_by_id(
+pub async fn get_index_profile_with_all_by_id(
     db: DbState<'_>,
     index_profile_id: i32,
 ) -> crate::Result<Option<index_profile_with_all::Data>> {
@@ -58,7 +58,7 @@ pub(crate) async fn get_index_profile_with_all_by_id(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct CreateIndexProfileData {
+pub struct CreateIndexProfileData {
     name: String,
     #[serde(rename = "splittingId")]
     splitting_id: i32,
@@ -74,7 +74,7 @@ pub(crate) struct CreateIndexProfileData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn create_index_profile(
+pub async fn create_index_profile(
     db: DbState<'_>,
     data: CreateIndexProfileData,
 ) -> crate::Result<index_profile::Data> {
@@ -95,7 +95,7 @@ pub(crate) async fn create_index_profile(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn create_index_profile_with_all(
+pub async fn create_index_profile_with_all(
     db: DbState<'_>,
     data: CreateIndexProfileData,
 ) -> crate::Result<index_profile_with_all::Data> {

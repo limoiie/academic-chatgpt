@@ -5,7 +5,7 @@ use crate::commands::db::DbState;
 use crate::prisma::{embedding_vectors_on_document_chunks, embeddings_config};
 
 #[derive(Serialize, Type)]
-pub(crate) struct EmbeddingVectorData {
+pub struct EmbeddingVectorData {
     #[serde(rename = "md5Hash")]
     pub md_5_hash: String,
     #[serde(rename = "vector")]
@@ -15,7 +15,7 @@ pub(crate) struct EmbeddingVectorData {
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct GetEmbeddingVectorByMD5Hash {
+pub struct GetEmbeddingVectorByMD5Hash {
     #[serde(rename = "embeddingsConfigId")]
     embeddings_config_id: i32,
     #[serde(rename = "md5Hash")]
@@ -24,7 +24,7 @@ pub(crate) struct GetEmbeddingVectorByMD5Hash {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_embedding_vector_by_md5hash(
+pub async fn get_embedding_vector_by_md5hash(
     db: DbState<'_>,
     data: GetEmbeddingVectorByMD5Hash,
 ) -> crate::Result<Option<EmbeddingVectorData>> {
@@ -51,14 +51,14 @@ pub(crate) async fn get_embedding_vector_by_md5hash(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct UpsertEmbeddingVectorByMD5Hash {
+pub struct UpsertEmbeddingVectorByMD5Hash {
     identity: GetEmbeddingVectorByMD5Hash,
     vector: Vec<f32>,
 }
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn upsert_embedding_vector_by_md5hash(
+pub async fn upsert_embedding_vector_by_md5hash(
     db: DbState<'_>,
     data: UpsertEmbeddingVectorByMD5Hash,
 ) -> crate::Result<embedding_vectors_on_document_chunks::Data> {
@@ -88,7 +88,7 @@ pub(crate) async fn upsert_embedding_vector_by_md5hash(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn upsert_embedding_vector_by_md5hash_in_batch(
+pub async fn upsert_embedding_vector_by_md5hash_in_batch(
     db: DbState<'_>,
     data: Vec<UpsertEmbeddingVectorByMD5Hash>,
 ) -> crate::Result<i32> {

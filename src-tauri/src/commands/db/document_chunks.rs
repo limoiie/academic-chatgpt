@@ -9,7 +9,7 @@ document_chunk::select!(document_chunk_only_md5hash { md_5_hash });
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_chunk_md5hashes_by_documents_and_splitting(
+pub async fn get_chunk_md5hashes_by_documents_and_splitting(
     db: DbState<'_>,
     document_ids: Vec<i32>,
     splitting: GetOrCreateSplittingData,
@@ -29,7 +29,7 @@ pub(crate) async fn get_chunk_md5hashes_by_documents_and_splitting(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_document_chunks(
+pub async fn get_document_chunks(
     db: DbState<'_>,
     document_id: i32,
     splitting: GetOrCreateSplittingData,
@@ -47,13 +47,13 @@ pub(crate) async fn get_document_chunks(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct CreateChunkData {
+pub struct CreateChunkData {
     content: String,
     metadata: String,
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct CreateChunksByDocumentData {
+pub struct CreateChunksByDocumentData {
     #[serde(rename = "documentId")]
     document_id: i32,
     splitting: GetOrCreateSplittingData,
@@ -62,7 +62,7 @@ pub(crate) struct CreateChunksByDocumentData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn create_chunks_by_document(
+pub async fn create_chunks_by_document(
     db: DbState<'_>,
     data: CreateChunksByDocumentData,
 ) -> crate::Result<Vec<document_chunk::Data>> {

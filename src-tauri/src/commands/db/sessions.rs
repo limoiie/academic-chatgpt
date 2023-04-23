@@ -6,10 +6,7 @@ use crate::prisma::{collection_index, session};
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn delete_sessions_by_index_id(
-    db: DbState<'_>,
-    index_id: String,
-) -> crate::Result<i32> {
+pub async fn delete_sessions_by_index_id(db: DbState<'_>, index_id: String) -> crate::Result<i32> {
     Ok(db
         .session()
         .delete_many(vec![session::index_id::equals(index_id)])
@@ -19,7 +16,7 @@ pub(crate) async fn delete_sessions_by_index_id(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn delete_sessions_by_index_ids(
+pub async fn delete_sessions_by_index_ids(
     db: DbState<'_>,
     index_ids: Vec<String>,
 ) -> crate::Result<i32> {
@@ -32,7 +29,7 @@ pub(crate) async fn delete_sessions_by_index_ids(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn delete_session_by_id(
+pub async fn delete_session_by_id(
     db: DbState<'_>,
     session_id: i32,
 ) -> crate::Result<session::Data> {
@@ -45,13 +42,13 @@ pub(crate) async fn delete_session_by_id(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_sessions(db: DbState<'_>) -> crate::Result<Vec<session::Data>> {
+pub async fn get_sessions(db: DbState<'_>) -> crate::Result<Vec<session::Data>> {
     Ok(db.session().find_many(vec![]).exec().await?)
 }
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_sessions_by_index_id(
+pub async fn get_sessions_by_index_id(
     db: DbState<'_>,
     index_id: String,
 ) -> crate::Result<Vec<session::Data>> {
@@ -63,7 +60,7 @@ pub(crate) async fn get_sessions_by_index_id(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct CreateSessionsData {
+pub struct CreateSessionsData {
     name: String,
     #[serde(rename = "indexId")]
     index_id: String,
@@ -72,7 +69,7 @@ pub(crate) struct CreateSessionsData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn create_session(
+pub async fn create_session(
     db: DbState<'_>,
     data: CreateSessionsData,
 ) -> crate::Result<session::Data> {
@@ -89,7 +86,7 @@ pub(crate) async fn create_session(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct UpdateSessionsData {
+pub struct UpdateSessionsData {
     id: i32,
     name: Option<String>,
     history: Option<String>,
@@ -97,7 +94,7 @@ pub(crate) struct UpdateSessionsData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn update_session(
+pub async fn update_session(
     db: DbState<'_>,
     data: UpdateSessionsData,
 ) -> crate::Result<session::Data> {

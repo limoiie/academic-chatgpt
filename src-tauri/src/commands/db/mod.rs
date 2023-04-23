@@ -1,21 +1,17 @@
-use std::sync::Arc;
-
-use tauri::State;
-
 use crate::prisma::PrismaClient;
 
-pub(crate) mod collection_indexes;
-pub(crate) mod collections;
-pub(crate) mod collections_on_documents;
-pub(crate) mod document_chunks;
-pub(crate) mod documents;
-pub(crate) mod embedding_vectors;
-pub(crate) mod embeddings_clients;
-pub(crate) mod embeddings_configs;
-pub(crate) mod index_profiles;
-pub(crate) mod sessions;
-pub(crate) mod splittings;
-pub(crate) mod vector_db_clients;
-pub(crate) mod vector_db_configs;
+pub mod collection_indexes;
+pub mod collections;
+pub mod collections_on_documents;
+pub mod document_chunks;
+pub mod documents;
+pub mod embedding_vectors;
+pub mod embeddings_clients;
+pub mod embeddings_configs;
+pub mod index_profiles;
+pub mod sessions;
+pub mod splittings;
+pub mod vector_db_clients;
+pub mod vector_db_configs;
 
-pub(crate) type DbState<'a> = State<'a, Arc<PrismaClient>>;
+pub(crate) type DbState<'a> = tauri::State<'a, std::sync::Arc<PrismaClient>>;

@@ -5,7 +5,7 @@ use crate::commands::db::DbState;
 use crate::prisma::embeddings_config;
 
 #[derive(Serialize, Deserialize, Type)]
-pub(crate) struct EmbeddingsConfigExData {
+pub struct EmbeddingsConfigExData {
     id: i32,
     name: String,
     #[serde(rename = "clientType")]
@@ -14,7 +14,7 @@ pub(crate) struct EmbeddingsConfigExData {
 }
 
 impl EmbeddingsConfigExData {
-    pub(crate) fn from_data(data: embeddings_config::Data) -> crate::Result<Self> {
+    pub fn from_data(data: embeddings_config::Data) -> crate::Result<Self> {
         Ok(Self {
             id: data.id,
             name: data.name,
@@ -26,7 +26,7 @@ impl EmbeddingsConfigExData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_embeddings_configs_by_client_type(
+pub async fn get_embeddings_configs_by_client_type(
     db: DbState<'_>,
     client_type: String,
 ) -> crate::Result<Vec<EmbeddingsConfigExData>> {
@@ -43,7 +43,7 @@ pub(crate) async fn get_embeddings_configs_by_client_type(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_embeddings_config_by_id(
+pub async fn get_embeddings_config_by_id(
     db: DbState<'_>,
     embeddings_config_id: i32,
 ) -> crate::Result<Option<EmbeddingsConfigExData>> {
@@ -56,9 +56,7 @@ pub(crate) async fn get_embeddings_config_by_id(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_embeddings_configs(
-    db: DbState<'_>,
-) -> crate::Result<Vec<EmbeddingsConfigExData>> {
+pub async fn get_embeddings_configs(db: DbState<'_>) -> crate::Result<Vec<EmbeddingsConfigExData>> {
     db.embeddings_config()
         .find_many(vec![])
         .exec()
@@ -71,7 +69,7 @@ pub(crate) async fn get_embeddings_configs(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct CreateEmbeddingsConfigData {
+pub struct CreateEmbeddingsConfigData {
     name: String,
     #[serde(rename = "clientType")]
     client_type: String,
@@ -80,7 +78,7 @@ pub(crate) struct CreateEmbeddingsConfigData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn create_embeddings_config(
+pub async fn create_embeddings_config(
     db: DbState<'_>,
     data: CreateEmbeddingsConfigData,
 ) -> crate::Result<EmbeddingsConfigExData> {
@@ -94,7 +92,7 @@ pub(crate) async fn create_embeddings_config(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn upsert_embeddings_config(
+pub async fn upsert_embeddings_config(
     db: DbState<'_>,
     config_id: i32,
     data: CreateEmbeddingsConfigData,

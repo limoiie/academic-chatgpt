@@ -3,9 +3,9 @@ use serde::{Serialize, Serializer};
 
 /// Wrap anyhow::Error so that we can serialize it.
 #[derive(Debug)]
-pub(crate) struct Error(anyhow::Error);
+pub struct Error(anyhow::Error);
 
-pub(crate) type Result<T, E = Error> = anyhow::Result<T, E>;
+pub type Result<T, E = Error> = anyhow::Result<T, E>;
 
 /// Support to convert from any std errors to crate::result::Error
 impl<E> From<E> for Error

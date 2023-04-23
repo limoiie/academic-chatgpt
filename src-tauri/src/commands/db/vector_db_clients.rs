@@ -6,7 +6,7 @@ use crate::commands::db::DbState;
 use crate::prisma::vector_db_client;
 
 #[derive(Serialize, Type)]
-pub(crate) struct VectorDbClientExData {
+pub struct VectorDbClientExData {
     id: i32,
     name: String,
     r#type: String,
@@ -14,7 +14,7 @@ pub(crate) struct VectorDbClientExData {
 }
 
 impl VectorDbClientExData {
-    pub(crate) fn from_data(data: vector_db_client::Data) -> crate::Result<Self> {
+    pub fn from_data(data: vector_db_client::Data) -> crate::Result<Self> {
         Ok(Self {
             id: data.id,
             name: data.name,
@@ -26,7 +26,7 @@ impl VectorDbClientExData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_vector_db_client_by_id(
+pub async fn get_vector_db_client_by_id(
     db: DbState<'_>,
     client_id: i32,
 ) -> crate::Result<Option<VectorDbClientExData>> {
@@ -39,9 +39,7 @@ pub(crate) async fn get_vector_db_client_by_id(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_vector_db_clients(
-    db: DbState<'_>,
-) -> crate::Result<Vec<VectorDbClientExData>> {
+pub async fn get_vector_db_clients(db: DbState<'_>) -> crate::Result<Vec<VectorDbClientExData>> {
     db.vector_db_client()
         .find_many(vec![])
         .exec()
@@ -54,7 +52,7 @@ pub(crate) async fn get_vector_db_clients(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) struct CreateVectorDbClientData {
+pub struct CreateVectorDbClientData {
     name: String,
     r#type: String,
     info: serde_json::Value,
@@ -62,7 +60,7 @@ pub(crate) struct CreateVectorDbClientData {
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn create_vector_db_client(
+pub async fn create_vector_db_client(
     db: DbState<'_>,
     data: CreateVectorDbClientData,
 ) -> crate::Result<VectorDbConfigExData> {
@@ -76,7 +74,7 @@ pub(crate) async fn create_vector_db_client(
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn upsert_vector_db_client(
+pub async fn upsert_vector_db_client(
     db: DbState<'_>,
     client_id: i32,
     data: CreateVectorDbClientData,

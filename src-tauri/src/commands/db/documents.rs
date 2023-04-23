@@ -7,14 +7,14 @@ use crate::prisma::{collections_on_documents, document};
 
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_documents(db: DbState<'_>) -> crate::Result<Vec<document::Data>> {
+pub async fn get_documents(db: DbState<'_>) -> crate::Result<Vec<document::Data>> {
     Ok(db.document().find_many(vec![]).exec().await?)
 }
 
 /// Get all documents of a collection.
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_documents_by_collection_id(
+pub async fn get_documents_by_collection_id(
     db: DbState<'_>,
     collection_id: i32,
 ) -> crate::Result<Vec<document::Data>> {
@@ -41,7 +41,7 @@ pub(crate) async fn get_documents_by_collection_id(
 }
 
 #[derive(Deserialize, Type)]
-pub(crate) enum CreateDocumentData {
+pub enum CreateDocumentData {
     Path { filename: String, filepath: String },
     File { filename: String, content: Vec<u8> },
 }
@@ -53,7 +53,7 @@ pub(crate) enum CreateDocumentData {
 // noinspection RsWrongGenericArgumentsNumber
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn get_or_create_document(
+pub async fn get_or_create_document(
     app: tauri::AppHandle,
     db: DbState<'_>,
     data: CreateDocumentData,
@@ -94,7 +94,7 @@ pub(crate) async fn get_or_create_document(
 // noinspection RsWrongGenericArgumentsNumber
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn add_documents(
+pub async fn add_documents(
     app: tauri::AppHandle,
     db: DbState<'_>,
     documents: Vec<CreateDocumentData>,
