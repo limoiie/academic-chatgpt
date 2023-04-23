@@ -30,7 +30,10 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - name: Sync node version and setup cache
+      - name: Initialize prisma schema
+        run: cargo prisma generate --schema=./src-tauri/prisma/schema.prisma
+
+      - name: Setup node and its cache
         uses: actions/setup-node@v3
         with:
           node-version: 'lts/*'
