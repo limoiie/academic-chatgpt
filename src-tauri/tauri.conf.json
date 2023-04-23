@@ -13,7 +13,7 @@
     "allowlist": {
       "all": false,
       "dialog": {
-        "all": true,
+        "all": false,
         "open": true
       },
       "globalShortcut": {
@@ -23,11 +23,7 @@
         "all": false,
         "readFile": true,
         "writeFile": true,
-        "readDir": true,
-        "createDir": true,
         "exists": true,
-        "removeFile": true,
-        "removeDir": true,
         "scope": [
           "**"
         ]
@@ -45,13 +41,13 @@
         "all": true
       },
       "process": {
-        "all": true,
+        "all": false,
         "exit": true,
-        "relaunch": true,
-        "relaunchDangerousAllowSymlinkMacos": true
+        "relaunch": true
       },
       "shell": {
-        "all": true
+        "all": false,
+        "open": true
       },
       "window": {
         "all": true
