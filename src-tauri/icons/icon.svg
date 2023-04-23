@@ -1,0 +1,23 @@
+<svg width="1024px" height="1024px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <defs>
+        <filter x="-6.1%" y="-6.2%" width="116.9%" height="117.4%" filterUnits="objectBoundingBox" id="filter-jpluo9jppr-1">
+            <feOffset dx="12" dy="12" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset>
+            <feGaussianBlur stdDeviation="12" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur>
+            <feColorMatrix values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.5 0" type="matrix" in="shadowBlurOuter1" result="shadowMatrixOuter1"></feColorMatrix>
+            <feMerge>
+                <feMergeNode in="shadowMatrixOuter1"></feMergeNode>
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+            </feMerge>
+        </filter>
+    </defs>
+    <g id="AC-Icon" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect id="Rectangle" x="0" y="0" width="1024" height="1024"></rect>
+        <rect id="background" stroke="#979797" fill="#FFFFFF" x="100.5" y="100.5" width="823" height="823" rx="180"></rect>
+        <circle id="base" stroke="#979797" fill-opacity="0.933333333" fill="#177DDC" cx="512" cy="512" r="359.5"></circle>
+        <g id="star" filter="url(#filter-jpluo9jppr-1)" transform="translate(264.604865, 271.000000)" stroke="#FFFFFF" stroke-width="24">
+            <ellipse id="Oval" cx="247.895135" cy="241.5" rx="65.5" ry="229.5"></ellipse>
+            <ellipse id="Oval-Copy" transform="translate(247.895135, 241.500000) rotate(60.000000) translate(-247.895135, -241.500000) " cx="247.895135" cy="241.5" rx="65.5" ry="229.5"></ellipse>
+            <ellipse id="Oval-Copy-2" transform="translate(247.895135, 241.500000) rotate(120.000000) translate(-247.895135, -241.500000) " cx="247.895135" cy="241.5" rx="65.5" ry="229.5"></ellipse>
+        </g>
+    </g>
+</svg>
