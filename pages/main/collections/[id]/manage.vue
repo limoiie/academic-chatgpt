@@ -19,6 +19,7 @@
             ref="viewCollectionName"
             v-model:value="formState.name"
             :bordered="false"
+            @pressEnter="tryUpdateCollectionName"
             placeholder="Collection Name"
           />
         </div>

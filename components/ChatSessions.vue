@@ -22,6 +22,7 @@
               v-show="isSessionNameChanged"
               shape="circle"
               size="small"
+              type="dashed"
               :disabled="!isSessionNameChanged"
               :loading="isUpdatingName"
               @click="tryUpdateSessionName"
@@ -78,9 +79,14 @@
         <a-tab-pane
           v-for="session in sessionsUiData"
           :key="session.key"
-          :tab="session.title"
           :closable="session.closable"
         >
+          <!--suppress VueUnrecognizedSlot -->
+          <template #tab>
+            <CommentOutlined />
+            {{ session.title }}
+          </template>
+
           <!--suppress VueUnrecognizedSlot -->
           <template v-if="true" #closeIcon>
             <CloseOutlined />
@@ -101,6 +107,7 @@ import {
   BorderTopOutlined,
   CloseOutlined,
   EditOutlined,
+  CommentOutlined,
   PlusCircleOutlined,
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
@@ -328,6 +335,10 @@ async function switchToSessionTabByIndex(tabIndex: number) {
     border-top: 0
     border-left: 0
     border-radius: 0
+
+  .ant-tabs-tab-btn
+    display: flex !important
+    align-items: center !important
 
   // fix the blinking issue when switching tabs
   .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn
