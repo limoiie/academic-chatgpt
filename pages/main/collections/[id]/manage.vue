@@ -33,7 +33,7 @@
             :field-names="{ label: 'name', value: 'id', options: 'options' }"
           />
         </a-tooltip>
-        <a-button key="delete" type="dashed" shape="circle" danger>
+        <a-button key="delete" type="dashed" shape="circle" @click="(e) => deleteCollection(e)" danger>
           <template #icon>
             <DeleteOutlined />
           </template>
@@ -60,6 +60,7 @@ import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { reactive, ref } from 'vue';
 import CollectionManageIndexes from '~/components/CollectionManageIndexes.vue';
+import { useConfirmDeleteCollection } from '~/composables/useConfirmDeleteCollection';
 import { useCollectionStore } from '~/store/collections';
 
 const route = useRoute();
@@ -81,11 +82,11 @@ const indexes = computed(() => {
     return {
       id: e.id,
       name: e.name,
-      indexProfile: e.index
+      indexProfile: e.index,
     };
   });
   if (!indexes) return null;
-  return indexes
+  return indexes;
 });
 
 const isUpdatingName = ref<boolean>(false);
@@ -137,6 +138,15 @@ async function tryUpdateCollectionName() {
     .finally(() => {
       isUpdatingName.value = false;
     });
+}
+
+/**
+ * Delete collection.
+ *
+ * If the active collection is deleted, navigate to the next collection.
+ */
+async function deleteCollection(e: Event | undefined = undefined) {
+  await useConfirmDeleteCollection(id, e);
 }
 
 function navigateToIndexes() {

@@ -37,7 +37,7 @@
             shape="circle"
             size="small"
             type="dashed"
-            @click="(e) => confirmDeletingCollection(col.id, e)"
+            @click="(e) => deleteCollection(col.id, e)"
           >
             <template #icon>
               <DeleteOutlined />
@@ -53,14 +53,13 @@
 import {
   DashboardOutlined,
   DeleteOutlined,
-  ExclamationCircleOutlined,
   FolderAddOutlined,
-  FolderOutlined,
   FolderOpenOutlined,
+  FolderOutlined,
 } from '@ant-design/icons-vue';
-import { createVNode } from '@vue/runtime-core';
-import { message, Modal } from 'ant-design-vue';
+import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
+import { useConfirmDeleteCollection } from '~/composables/useConfirmDeleteCollection';
 import { useCollectionStore } from '~/store/collections';
 
 const isLoading = ref<boolean>(false);
@@ -100,42 +99,12 @@ async function newCollection() {
 }
 
 /**
- * Open a confirm dialog to delete collection.
+ * Delete collection.
+ *
+ * If the active collection is deleted, navigate to the next collection.
  */
-async function confirmDeletingCollection(collectionId: number, e: Event | undefined = undefined) {
-  Modal.confirm({
-    title: 'Do you want to continue?',
-    icon: createVNode(ExclamationCircleOutlined),
-    content: 'Delete collection will delete all its indexes and chat sessions.',
-    okText: 'Yes',
-    async onOk() {
-      await deleteCollection(collectionId);
-    },
-  });
-  e?.stopPropagation();
-}
-
-/**
- * Delete collection and navigate to fallback collection if exists.
- */
-async function deleteCollection(collectionId: number) {
-  await collectionStore
-    .deleteCollectionById(collectionId)
-    .then(({ deleted, fallback }) => {
-      if (deleted) {
-        if (fallback) {
-          navigateTo(`/main/collections/${fallback.id}`);
-        } else if (fallback === null) {
-          navigateTo('/main/collections');
-        }
-        message.info(`Deleted collection#${collectionId}!`);
-      } else {
-        message.warn(`Unable to delete collection#${collectionId}: not found`);
-      }
-    })
-    .catch((e) => {
-      message.error(`Failed to delete collection#${collectionId}: ${errToString(e)}`);
-    });
+async function deleteCollection(collectionId: number, e: Event | undefined = undefined) {
+  await useConfirmDeleteCollection(collectionId, e);
 }
 </script>
 
