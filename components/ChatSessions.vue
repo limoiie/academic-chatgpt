@@ -310,6 +310,15 @@ async function switchToSessionTabByIndex(tabIndex: number) {
   .ant-tabs-tab:not(.ant-tabs-tab-active)
     background: transparent !important
 
+  .ant-tabs-tab.ant-tabs-tab-active
+    border-bottom-color: #1890ff !important
+    border-bottom-width: 2px !important
+    transition-duration: 100ms !important
+
+  .dark
+    &.ant-tabs-tab.ant-tabs-tab-active
+      background: black !important
+
   .ant-tabs-content
     height: 100%
 

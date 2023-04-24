@@ -157,9 +157,9 @@ export class UiChatConversation {
       });
   }
 
-  async question(text: string) {
+  async question(text: string, username: string) {
     const question = new HumanChatMessage(text);
-    const i = this.dialogues.push(new UiChatDialogue(new UiChatMessage(question, 'LM')));
+    const i = this.dialogues.push(new UiChatDialogue(new UiChatMessage(question, username)));
     return this.dialogues[i - 1];
   }
 }

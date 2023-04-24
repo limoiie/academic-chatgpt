@@ -26,10 +26,7 @@
           ></a-select>
         </a-tooltip>
         <a-tooltip title="Chat Mode" placement="bottom">
-          <a-select
-            v-model:value="sessionProfile.completionChainMode"
-            :options="availableChainModeOptions"
-          ></a-select>
+          <a-select v-model:value="sessionProfile.completionChainMode" :options="availableChainModeOptions"></a-select>
         </a-tooltip>
       </a-space>
       <div class="w-full h-2 z-10 bg-gradient-to-t from-white dark:from-[#1f1f1f]" />
@@ -75,10 +72,12 @@ import { message } from 'ant-design-vue';
 import { Embeddings } from 'langchain/embeddings';
 import { SystemChatMessage } from 'langchain/schema';
 import { VectorStore } from 'langchain/vectorstores';
+import { storeToRefs } from 'pinia';
 import { ref, toRef } from 'vue';
 import { UiChatConversation, UiChatDialogue } from '~/composables/beans/Chats';
 import { useScrollOverflow } from '~/composables/useScrollOverflow';
 import { CollectionIndexWithAll, Session } from '~/plugins/tauri/bindings';
+import { useAppSettingsStore } from '~/store/appSettingsStore';
 import { SessionProfile } from '~/store/sessions';
 import { allCompletionChainModes, allCompletionModels } from '~/types';
 import { runChain } from '~/utils/completionChains';
@@ -99,6 +98,8 @@ const input = ref('');
 const isCompleting = ref(false);
 const conversationUpdated = ref(0);
 const autoScrollToEnd = ref(false);
+const appSettingsStore = useAppSettingsStore();
+const { appSettings } = storeToRefs(appSettingsStore);
 
 const conversation = ref<UiChatConversation>(
   new UiChatConversation(new SystemChatMessage('You are an assistant and going to help my to summary documents.')),
@@ -152,13 +153,7 @@ const { data: context } = useAsyncData(`contextOfSession#${session.id}`, async (
   } as Context;
 });
 
-await Promise.resolve().then(async () => {
-  loadConversationHistory();
-  // scroll to end when the conversation is loaded
-  setTimeout(enableAutoScrollToEnd, 400);
-});
-
-onMounted(() => {
+onMounted(async () => {
   const conversationContainerEl = document.getElementById('content');
   if (conversationContainerEl) {
     useScrollOverflow(conversationContainerEl, 20, autoScrollToEnd);
@@ -168,6 +163,13 @@ onMounted(() => {
   if (inputEl) {
     inputEl.focus();
   }
+
+  await Promise.resolve().then(async () => {
+    await appSettingsStore.load();
+    loadConversationHistory();
+    // scroll to end when the conversation is loaded
+    setTimeout(enableAutoScrollToEnd, 400);
+  });
 });
 
 function enableAutoScrollToEnd() {
@@ -216,7 +218,7 @@ async function requestChatCompletion() {
   }
 
   // construct the new dialogue
-  const dialogue = await conversation.value.question(latestInput);
+  const dialogue = await conversation.value.question(latestInput, appSettings.value.username);
 
   /**
    * Push the new token to the corresponding dialogue.

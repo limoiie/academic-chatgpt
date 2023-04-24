@@ -1,7 +1,7 @@
 <template>
   <div class="w-full pt-4 px-16">
     <div class="w-full mb-4 flex flex-row gap-4">
-      <slot name="avatar" :username="value.username">
+      <slot name="avatar" :username="briefName(value.username)">
         {{ value.username }}
       </slot>
       <div class="w-full">
@@ -29,6 +29,7 @@
 import { PauseCircleOutlined } from '@ant-design/icons-vue';
 import { Ref } from 'vue';
 import { UiChatMessage } from '~/composables/beans/Chats';
+import { briefName } from '~/utils/strings';
 
 // noinspection JSUnusedGlobalSymbols
 const { $renderMarkdown } = useNuxtApp();

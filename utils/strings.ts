@@ -23,3 +23,17 @@ export function uniqueName(name: string, names: string[]) {
   }
   return `${name}-${i}`;
 }
+
+export function camelize(str: string) {
+  return str
+    .replace(/^\w|[A-Z]|\b\w/g, function (word) {
+      return word.toUpperCase();
+    })
+    .replace(/\s+/g, '');
+}
+
+export function briefName(name: string, maxLength: number = 0) {
+  return camelize(name)
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, maxLength || name.length);
+}
