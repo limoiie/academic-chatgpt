@@ -92,7 +92,7 @@ import { basename } from 'pathe';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { CollectionIndexWithAll, Document } from '~/plugins/tauri/bindings';
-import { useCollectionsStore } from '~/store/collections';
+import { useCollectionStore } from '~/store/collections';
 import { IndexSyncStatus } from '~/utils/indexSyncStatus';
 import { NestedStepTracer } from '~/utils/tracer';
 
@@ -185,14 +185,14 @@ const uiDocuments = computed(() => {
 });
 
 /// collectionIndex and related status
-const collectionStore = useCollectionsStore();
-const { indexesByCollectionId } = storeToRefs(collectionStore);
+const collectionStore = useCollectionStore();
+const { collectionIndexes } = storeToRefs(collectionStore);
 const index = computed(() => {
   if (indexId.value == null) {
     // message.warn('No index profile selected for this collection. Please select one in the collection manage page.');
     return undefined;
   }
-  const indexProfiles = indexesByCollectionId.value.get(id);
+  const indexProfiles = collectionIndexes.value.get(id);
   if (!indexProfiles) {
     // message.warn('No index profile for this collection. Please add in the collection manage > indexes page.');
     return undefined;

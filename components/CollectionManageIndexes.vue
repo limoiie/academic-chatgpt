@@ -73,7 +73,7 @@ import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { stringify } from 'yaml';
 import { CollectionIndexWithAll } from '~/plugins/tauri/bindings';
-import { useCollectionsStore } from '~/store/collections';
+import { useCollectionStore } from '~/store/collections';
 
 const columns = ref<TableColumnsType>([
   {
@@ -113,7 +113,7 @@ const columns = ref<TableColumnsType>([
 ]);
 
 const route = useRoute();
-const collectionStore = useCollectionsStore();
+const collectionStore = useCollectionStore();
 const collectionId = parseInt(route.params['id'] as string);
 
 const { $tauriCommands } = useNuxtApp();
@@ -122,9 +122,9 @@ const loading = ref<boolean>(false);
 const selectedRawKeys = ref<string[]>([]);
 const hasSelected = computed(() => selectedRawKeys.value.length != 0);
 
-const { indexesByCollectionId: indexesByCollectionId } = storeToRefs(collectionStore);
+const { collectionIndexes } = storeToRefs(collectionStore);
 const indexes = computed(() => {
-  return indexesByCollectionId.value.get(collectionId) || [];
+  return collectionIndexes.value.get(collectionId) || [];
 });
 
 const indexesUiData = computed(() => indexes.value.map(dbDataToUi));

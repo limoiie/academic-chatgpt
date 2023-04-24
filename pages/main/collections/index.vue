@@ -25,29 +25,28 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
-import { Collection } from '~/plugins/tauri/bindings';
-import { useCollectionsStore } from '~/store/collections';
+import { useCollectionStore } from '~/store/collections';
 
 const isLoading = ref<boolean>(false);
 const errorMessage = ref<string>('');
 
-const collectionStore = useCollectionsStore();
-const { collections } = storeToRefs(collectionStore);
+const collectionStore = useCollectionStore();
+const { activeCollectionId } = storeToRefs(collectionStore);
 
 await Promise.resolve((isLoading.value = true))
   .then(() => collectionStore.load())
   .then(async () => {
-    navigate(collections.value);
+    navigateToDefaultCollection();
   })
   .catch((error) => {
     errorMessage.value = errToString(error);
   })
   .finally(() => (isLoading.value = false));
 
-function navigate(collections: Collection[]) {
-  const collection = collections[0];
-  if (collection) {
-    navigateTo(`/main/collections/${collection.id}`);
+function navigateToDefaultCollection() {
+  const collectionId = activeCollectionId.value;
+  if (collectionId) {
+    navigateTo(`/main/collections/${collectionId}`);
   }
 }
 

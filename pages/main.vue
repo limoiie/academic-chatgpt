@@ -47,7 +47,7 @@ import { storeToRefs } from 'pinia';
 import { upperFirst } from 'scule';
 import { ref } from 'vue';
 import { useAppSettingsStore } from '~/store/appSettingsStore';
-import { useCollectionsStore } from '~/store/collections';
+import { useCollectionStore } from '~/store/collections';
 import ColorModeToggleIcon from "~/components/ColorModeToggleIcon.vue";
 
 const collapsed = ref<boolean>(false);
@@ -55,7 +55,7 @@ const selectedKeys = ref([]);
 const isLoading = ref<boolean>(false);
 
 const appSettingsStore = useAppSettingsStore();
-const collectionStore = useCollectionsStore();
+const collectionStore = useCollectionStore();
 const { appSettings } = storeToRefs(appSettingsStore);
 const { collections } = storeToRefs(collectionStore);
 

@@ -77,7 +77,7 @@ import { storeToRefs } from 'pinia';
 import { useDefaultCompleteStore } from '~/store/defaultComplete';
 import { useDefaultEmbeddingsStore } from '~/store/defaultEmbeddings';
 import { useDefaultVectorDbStore } from '~/store/defaultVectorDb';
-import { useIndexProfilesStore } from '~/store/indexProfiles';
+import { useIndexProfileStore } from '~/store/indexProfiles';
 import { errToString } from '~/utils/strings';
 
 const isPersisting = ref<boolean>(false);
@@ -90,7 +90,7 @@ const errorMessage = ref<string>('');
 const defaultCompletionStore = useDefaultCompleteStore();
 const defaultVectorDbStore = useDefaultVectorDbStore();
 const defaultEmbeddingsStore = useDefaultEmbeddingsStore();
-const indexProfilesStore = useIndexProfilesStore();
+const indexProfilesStore = useIndexProfileStore();
 const { defaultCompleteConfig } = storeToRefs(defaultCompletionStore);
 const { defaultVectorDbClient, defaultVectorDbConfig } = storeToRefs(defaultVectorDbStore);
 const { defaultEmbeddingsClient, defaultEmbeddingsConfig } = storeToRefs(defaultEmbeddingsStore);

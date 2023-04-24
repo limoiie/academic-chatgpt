@@ -1,17 +1,13 @@
 <template>
-  <div class="w-full h-full flex">
-    <div class="m-auto flex flex-col">
-      <div v-if="isLoading">
-        <a-spin class="m-auto!" :spinning="isLoading" />
-        <div>Prepare new collection...</div>
-      </div>
-      <div v-else-if="errorMessage">
-        <a-result status="error">
-          <template #title>Failed to create a new collection</template>
-          <template #subTitle>{{ errorMessage }}</template>
-        </a-result>
-      </div>
+  <div class="w-full h-full flex items-center justify-center">
+    <div v-if="isLoading" class="flex flex-col">
+      <a-spin class="m-auto!" :spinning="isLoading" />
+      <div>Prepare new collection...</div>
     </div>
+    <a-result v-else-if="errorMessage" status="error">
+      <template #title>Failed to create a new collection</template>
+      <template #subTitle>{{ errorMessage }}</template>
+    </a-result>
   </div>
 </template>
 
@@ -19,14 +15,14 @@
 import { errToString } from '#imports';
 import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
-import { useCollectionsStore } from '~/store/collections';
-import { useIndexProfilesStore } from '~/store/indexProfiles';
+import { useCollectionStore } from '~/store/collections';
+import { useIndexProfileStore } from '~/store/indexProfiles';
 
 const isLoading = ref<boolean>(false);
 const errorMessage = ref<string>('');
 
-const collectionStore = useCollectionsStore();
-const indexProfilesStore = useIndexProfilesStore();
+const collectionStore = useCollectionStore();
+const indexProfilesStore = useIndexProfileStore();
 
 const { defaultIndexProfile } = storeToRefs(indexProfilesStore);
 
@@ -58,9 +54,3 @@ await Promise.resolve((isLoading.value = true))
   })
   .finally(() => (isLoading.value = false));
 </script>
-
-<style lang="sass" scoped>
-.ant-divider
-  font-size: 14px
-  font-weight: normal
-</style>

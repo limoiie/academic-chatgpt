@@ -76,11 +76,7 @@
         <template #addIcon>
           <PlusCircleOutlined />
         </template>
-        <a-tab-pane
-          v-for="session in sessionsUiData"
-          :key="session.key"
-          :closable="session.closable"
-        >
+        <a-tab-pane v-for="session in sessionsUiData" :key="session.key" :closable="session.closable">
           <!--suppress VueUnrecognizedSlot -->
           <template #tab>
             <CommentOutlined />
@@ -106,14 +102,14 @@ import {
   BorderLeftOutlined,
   BorderTopOutlined,
   CloseOutlined,
-  EditOutlined,
   CommentOutlined,
+  EditOutlined,
   PlusCircleOutlined,
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { reactive } from 'vue';
-import { CollectionIndexWithAll, Collection} from "~/plugins/tauri/bindings";
-import { useSessionsStore } from '~/store/sessions';
+import { Collection, CollectionIndexWithAll } from '~/plugins/tauri/bindings';
+import { useSessionStore } from '~/store/sessions';
 import { uniqueName } from '~/utils/strings';
 
 const { collection, index } = defineProps<{
@@ -132,10 +128,10 @@ const indexId = index.indexId;
 
 const { $tauriCommands } = useNuxtApp();
 
-const sessionsStore = useSessionsStore();
+const sessionStore = useSessionStore();
 const { data: chatSessions } = useAsyncData(`sessionsDataOfCollection#${collectionId}Index#${indexId}`, async () => {
   return await Promise.resolve((isLoading.value = true))
-    .then(async () => await sessionsStore.load())
+    .then(async () => await sessionStore.load())
     .then(async () => {
       return await $tauriCommands.getSessionsByIndexId(index.id);
     })
@@ -155,7 +151,7 @@ const formState = reactive<FormState>({
   name: '',
 });
 
-const activeSessionId = sessionsStore.getActiveSessionId(collectionId, indexId);
+const activeSessionId = sessionStore.getActiveSessionId(collectionId, indexId);
 // update the active session when the active session id changed by selecting on the tab bar
 const activeSession = computed(() => {
   if (!chatSessions.value?.length) {
@@ -181,7 +177,7 @@ const sessionsUiData = computed(() => {
         key: session.id,
         title: session.name,
         origin: session,
-        profile: sessionsStore.getSessionProfile(session.id),
+        profile: sessionStore.getSessionProfile(session.id),
       };
     }) || []
   );
@@ -255,7 +251,7 @@ function onEditSession(targetSessionId: number | MouseEvent, action: string) {
 }
 
 /**
- * Create a new session, and allocate a new tab for it.
+ * Create a new session and allocate a new tab for it.
  */
 async function addSession() {
   if (!chatSessions.value) {
@@ -283,14 +279,12 @@ async function removeSession(targetSessionId: number) {
   }
 
   const sessions = chatSessions.value;
-  if (sessions && sessions.length) {
-    let currTabIndex = sessions.findIndex((session) => session.id === targetSessionId);
-    if (currTabIndex >= 0) {
-      await $tauriCommands.deleteSessionById(targetSessionId);
-      chatSessions.value = sessions.filter((session) => session.id !== targetSessionId);
-      if (activeSessionId.value === targetSessionId) {
-        await switchToSessionTabByIndex(currTabIndex - 1);
-      }
+  let currTabIndex = sessions.findIndex((session) => session.id === targetSessionId);
+  if (currTabIndex >= 0) {
+    await sessionStore.deleteSession(targetSessionId);
+    chatSessions.value = sessions.filter((session) => session.id !== targetSessionId);
+    if (activeSessionId.value === targetSessionId) {
+      await switchToSessionTabByIndex(currTabIndex - 1);
     }
   }
 }
@@ -313,6 +307,9 @@ async function switchToSessionTabByIndex(tabIndex: number) {
 
 <style lang="sass">
 #chatSessions
+  .ant-tabs-tab:not(.ant-tabs-tab-active)
+    background: transparent !important
+
   .ant-tabs-content
     height: 100%
 

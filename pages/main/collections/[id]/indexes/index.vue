@@ -17,13 +17,13 @@
 
 <script setup lang="ts">
 import { message } from 'ant-design-vue';
-import { useCollectionsStore } from '~/store/collections';
+import { useCollectionStore } from '~/store/collections';
 
 const loading = ref<boolean>(false);
 const errorMessage = ref<string>('');
 
 const route = useRoute();
-const collectionStore = useCollectionsStore();
+const collectionStore = useCollectionStore();
 const collectionId = parseInt(route.params['id'] as string);
 
 await Promise.resolve((loading.value = true))

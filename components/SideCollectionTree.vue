@@ -61,16 +61,11 @@ import {
 import { createVNode } from '@vue/runtime-core';
 import { message, Modal } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
-import { useCollectionsStore } from '~/store/collections';
+import { useCollectionStore } from '~/store/collections';
 
 const isLoading = ref<boolean>(false);
 
-const route = useRoute();
-watch(route, async () => {
-  await updateActiveCollection();
-});
-
-const collectionStore = useCollectionsStore();
+const collectionStore = useCollectionStore();
 const { collections, activeCollectionId } = storeToRefs(collectionStore);
 
 await Promise.resolve((isLoading.value = true))
@@ -89,20 +84,10 @@ await Promise.resolve((isLoading.value = true))
     isLoading.value = false;
   });
 
-/**
- * Update active collection id from route params.
- */
-async function updateActiveCollection() {
-  const paramId = route.params.id;
-  if (typeof paramId === 'string') {
-    const collectionId = Number(paramId);
-    await collectionStore.setActiveCollectionId(collectionId);
-    activeCollectionId.value = collectionId;
-  }
-}
-
 async function navigateToActiveIndexProfile(collectionId: number) {
-  navigateTo(`/main/collections/${collectionId}/indexes`);
+  if (collectionId != activeCollectionId.value) {
+    navigateTo(`/main/collections/${collectionId}/indexes`);
+  }
 }
 
 async function manageCollectionProfile(collectionId: number, e: Event | undefined = undefined) {
