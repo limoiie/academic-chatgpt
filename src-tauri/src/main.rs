@@ -14,8 +14,6 @@ const DB_NAME: &str = "dev.db";
 
 #[tokio::main]
 async fn main() {
-    dotenv::dotenv().ok();
-
     let tauri_builder = tauri::Builder::default();
     #[cfg(feature = "http-invoke")]
     let tauri_builder = switch_to_http_invoke_system(tauri_builder);
@@ -24,9 +22,26 @@ async fn main() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
+
+    prepare_env(&app);
     prepare_prisma_db(&app).await;
 
     app.run(|_, _| {});
+}
+
+fn prepare_env(app: &tauri::App<tauri::Wry>) {
+    // read env variables
+    dotenv::dotenv().ok();
+
+    let path_resolver = app.app_handle().app_handle().path_resolver();
+
+    // prepare config dir
+    let app_config_dir = path_resolver
+        .app_config_dir()
+        .expect("error while getting app config dir");
+    if !app_config_dir.exists() {
+        std::fs::create_dir_all(&app_config_dir).expect("error while creating app config dir");
+    }
 }
 
 /// Register all invoke handlers.
@@ -154,11 +169,11 @@ fn switch_to_http_invoke_system(
 ///
 async fn prepare_prisma_db(app: &tauri::App<tauri::Wry>) {
     let db = {
-        let app_config_dir = tauri::api::path::app_config_dir(app.config().as_ref())
+        let app_config_dir = app
+            .app_handle()
+            .path_resolver()
+            .app_config_dir()
             .expect("error while getting app config dir");
-        if !app_config_dir.exists() {
-            std::fs::create_dir_all(&app_config_dir).expect("error while creating app config dir");
-        }
         let url = "file:".to_string()
             + app_config_dir
                 .join(DB_NAME)

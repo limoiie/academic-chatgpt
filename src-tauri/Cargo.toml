@@ -1,10 +1,10 @@
 [package]
 name = "app"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "App academic-chatgpt"
+authors = ["limo.iie4@gmail.com"]
 license = ""
-repository = ""
+repository = "https://www.github.com/limoiie/academic-chatgpt"
 default-run = "app"
 edition = "2021"
 rust-version = "1.65"
@@ -13,6 +13,10 @@ rust-version = "1.65"
 
 [build-dependencies]
 tauri-build = { version = "1.2.1", features = [] }
+
+[[bin]]
+name = "app"
+path = "src/main.rs"
 
 [[bin]]
 name = "specta"

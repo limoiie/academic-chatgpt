@@ -6,7 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "academic-chatgpt",
+    "productName": "Academic ChatGPT",
     "version": "0.1.0"
   },
   "tauri": {
@@ -55,8 +55,8 @@
     },
     "bundle": {
       "active": true,
-      "category": "DeveloperTool",
-      "copyright": "",
+      "category": "Entertainment",
+      "copyright": "Copyright (c) 2023 iie4limo",
       "deb": {
         "depends": []
       },
@@ -97,7 +97,7 @@
         "fullscreen": false,
         "height": 600,
         "resizable": true,
-        "title": "academic-chatgpt",
+        "title": "Academic ChatGPT",
         "width": 800
       }
     ]
