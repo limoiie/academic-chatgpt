@@ -24,15 +24,18 @@ async function deleteCollection(collectionId: number) {
   await collectionStore
     .deleteCollectionById(collectionId)
     .then(({ deleted, fallback }) => {
-      if (deleted) {
-        if (fallback) {
-          navigateTo(`/main/collections/${fallback.id}`);
-        } else if (fallback === null) {
-          navigateTo('/main/collections');
-        }
-        message.info(`Deleted collection#${collectionId}!`);
-      } else {
+      if (!deleted) {
         message.warn(`Unable to delete collection#${collectionId}: not found`);
+        return undefined;
+      }
+      message.info(`Deleted collection#${collectionId}!`);
+      return fallback;
+    })
+    .then((fallback) => {
+      if (fallback) {
+        navigateTo(`/main/collections/${fallback.id}`);
+      } else if (fallback === null) {
+        navigateTo('/main/collections');
       }
     })
     .catch((e) => {

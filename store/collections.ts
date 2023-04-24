@@ -284,6 +284,7 @@ export const useCollectionStore = defineStore('collections', () => {
     no = Math.min(no, collections.value.length - 1);
     const activeCollection = collections.value.at(no);
     if (!activeCollection) {
+      preferences.activeCollectionId.value = undefined;
       // there is no collection left
       return null;
     }
