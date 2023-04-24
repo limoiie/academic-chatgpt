@@ -1,6 +1,6 @@
 <template>
   <a-layout>
-    <a-page-header class="border-b-1 z-10" title="Manage" @back="navigateToIndexes">
+    <a-page-header class="z-10" title="Manage" @back="navigateToIndexes">
       <template #subTitle>
         <div class="flex flex-row items-center">
           <a-button

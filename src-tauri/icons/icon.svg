@@ -1,8 +1,17 @@
 <svg width="1024px" height="1024px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <defs>
-        <filter x="-6.1%" y="-6.2%" width="116.9%" height="117.4%" filterUnits="objectBoundingBox" id="filter-jpluo9jppr-1">
-            <feOffset dx="12" dy="12" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset>
-            <feGaussianBlur stdDeviation="12" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur>
+        <linearGradient x1="50%" y1="50%" x2="50%" y2="100%" id="linearGradient-t7es9gsffs-1">
+            <stop stop-color="#FFFFFF" stop-opacity="0.5" offset="0%"></stop>
+            <stop stop-color="#000000" stop-opacity="0.5" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="linearGradient-t7es9gsffs-2">
+            <stop stop-color="#000000" stop-opacity="0.5" offset="0%"></stop>
+            <stop stop-color="#FFFFFF" stop-opacity="0.5" offset="100%"></stop>
+        </linearGradient>
+        <rect id="path-t7es9gsffs-3" x="100" y="100" width="824" height="824" rx="180"></rect>
+        <filter x="-14.4%" y="-8.6%" width="128.8%" height="128.8%" filterUnits="objectBoundingBox" id="filter-t7es9gsffs-4">
+            <feOffset dx="24" dy="24" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset>
+            <feGaussianBlur stdDeviation="24" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur>
             <feColorMatrix values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.5 0" type="matrix" in="shadowBlurOuter1" result="shadowMatrixOuter1"></feColorMatrix>
             <feMerge>
                 <feMergeNode in="shadowMatrixOuter1"></feMergeNode>
@@ -11,13 +20,18 @@
         </filter>
     </defs>
     <g id="AC-Icon" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <rect id="Rectangle" x="0" y="0" width="1024" height="1024"></rect>
-        <rect id="background" stroke="#979797" fill="#FFFFFF" x="100.5" y="100.5" width="823" height="823" rx="180"></rect>
-        <circle id="base" stroke="#979797" fill-opacity="0.933333333" fill="#177DDC" cx="512" cy="512" r="359.5"></circle>
-        <g id="star" filter="url(#filter-jpluo9jppr-1)" transform="translate(264.604865, 271.000000)" stroke="#FFFFFF" stroke-width="24">
-            <ellipse id="Oval" cx="247.895135" cy="241.5" rx="65.5" ry="229.5"></ellipse>
-            <ellipse id="Oval-Copy" transform="translate(247.895135, 241.500000) rotate(60.000000) translate(-247.895135, -241.500000) " cx="247.895135" cy="241.5" rx="65.5" ry="229.5"></ellipse>
-            <ellipse id="Oval-Copy-2" transform="translate(247.895135, 241.500000) rotate(120.000000) translate(-247.895135, -241.500000) " cx="247.895135" cy="241.5" rx="65.5" ry="229.5"></ellipse>
+        <g id="icon">
+            <rect id="frame" x="0" y="0" width="1024" height="1024"></rect>
+            <g id="base">
+                <use fill="#007AFF" xlink:href="#path-t7es9gsffs-3"></use>
+                <use fill-opacity="0.5" fill="url(#linearGradient-t7es9gsffs-1)" xlink:href="#path-t7es9gsffs-3"></use>
+                <rect stroke="#979797" stroke-width="1" stroke-linejoin="square" fill-opacity="0.2" fill="url(#linearGradient-t7es9gsffs-2)" x="100.5" y="100.5" width="823" height="823" rx="180"></rect>
+            </g>
+            <g id="tatoo" filter="url(#filter-t7es9gsffs-4)" transform="translate(511.805386, 511.684804) scale(-1, 1) rotate(45.000000) translate(-511.805386, -511.684804) translate(220.682356, 220.359804)" stroke="#FFFFFF" stroke-width="32">
+                <path d="M291.99945,22.627417 L354.445032,85.0729991 L354.445032,497.577001 L291.99945,560.022583 L229.553867,497.577001 L229.553867,85.0729991 L291.99945,22.627417 Z" id="Rectangle"></path>
+                <path d="M291.116324,23.1375473 L354.480815,86.5195371 L354.485857,495.176613 L291.129736,558.515243 L227.765245,495.133253 L227.760202,86.4761775 L291.116324,23.1375473 Z" id="Rectangle-Copy" transform="translate(291.123030, 290.826395) rotate(60.000000) translate(-291.123030, -290.826395) "></path>
+                <path d="M291.129736,23.1375473 L354.485857,86.4761775 L354.480815,495.133253 L291.116324,558.515243 L227.760202,495.176613 L227.765245,86.5195371 L291.129736,23.1375473 Z" id="Rectangle-Copy-2" transform="translate(291.123030, 290.826395) rotate(120.000000) translate(-291.123030, -290.826395) "></path>
+            </g>
         </g>
     </g>
 </svg>
