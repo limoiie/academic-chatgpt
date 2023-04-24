@@ -1,10 +1,12 @@
 <template>
-  <div class="w-full pt-4 px-16">
+  <div class="w-[calc(100%-8rem)] pt-4">
     <div class="w-full mb-4 flex flex-row gap-4">
-      <slot name="avatar" :username="briefName(value.username)">
-        {{ value.username }}
-      </slot>
-      <div class="w-full">
+      <div class="w-14">  <!-- 14 == 3.5em == 56px -->
+        <slot name="avatar" :username="briefName(value.username)">
+          {{ value.username }}
+        </slot>
+      </div>
+      <div class="w-[calc(100%-56px)]">  <!-- 56px is the width of avator -->
         <div v-show="rendered" v-html="rendered" />
         <div v-if="answering" class="flex flex-row items-baseline gap-3">
           <a-spin size="small" />
@@ -56,6 +58,7 @@ function stopAnswering() {
 </script>
 
 <style lang="sass">
-code
-  border-radius: 4px
+pre
+  code
+    border-radius: 4px
 </style>
