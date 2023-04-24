@@ -19,7 +19,7 @@
             </a-menu-item>
             <!--suppress TypeScriptUnresolvedReference -->
             <a-menu-item @click="toggleColorMode">
-              {{ upperFirst(appSettings.colorMode.value) }} Mode
+              {{ upperFirst(appSettings.colorMode.preference) }} Mode
               <template #icon>
                 <ColorModeToggleIcon />
               </template>
@@ -46,9 +46,9 @@ import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { upperFirst } from 'scule';
 import { ref } from 'vue';
+import ColorModeToggleIcon from '~/components/ColorModeToggleIcon.vue';
 import { useAppSettingsStore } from '~/store/appSettingsStore';
 import { useCollectionStore } from '~/store/collections';
-import ColorModeToggleIcon from "~/components/ColorModeToggleIcon.vue";
 
 const collapsed = ref<boolean>(false);
 const selectedKeys = ref([]);
@@ -78,7 +78,17 @@ function handleMenuBlur() {
 }
 
 function toggleColorMode() {
-  appSettings.value.colorMode.value = appSettings.value.colorMode.value === 'dark' ? 'light' : 'dark';
+  switch (appSettings.value.colorMode.preference) {
+    case 'light':
+      appSettings.value.colorMode.preference = 'dark';
+      break;
+    case 'dark':
+      appSettings.value.colorMode.preference = 'system';
+      break;
+    default:
+      appSettings.value.colorMode.preference = 'light';
+      break;
+  }
 }
 
 navigateTo('/main/collections');

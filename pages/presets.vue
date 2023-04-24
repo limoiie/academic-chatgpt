@@ -2,57 +2,70 @@
   <div class="w-full h-full flex flex-col items-center">
     <a-card class="w-fit max-w-2xl mx-4! mt-24!" title="Presets">
       <a-space direction="vertical" size="middle" class="w-full h-full">
-        <div class="flex flex-col">
-          <!--<a-divider orientation="left" orientation-margin="0">AI</a-divider>-->
-          <a-space>
-            <!--suppress TypeScriptUnresolvedReference -->
-            <div class="flex flex-row items-baseline">
-              {{ defaultCompleteConfig.client }}&nbsp;
-              <a-popover>
-                <template #content>
-                  <p class="w-48">
-                    We use <a href="https://platform.openai.com/docs/api-reference">openai api</a> for chat completion
-                    and embedding. You may find and create your own api key in your
-                    <a href="https://platform.openai.com/account/api-keys">User settings</a>.
-                  </p>
-                </template>
-                <InfoCircleTwoTone />
-              </a-popover>
-            </div>
-            <QuickConfigCompletion
-              :config="defaultCompleteConfig"
-              @update:validating="updateValidating"
-              @update:valid="updateCompletionValid"
-              @update:error="updateValidationError"
-            />
-          </a-space>
-        </div>
-        <div class="flex flex-col">
-          <!--<a-divider orientation="left" orientation-margin="0">Vector Database</a-divider>-->
-          <a-space>
-            <div class="flex flex-row items-baseline">
-              {{ defaultVectorDbClient.type }}&nbsp;
-              <a-popover>
-                <template #content>
-                  <p class="w-64">
-                    We use <a href="https://www.pinecone.io/">pinecone</a> as vector DB to store embeddings of
-                    paragraphs. During chatting, the question will be embedded and searched in the DB to find the most
-                    similar paragraphs as the chat context. You may create and find your own api key with environment in
-                    your <a href="https://app.pinecone.io/">Pinecone console</a>. You also <b>NEED</b> to create an
-                    index.
-                  </p>
-                </template>
-                <InfoCircleTwoTone />
-              </a-popover>
-            </div>
-            <QuickConfigPinecone
-              :client="defaultVectorDbClient"
-              @update:validating="updateValidating"
-              @update:valid="updateVectorstoreValid"
-              @update:error="updateValidationError"
-            />
-          </a-space>
-        </div>
+        <a-space>
+          <div class="flex flex-row items-baseline">
+            username&nbsp;
+            <a-popover>
+              <template #content>
+                <p class="w-48">
+                  The username of the user that will be used for the chatbot. This is used to generate the prompt for
+                  the chatbot.
+                </p>
+              </template>
+              <InfoCircleTwoTone />
+            </a-popover>
+          </div>
+          <a-input
+            v-model:value="appSettings.username"
+            placeholder="Username"
+          />
+        </a-space>
+        <!--<a-divider orientation="left" orientation-margin="0">AI</a-divider>-->
+        <a-space>
+          <!--suppress TypeScriptUnresolvedReference -->
+          <div class="flex flex-row items-baseline">
+            {{ defaultCompleteConfig.client }}&nbsp;
+            <a-popover>
+              <template #content>
+                <p class="w-48">
+                  We use <a href="https://platform.openai.com/docs/api-reference">openai api</a> for chat completion and
+                  embedding. You may find and create your own api key in your
+                  <a href="https://platform.openai.com/account/api-keys">User settings</a>.
+                </p>
+              </template>
+              <InfoCircleTwoTone />
+            </a-popover>
+          </div>
+          <QuickConfigCompletion
+            :config="defaultCompleteConfig"
+            @update:validating="updateValidating"
+            @update:valid="updateCompletionValid"
+            @update:error="updateValidationError"
+          />
+        </a-space>
+        <!--<a-divider orientation="left" orientation-margin="0">Vector Database</a-divider>-->
+        <a-space>
+          <div class="flex flex-row items-baseline">
+            {{ defaultVectorDbClient.type }}&nbsp;
+            <a-popover>
+              <template #content>
+                <p class="w-64">
+                  We use <a href="https://www.pinecone.io/">pinecone</a> as vector DB to store embeddings of paragraphs.
+                  During chatting, the question will be embedded and searched in the DB to find the most similar
+                  paragraphs as the chat context. You may create and find your own api key with environment in your
+                  <a href="https://app.pinecone.io/">Pinecone console</a>. You also <b>NEED</b> to create an index.
+                </p>
+              </template>
+              <InfoCircleTwoTone />
+            </a-popover>
+          </div>
+          <QuickConfigPinecone
+            :client="defaultVectorDbClient"
+            @update:validating="updateValidating"
+            @update:valid="updateVectorstoreValid"
+            @update:error="updateValidationError"
+          />
+        </a-space>
         <a-alert v-if="errorMessage" type="error" show-icon title="Invalid presets" :message="errorMessage" />
         <div class="flex flex-row">
           <div class="flex flex-grow" />
@@ -79,6 +92,7 @@ import { useDefaultEmbeddingsStore } from '~/store/defaultEmbeddings';
 import { useDefaultVectorDbStore } from '~/store/defaultVectorDb';
 import { useIndexProfileStore } from '~/store/indexProfiles';
 import { errToString } from '~/utils/strings';
+import { useAppSettingsStore } from "~/store/appSettingsStore";
 
 const isPersisting = ref<boolean>(false);
 const isValidating = ref<number>(0);
@@ -90,10 +104,14 @@ const errorMessage = ref<string>('');
 const defaultCompletionStore = useDefaultCompleteStore();
 const defaultVectorDbStore = useDefaultVectorDbStore();
 const defaultEmbeddingsStore = useDefaultEmbeddingsStore();
+
 const indexProfilesStore = useIndexProfileStore();
+const appSettingsStore = useAppSettingsStore();
+
 const { defaultCompleteConfig } = storeToRefs(defaultCompletionStore);
 const { defaultVectorDbClient, defaultVectorDbConfig } = storeToRefs(defaultVectorDbStore);
 const { defaultEmbeddingsClient, defaultEmbeddingsConfig } = storeToRefs(defaultEmbeddingsStore);
+const { appSettings } = storeToRefs(appSettingsStore);
 
 await Promise.resolve()
   .then(async () => {
@@ -107,7 +125,7 @@ await Promise.resolve()
   });
 
 // Propagate the change of default complete client to the default embeddings
-// client and config, so that the user can provide only a few necessary
+// a client and config, so that the user can provide only a little necessary
 // information
 watch(
   defaultCompleteConfig,
@@ -125,7 +143,7 @@ watch(
   { immediate: true },
 );
 // Propagate the change of default vector database client so that the user can
-// provide only a few necessary information
+// provide only a little necessary information
 watch(
   defaultVectorDbClient,
   async () => {
