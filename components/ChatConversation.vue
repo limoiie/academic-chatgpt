@@ -54,11 +54,19 @@ const { conversation } = props;
 const { scrollToEnd, autoScrollToEnd } = toRefs(props);
 
 /// Scroll to the end of the chat when the last message changes or the scrollToEnd value changes
-watch([scrollToEnd, () => conversation.dialogues.at(-1)?.chosenAnswer?.message.text], () => {
-  if (autoScrollToEnd.value) {
-    chatBottom.value?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }
-});
+watch(
+  [scrollToEnd, () => conversation.dialogues.at(-1)?.chosenAnswer?.message.text],
+  useThrottleFn(
+    () => {
+      if (autoScrollToEnd.value) {
+        chatBottom.value?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    },
+    300,
+    true,
+    false,
+  ),
+);
 
 function onStopAnswering(item: UiChatDialogue) {
   emits('stopAnswering', item);

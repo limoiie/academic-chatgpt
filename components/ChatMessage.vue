@@ -46,9 +46,14 @@ const {
 const rendered: Ref<string | undefined> = ref(undefined);
 watch(
   () => value.message.text,
-  async (text) => {
-    rendered.value = await $renderMarkdown('', text);
-  },
+  useThrottleFn(
+    async (text) => {
+      rendered.value = await $renderMarkdown('', text);
+    },
+    80,
+    true,
+    false,
+  ),
   {
     immediate: true,
   },

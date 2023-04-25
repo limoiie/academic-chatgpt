@@ -42,7 +42,7 @@
           <a-textarea
             v-model:value="questionInput"
             class="ant-input-borderless"
-            placeholder="Ask something about the collection"
+            placeholder="↑ to previous, ↓ to next, ⇧+↩ to break line"
             size="large"
             :auto-size="{ minRows: 1, maxRows: 5 }"
             @keydown="handleKeydownInTextarea"

@@ -30,6 +30,7 @@
     "@pinia/nuxt": "^0.4.7",
     "@tauri-apps/api": "^1.2.0",
     "@types/marked": "^4.0.8",
+    "@vueuse/nuxt": "^10.1.0",
     "ant-design-vue": "^3.2.16",
     "highlight.js": "^11.7.0",
     "langchain": "^0.0.45",

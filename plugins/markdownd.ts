@@ -1,7 +1,6 @@
 // @ts-ignore
-import hljs from "highlight.js";
-import { marked } from "marked";
-
+import hljs from 'highlight.js';
+import { marked } from 'marked';
 
 // noinspection JSUnusedGlobalSymbols
 export default defineNuxtPlugin((_nuxtApp) => {
