@@ -33,6 +33,10 @@
           </a-menu>
         </div>
       </div>
+
+      <template #trigger>
+        <LeftCircleOutlined :class="{ 'duration-300': true, 'rotate-180': collapsed }" />
+      </template>
     </a-layout-sider>
     <a-layout-content class="overflow-scroll h-screen">
       <NuxtPage />
@@ -41,16 +45,16 @@
 </template>
 
 <script setup lang="ts">
-import { GithubOutlined, SettingOutlined } from '@ant-design/icons-vue';
+import { GithubOutlined, LeftCircleOutlined, SettingOutlined } from '@ant-design/icons-vue';
+import { platform } from '@tauri-apps/api/os';
+import { useColorMode } from '@vueuse/core';
 import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { upperFirst } from 'scule';
-import { platform } from '@tauri-apps/api/os'
 import { ref } from 'vue';
 import ColorModeToggleIcon from '~/components/ColorModeToggleIcon.vue';
 import { useAppSettingsStore } from '~/store/appSettingsStore';
 import { useCollectionStore } from '~/store/collections';
-import { useColorMode } from '@vueuse/core';
 
 const collapsed = ref<boolean>(false);
 const selectedKeys = ref([]);
