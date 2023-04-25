@@ -78,8 +78,8 @@ const pineconeIndexOptions = computed(() => {
 async function validate() {
   emits('update:valid', false);
   if (
-    !validateApiKeyForm(clientConfig.value.info.apiKey) ||
-    !validateEnvironmentForm(clientConfig.value.info.environment)
+    !validateApiKeyForm(clientConfig.value.info.apiKey || '') ||
+    !validateEnvironmentForm(clientConfig.value.info.environment || '')
   ) {
     return;
   }

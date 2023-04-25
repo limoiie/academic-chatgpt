@@ -1,12 +1,8 @@
 <template>
   <a-input-group compact>
     <a-tooltip :visible="!isApiKeyPristine && apiKeyError != ''" :title="apiKeyError" color="red">
-      <a-input-password
-        v-model:value="config.meta.apiKey"
-        class="w-64!"
-        placeholder="Api Key"
-        :on-blur="markApiKeyAsDirty"
-      />
+      <a-input-password v-model:value="config.meta.apiKey" class="w-64!" placeholder="Api Key"
+        :on-blur="markApiKeyAsDirty" />
     </a-tooltip>
     <a-select v-model:value="config.meta.model" :options="modelOptions[config.client]" />
   </a-input-group>
@@ -53,7 +49,10 @@ const modelOptions = {
 
 async function validate() {
   emits('update:valid', false);
-  if (!validateApiKeyForm(config.value.meta.apiKey) || !validateModelForm(config.value.meta.model)) {
+  if (
+    !validateApiKeyForm(config.value.meta.apiKey || '') ||
+    !validateModelForm(config.value.meta.model || '')
+  ) {
     return;
   }
 
