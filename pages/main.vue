@@ -19,7 +19,7 @@
             </a-menu-item>
             <!--suppress TypeScriptUnresolvedReference -->
             <a-menu-item @click="toggleColorMode">
-              {{ upperFirst(appSettings.colorMode.preference) }} Mode
+              {{ upperFirst(colorMode) }}
               <template #icon>
                 <ColorModeToggleIcon />
               </template>
@@ -49,6 +49,7 @@ import { ref } from 'vue';
 import ColorModeToggleIcon from '~/components/ColorModeToggleIcon.vue';
 import { useAppSettingsStore } from '~/store/appSettingsStore';
 import { useCollectionStore } from '~/store/collections';
+import { useColorMode } from '@vueuse/core'
 
 const collapsed = ref<boolean>(false);
 const selectedKeys = ref([]);
@@ -56,8 +57,8 @@ const isLoading = ref<boolean>(false);
 
 const appSettingsStore = useAppSettingsStore();
 const collectionStore = useCollectionStore();
-const { appSettings } = storeToRefs(appSettingsStore);
 const { collections } = storeToRefs(collectionStore);
+const { store: colorMode } = useColorMode();
 
 await Promise.resolve((isLoading.value = true))
   .then(async () => {
@@ -78,15 +79,15 @@ function handleMenuBlur() {
 }
 
 function toggleColorMode() {
-  switch (appSettings.value.colorMode.preference) {
+  switch (colorMode.value) {
     case 'light':
-      appSettings.value.colorMode.preference = 'dark';
+      colorMode.value = 'dark';
       break;
     case 'dark':
-      appSettings.value.colorMode.preference = 'system';
+      colorMode.value = 'auto';
       break;
     default:
-      appSettings.value.colorMode.preference = 'light';
+      colorMode.value = 'light';
       break;
   }
 }

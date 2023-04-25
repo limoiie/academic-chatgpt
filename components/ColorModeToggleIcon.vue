@@ -1,6 +1,6 @@
 <template>
   <svg
-    v-if="$colorMode.preference === 'dark'"
+    v-if="colorMode === 'dark'"
     width="1em"
     height="1em"
     style="min-width: 1em"
@@ -25,7 +25,7 @@
     </g>
   </svg>
   <svg
-    v-else-if="$colorMode.preference === 'light'"
+    v-else-if="colorMode === 'light'"
     width="1em"
     height="1em"
     style="min-width: 1em"
@@ -65,4 +65,8 @@
   </svg>
 </template>
 
-<script setup></script>
+<script setup>
+import { useColorMode } from '@vueuse/core';
+
+const { store: colorMode } = useColorMode();
+</script>

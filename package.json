@@ -12,7 +12,6 @@
   },
   "devDependencies": {
     "@nuxt/ui": "^0.4.1",
-    "@nuxtjs/color-mode": "^3.2.0",
     "@nuxtjs/tailwindcss": "^6.6.5",
     "@trivago/prettier-plugin-sort-imports": "^4.1.1",
     "@types/node": "^18.15.11",
@@ -30,6 +29,7 @@
     "@pinia/nuxt": "^0.4.7",
     "@tauri-apps/api": "^1.2.0",
     "@types/marked": "^4.0.8",
+    "@vueuse/core": "^10.1.0",
     "@vueuse/nuxt": "^10.1.0",
     "ant-design-vue": "^3.2.16",
     "highlight.js": "^11.7.0",

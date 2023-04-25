@@ -1,13 +1,10 @@
-import { ColorModeInstance } from '@nuxtjs/color-mode/dist/runtime/types';
 import { defineStore } from 'pinia';
 
 interface AppSettingsStore {
-  colorMode: ColorModeInstance;
   username: string;
 }
 
 interface PersistentAppSettingsStore {
-  colorMode: string;
   username: string;
 }
 
@@ -19,11 +16,8 @@ export const useAppSettingsStore = defineStore(STORE_KEY, () => {
 
   const loaded = ref(false);
   const cache = ref<AppSettingsStore>({
-    colorMode: useColorMode(),
     username: DEFAULT_USERNAME,
   });
-  cache.value.colorMode.preference = 'light';
-  watch(() => cache.value.colorMode.preference, storeCacheToTauriStore);
 
   async function load() {
     if (loaded.value) return true;
@@ -44,13 +38,11 @@ export const useAppSettingsStore = defineStore(STORE_KEY, () => {
 
   function toPersistent(preference: AppSettingsStore): PersistentAppSettingsStore {
     return {
-      colorMode: preference.colorMode.preference,
       username: preference.username || DEFAULT_USERNAME,
     } as PersistentAppSettingsStore;
   }
 
   function fromPersistent(preference: AppSettingsStore, persistent: PersistentAppSettingsStore) {
-    preference.colorMode.preference = persistent.colorMode;
     preference.username = persistent.username || DEFAULT_USERNAME;
   }
 
