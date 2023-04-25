@@ -14,7 +14,7 @@ export async function useTauriFetch(input: RequestInfo | URL, init?: RequestInit
           method: init.method as HttpVerb,
           body: {
             type: 'Text',
-            payload: init.body,
+            payload: init.body || '',
           },
         }
       : undefined,

@@ -65,7 +65,7 @@ export async function deleteIndexFromVectorstore(
         apiKey: clientInfo.apiKey,
       });
 
-      const index = client.Index(namespace);
+      const index = client.Index(clientInfo.indexName);
       await index.delete1({
         namespace: namespace,
         deleteAll: true,
