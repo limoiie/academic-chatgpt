@@ -45,11 +45,12 @@ import { GithubOutlined, SettingOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { upperFirst } from 'scule';
+import { platform } from '@tauri-apps/api/os'
 import { ref } from 'vue';
 import ColorModeToggleIcon from '~/components/ColorModeToggleIcon.vue';
 import { useAppSettingsStore } from '~/store/appSettingsStore';
 import { useCollectionStore } from '~/store/collections';
-import { useColorMode } from '@vueuse/core'
+import { useColorMode } from '@vueuse/core';
 
 const collapsed = ref<boolean>(false);
 const selectedKeys = ref([]);
@@ -60,15 +61,22 @@ const collectionStore = useCollectionStore();
 const { collections } = storeToRefs(collectionStore);
 const { store: colorMode } = useColorMode();
 
-await Promise.resolve((isLoading.value = true))
-  .then(async () => {
-    await appSettingsStore.load();
-    await collectionStore.load();
-  })
-  .catch((e) => {
-    message.error(`Failed to load profiles: ${errToString(e)}`);
-  })
-  .finally(() => (isLoading.value = false));
+onMounted(async () => {
+  await hideScrollbarOnWindows();
+
+  await Promise.resolve((isLoading.value = true))
+    .then(async () => {
+      await appSettingsStore.load();
+      await collectionStore.load();
+    })
+    .then(() => {
+      navigateTo('/main/collections');
+    })
+    .catch((e) => {
+      message.error(`Failed to load profiles: ${errToString(e)}`);
+    })
+    .finally(() => (isLoading.value = false));
+});
 
 function navigateToPresetsPage() {
   navigateTo('/presets');
@@ -92,5 +100,15 @@ function toggleColorMode() {
   }
 }
 
-navigateTo('/main/collections');
+/**
+ * Hide scrollbar on windows because it looks not that good.
+ */
+async function hideScrollbarOnWindows() {
+  const p = await platform();
+  if (p === 'win32') {
+    useStyleTag(`::-webkit-scrollbar {
+  display: none !important;
+}`);
+  }
+}
 </script>
