@@ -284,7 +284,7 @@ async function removeSession(targetSessionId: number) {
     await sessionStore.deleteSession(targetSessionId);
     chatSessions.value = sessions.filter((session) => session.id !== targetSessionId);
     if (activeSessionId.value === targetSessionId) {
-      await switchToSessionTabByIndex(currTabIndex - 1);
+      await switchToSessionTabByIndex(currTabIndex);
     }
   }
 }
@@ -299,7 +299,7 @@ async function switchToSessionTabByIndex(tabIndex: number) {
 
   const sessions = chatSessions.value;
   if (sessions && sessions.length) {
-    const safeTabIndex = tabIndex >= 0 && sessions.length > tabIndex ? tabIndex : 0;
+    const safeTabIndex = Math.min(tabIndex, sessions.length - 1);
     activeSessionId.value = sessions[safeTabIndex].id;
   }
 }

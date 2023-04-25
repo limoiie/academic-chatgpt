@@ -85,11 +85,13 @@ await Promise.resolve((isLoading.value = true))
 
 async function navigateToActiveIndexProfile(collectionId: number) {
   if (collectionId != activeCollectionId.value) {
+    activeCollectionId.value = collectionId;
     navigateTo(`/main/collections/${collectionId}/indexes`);
   }
 }
 
 async function manageCollectionProfile(collectionId: number, e: Event | undefined = undefined) {
+  activeCollectionId.value = collectionId;
   navigateTo(`/main/collections/${collectionId}/manage`);
   e?.stopPropagation();
 }
