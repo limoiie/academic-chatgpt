@@ -1,14 +1,16 @@
 <template>
   <div class="w-[calc(100%-8rem)] pt-4">
-    <div class="w-full mb-4 flex flex-row gap-4">
-      <div class="w-14">  <!-- 14 == 3.5em == 56px -->
+    <div class="w-full mb-4 flex flex-row">
+      <div class="w-14">
+        <!-- 14 == 3.5em == 56px -->
         <slot name="avatar" :username="briefName(value.username)">
           {{ value.username }}
         </slot>
       </div>
-      <div class="w-[calc(100%-56px)]">  <!-- 56px is the width of avator -->
+      <div class="w-[calc(100%-56px)]">
+        <!-- 56px is the width of avator -->
         <div v-show="rendered" v-html="rendered" />
-        <div v-if="answering" class="flex flex-row items-baseline gap-3">
+        <div v-if="answering" class="mt-2! flex flex-row items-baseline gap-3">
           <a-spin size="small" />
           <a-button shape="circle" size="small" type="primary" @click="stopAnswering">
             <template #icon>

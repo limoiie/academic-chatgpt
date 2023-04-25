@@ -40,14 +40,13 @@
           class="px-2 py-1 flex flex-1 flex-row items-center border-1 dark:border-gray-600 rounded hover:border-blue-400 focus-within:shadow-md focus-within:shadow-blue-400 duration-300"
         >
           <a-textarea
-            id="input"
-            v-model:value="input"
-            allow-clear
-            placeholder="Ask something about the collection"
+            v-model:value="questionInput"
             class="ant-input-borderless"
+            placeholder="Ask something about the collection"
             size="large"
             :auto-size="{ minRows: 1, maxRows: 5 }"
             @keydown="handleKeydownInTextarea"
+            allow-clear
           />
           <a-button
             class="!border-0"
@@ -75,6 +74,7 @@ import { VectorStore } from 'langchain/vectorstores';
 import { storeToRefs } from 'pinia';
 import { ref, toRef } from 'vue';
 import { UiChatConversation, UiChatDialogue } from '~/composables/beans/Chats';
+import { useKeyRespectKeymap } from '~/composables/useKeyRespectKeymap';
 import { useScrollOverflow } from '~/composables/useScrollOverflow';
 import { CollectionIndexWithAll, Session } from '~/plugins/tauri/bindings';
 import { useAppSettingsStore } from '~/store/appSettingsStore';
@@ -85,8 +85,19 @@ import { createEmbeddings } from '~/utils/embeddings';
 import { createVectorstore } from '~/utils/vectorstores';
 
 const props = defineProps<{
+  /**
+   * The collection index that will be used to search for context when chatting
+   * in this session.
+   */
   collectionIndex: CollectionIndexWithAll;
+  /**
+   * The session data from the database, including conversation history, etc.
+   */
   session: Session;
+  /**
+   * The session profile from the cache, which contains custom settings for this
+   * session, i.e. completion chain mode, completion model, etc.
+   */
   sessionProfile: SessionProfile;
 }>();
 const { collectionIndex, session } = props;
@@ -94,16 +105,42 @@ const sessionProfile = toRef(props, 'sessionProfile');
 
 const { $tauriCommands } = useNuxtApp();
 
-const input = ref('');
+/**
+ * The question input from the user.
+ */
+const questionInput = ref('');
+
+/**
+ * Whether the chat session is currently completing a question.
+ */
 const isCompleting = ref(false);
+
+/**
+ * Conversation update counter, used to trigger auto scroll to end.
+ */
 const conversationUpdated = ref(0);
+
+/**
+ * Whether the chat session should auto scroll to end.
+ */
 const autoScrollToEnd = ref(false);
+
+/**
+ * The app settings store.
+ */
 const appSettingsStore = useAppSettingsStore();
+
 const { appSettings } = storeToRefs(appSettingsStore);
 
+/**
+ * The chat conversation.
+ */
 const conversation = ref<UiChatConversation>(
   new UiChatConversation(new SystemChatMessage('You are an assistant and going to help my to summary documents.')),
 );
+
+const questionHistoryOptions = ref<string[] | undefined>(undefined);
+const questionCursor = ref(-1);
 
 const availableChainModeOptions = computed(() => {
   const modes = allCompletionChainModes[sessionProfile.value.completionConfig.client] || [];
@@ -122,8 +159,18 @@ const allCompletionModelOptions = computed(() => {
 });
 
 interface Context {
+  /**
+   * The collection index settings from the database.
+   */
   collectionIndex: CollectionIndexWithAll;
+  /**
+   * The vector store that will be used to search for context.
+   */
   vectorstore: VectorStore;
+  /**
+   * The embedding client that has been used to embedding context and will be
+   * used to embedding questions.
+   */
   embeddings: Embeddings;
 }
 
@@ -154,22 +201,24 @@ const { data: context } = useAsyncData(`contextOfSession#${session.id}`, async (
 });
 
 onMounted(async () => {
+  // watch the scroll status of the conversation container
   const conversationContainerEl = document.getElementById('content');
   if (conversationContainerEl) {
     useScrollOverflow(conversationContainerEl, 20, autoScrollToEnd);
   }
 
-  const inputEl = document.getElementById('input');
-  if (inputEl) {
-    inputEl.focus();
-  }
-
-  await Promise.resolve().then(async () => {
-    await appSettingsStore.load();
-    loadConversationHistory();
-    // scroll to end when the conversation is loaded
-    setTimeout(enableAutoScrollToEnd, 400);
-  });
+  await Promise.resolve()
+    .then(async () => {
+      await appSettingsStore.load();
+      loadConversationHistory();
+    })
+    .then(() => {
+      // scroll to end when the conversation is loaded
+      setTimeout(enableAutoScrollToEnd, 400);
+    })
+    .catch((e: any) => {
+      message.error(`Failed to load session data: ${errToString(e)}`);
+    });
 });
 
 function enableAutoScrollToEnd() {
@@ -181,14 +230,16 @@ function scrollToEnd() {
   ++conversationUpdated.value;
 }
 
+/**
+ * Load the conversation history from the database.
+ */
 function loadConversationHistory() {
-  try {
-    conversation.value.dialogues = UiChatDialogue.loadArray(session.history);
-  } catch (e: any) {
-    message.error(`Failed to load dialogues: ${e.toString()}`);
-  }
+  conversation.value.dialogues = UiChatDialogue.loadArray(session.history);
 }
 
+/**
+ * Save the conversation history to the database.
+ */
 async function saveConversationHistory() {
   session.history = UiChatDialogue.dumpArray(conversation.value.dialogues);
   await $tauriCommands.updateSession({
@@ -207,9 +258,9 @@ async function clearDialogues() {
  * Request the AI completion client to complete the input.
  */
 async function requestChatCompletion() {
-  const latestInput = input.value;
+  const latestInput = questionInput.value;
   if (!latestInput) return;
-  input.value = '';
+  questionInput.value = '';
 
   const contextValue = context.value;
   if (!contextValue) {
@@ -281,14 +332,78 @@ function onStopGenerating(dialogue: UiChatDialogue) {
  * Request chat completion when the user presses 'Enter' in the input field.
  */
 function handleKeydownInTextarea(e: KeyboardEvent) {
-  if (!e.shiftKey && e.key === 'Enter') {
+  const { type, key } = useKeyRespectKeymap(e);
+  switch (type) {
+    case 'edit':
+      clearQuestionHistoryCursor();
+      return;
+    case 'move':
+      switch (key) {
+        case 'ArrowUp':
+          e.preventDefault();
+          return equipPrevHistoryQuestion(e);
+        case 'ArrowDown':
+          e.preventDefault();
+          return equipNextHistoryQuestion(e);
+      }
+      return;
+    case 'modifier':
+      return;
+  }
+
+  // noinspection JSDeprecatedSymbols
+  if (!e.shiftKey && e.keyCode === 13) {
+    clearQuestionHistoryCursor();
     requestChatCompletion();
     e.preventDefault();
   }
 }
+
+/**
+ * Equip the previous history question.
+ */
+function equipPrevHistoryQuestion(e: KeyboardEvent) {
+  return equipHistoryQuestion(e, -1);
+}
+
+/**
+ * Equip the next history question.
+ */
+function equipNextHistoryQuestion(e: KeyboardEvent) {
+  return equipHistoryQuestion(e, +1);
+}
+
+function clearQuestionHistoryCursor() {
+  questionHistoryOptions.value = undefined;
+  questionCursor.value = -1;
+}
+
+/**
+ * Equip the previous/next history question.
+ */
+function equipHistoryQuestion(e: KeyboardEvent, offset: number) {
+  if (!questionHistoryOptions.value) {
+    // initialize the history options by filtering the current input
+    const currInput = questionInput.value;
+    questionHistoryOptions.value = conversation.value.dialogues
+      .map((d) => d.question.message.text)
+      .filter((q) => q.toLowerCase().indexOf(currInput.toLowerCase()) >= 0);
+    questionHistoryOptions.value.push(currInput);
+    questionCursor.value = questionHistoryOptions.value.length - 1;
+  }
+
+  // move the cursor
+  const n = questionHistoryOptions.value.length;
+  questionCursor.value = (questionCursor.value + offset + n) % n;
+  questionInput.value = questionHistoryOptions.value.at(questionCursor.value) || '';
+
+  // move the cursor to the end
+  (e.currentTarget as HTMLTextAreaElement).setSelectionRange(questionInput.value.length, questionInput.value.length);
+}
 </script>
 
 <style lang="sass">
+// center the clear icon in the input
 .ant-input-clear-icon
   top: 13px !important
 </style>
