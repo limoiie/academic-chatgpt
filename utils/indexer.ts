@@ -1,13 +1,15 @@
 import { message } from 'ant-design-vue';
 import { Embeddings } from 'langchain/embeddings';
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { PineconeStore, VectorStore } from 'langchain/vectorstores';
+import { extname } from 'pathe';
 import { CollectionIndexWithAll, Document, DocumentChunk, Splitting } from '~/plugins/tauri/bindings';
 import { dbDocumentChunk2Ui, uiDocumentChunks2Db } from '~/utils/db';
+import { loadAndSplitDocument } from '~/utils/documentLoaders';
 import { IndexSyncStatus } from '~/utils/indexSyncStatus';
 import { asyncFilter } from '~/utils/itertools';
 import { Tracer } from '~/utils/tracer';
 
+// noinspection JSUnusedGlobalSymbols
 export class Indexer {
   tauriCommands: typeof import('~/plugins/tauri/bindings');
 
@@ -49,6 +51,7 @@ export class Indexer {
   async sync(status: IndexSyncStatus, index: CollectionIndexWithAll) {
     const deleted = await this.removeIndexedDocuments(status.toDeleted, index);
     const indexed = await this.indexDocuments(index, ...status.toIndexed);
+    await this.reindexCollectionSummary(status.all);
     status.toIndexed = [];
     status.toDeleted = [];
     return {
@@ -116,7 +119,7 @@ export class Indexer {
    * @param index The collection index.
    * @param documents An array of documents.
    */
-  async indexDocuments(index: CollectionIndexWithAll, ...documents: Document[]) {
+  private async indexDocuments(index: CollectionIndexWithAll, ...documents: Document[]) {
     this.tracer.onStepStart('Indexing', `${documents.length} new documents...`, documents.length);
     for (const document of documents) {
       await this.indexOneDocument(index, document);
@@ -133,7 +136,7 @@ export class Indexer {
    * @param index The collection index.
    * @param document An array of documents.
    */
-  async indexOneDocument(index: CollectionIndexWithAll, document: Document) {
+  private async indexOneDocument(index: CollectionIndexWithAll, document: Document) {
     this.tracer.onStepStart(document.filename, '', undefined);
 
     this.tracer.log(`Fetching chunks of ${document.filename} from database...`);
@@ -155,6 +158,10 @@ export class Indexer {
     this.tracer.onStepEnd();
   }
 
+  public async reindexCollectionSummary(allDocumentsInCollection: Document[]) {
+    //   todo: implement
+  }
+
   /**
    * Fetch existing chunks if there were.
    */
@@ -174,12 +181,12 @@ export class Indexer {
     const vectors: number[][] = [];
     const chunksBeingUploaded: DocumentChunk[] = [];
     const chunksBeingIndexed = await asyncFilter(chunks, async (chunk) => {
-      const embeddingsResult = await this.tauriCommands.getEmbeddingVectorByMd5hash({
+      const embeddingResult = await this.tauriCommands.getEmbeddingVectorByMd5hash({
         embeddingsConfigId: this.embeddingsConfigId,
         md5Hash: chunk.md5Hash,
       });
-      if (embeddingsResult != null) {
-        vectors.push(embeddingsResult.vector);
+      if (embeddingResult != null) {
+        vectors.push(embeddingResult.vector);
         chunksBeingUploaded.push(chunk);
         return false;
       }
@@ -190,7 +197,7 @@ export class Indexer {
   }
 
   /**
-   * Embedding chunks and store into local database.
+   * Embedding chunks and store into the local database.
    */
   private async embeddingChunksAndStoreIntoDb(chunks: DocumentChunk[]) {
     this.tracer.log(`Embedding ${chunks.length} chunks...`);
@@ -233,18 +240,10 @@ export class Indexer {
   }
 
   /**
-   * Split document into chunks, and store them into database.
+   * Split document into chunks, and store them into the database.
    */
   private async splitChunksIntoDb(document: Document) {
-    // todo: choose different loader according to the document type
-    const loader = new PDFBytesLoader(document.filepath);
-    const rawChunks = await loader.loadAndSplit(
-      new RecursiveCharacterTextSplitter({
-        chunkOverlap: this.splitting.chunkOverlap,
-        chunkSize: this.splitting.chunkSize,
-      }),
-    );
-    // store into db
+    const rawChunks = await loadAndSplitDocument(document.filepath, this.splitting, extname(document.filename));
     return await this.tauriCommands.createChunksByDocument({
       chunks: rawChunks.map(uiDocumentChunks2Db),
       documentId: document.id,

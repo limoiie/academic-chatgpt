@@ -153,7 +153,7 @@ const openOptions = {
   filters: [
     {
       name: 'Documents',
-      extensions: ['pdf', 'doc', 'md'],
+      extensions: ['pdf', 'txt', 'md'],
     },
   ],
 };

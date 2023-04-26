@@ -10,14 +10,15 @@ import { VectorStore } from 'langchain/vectorstores';
  * Referring to https://github.com/mayooear/gpt4-pdf-chatbot-langchain
  */
 const QA_PROMPT = PromptTemplate.fromTemplate(
-  `You are an AI assistant helping user understanding documents. You need to answer a given question by referencing a few given sections of a collection of documents.
-The sections as context are wrapped between two ========= tags. If you can't find answer in the context, just say "Sorry, I cannot find references from the document collection".
+  `You are an AI assistant helping user understanding a collection of documents.
+You need to answer a given question by referencing the given related sections of the collection as a context.
+If the question is not mentioned in the context, you can answer without respect to the context. 
 
 Question: {question}
 =========
 {context}
 =========
-Answer in Markdown (Code block MUST have a correct language tag):`,
+Answer in Markdown:`,
 );
 
 export const noHistoryVectorDbQA = (

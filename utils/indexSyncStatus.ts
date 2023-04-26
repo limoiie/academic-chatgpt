@@ -10,6 +10,10 @@ export class IndexSyncStatus {
      * List of documents to index.
      */
     public toIndexed: Document[],
+    /**
+     * List of all documents.
+     */
+    public all: Document[],
   ) {}
 
   /**
@@ -35,6 +39,6 @@ export class IndexSyncStatus {
       return true;
     });
     const toDeleted = [...indexed];
-    return new IndexSyncStatus(toDeleted, toIndexed);
+    return new IndexSyncStatus(toDeleted, toIndexed, documents);
   }
 }
