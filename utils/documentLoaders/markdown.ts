@@ -15,6 +15,7 @@ export class MarkdownTextLoader extends TextLoader {
     const { text, metadata } = await this.open();
     return {
       ...metadata,
+      type: 'md',
       md: {
         length: text.length,
       },

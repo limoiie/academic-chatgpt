@@ -4,7 +4,7 @@ import { PineconeStore, VectorStore } from 'langchain/vectorstores';
 import { extname } from 'pathe';
 import { CollectionIndexWithAll, Document, DocumentChunk, Splitting } from '~/plugins/tauri/bindings';
 import { dbDocumentChunk2Ui, uiDocumentChunks2Db } from '~/utils/db';
-import { loadAndSplitDocument } from '~/utils/documentLoaders';
+import { loadAndSplitDocument, summarizeCollection } from '~/utils/documentLoaders';
 import { IndexSyncStatus } from '~/utils/indexSyncStatus';
 import { asyncFilter } from '~/utils/itertools';
 import { Tracer } from '~/utils/tracer';
@@ -49,9 +49,9 @@ export class Indexer {
    * Sync the index with the given sync status.
    */
   async sync(status: IndexSyncStatus, index: CollectionIndexWithAll) {
+    const summary = await summarizeCollection(status.all);
     const deleted = await this.removeIndexedDocuments(status.toDeleted, index);
     const indexed = await this.indexDocuments(index, ...status.toIndexed);
-    await this.reindexCollectionSummary(status.all);
     status.toIndexed = [];
     status.toDeleted = [];
     return {
@@ -97,9 +97,7 @@ export class Indexer {
           deleteAll: false,
         })
         .catch((e) => {
-          message.warn(
-            'Deleting vectors failed: ' + errToString(e) + '. If you are using Pinecone, you may ignore this.',
-          );
+          message.warn('Deleting vectors failed: ' + errToString(e));
         });
     } else {
       message.warn('Deleting vectors is not supported for this vector store.');
@@ -156,10 +154,6 @@ export class Indexer {
     const upserted = await this.tauriCommands.upsertDocumentsInCollectionIndex(index.id, [document.id]);
     index.indexedDocuments.push(...upserted);
     this.tracer.onStepEnd();
-  }
-
-  public async reindexCollectionSummary(allDocumentsInCollection: Document[]) {
-    //   todo: implement
   }
 
   /**

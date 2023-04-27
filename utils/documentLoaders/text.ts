@@ -29,6 +29,7 @@ export class TextLoader extends BaseDocumentLoader {
     const { text, metadata } = await this.open();
     return {
       ...metadata,
+      type: 'txt',
       txt: {
         length: text.length,
       },

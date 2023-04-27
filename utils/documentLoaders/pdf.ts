@@ -76,12 +76,15 @@ export class PDFBytesLoader extends BytesLoader {
     }).promise;
 
     const meta = await pdf.getMetadata().catch(() => null);
+    const outline = await pdf.getOutline().catch(() => null);
     return {
       ...metadata,
+      type: 'pdf',
       pdf: {
         version,
         info: meta?.info,
         metadata: meta?.metadata,
+        outline: outline,
         totalPages: pdf.numPages,
       },
     };
