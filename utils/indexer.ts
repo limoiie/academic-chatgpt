@@ -2,7 +2,14 @@ import { message } from 'ant-design-vue';
 import { Embeddings } from 'langchain/embeddings';
 import { PineconeStore, VectorStore } from 'langchain/vectorstores';
 import { extname } from 'pathe';
-import { CollectionIndexWithAll, Document, DocumentChunk, Splitting } from '~/plugins/tauri/bindings';
+import { useHash } from '~/composables/useHash';
+import {
+  CollectionIndexWithAll,
+  CreateDocumentData,
+  Document,
+  DocumentChunk,
+  Splitting,
+} from '~/plugins/tauri/bindings';
 import { dbDocumentChunk2Ui, uiDocumentChunks2Db } from '~/utils/db';
 import { loadAndSplitDocument, summarizeCollection } from '~/utils/documentLoaders';
 import { IndexSyncStatus } from '~/utils/indexSyncStatus';
@@ -49,7 +56,7 @@ export class Indexer {
    * Sync the index with the given sync status.
    */
   async sync(status: IndexSyncStatus, index: CollectionIndexWithAll) {
-    const summary = await summarizeCollection(status.all);
+    await this.renewSummaryDocumentIfChanged(status, index);
     const deleted = await this.removeIndexedDocuments(status.toDeleted, index);
     const indexed = await this.indexDocuments(index, ...status.toIndexed);
     status.toIndexed = [];
@@ -154,6 +161,63 @@ export class Indexer {
     const upserted = await this.tauriCommands.upsertDocumentsInCollectionIndex(index.id, [document.id]);
     index.indexedDocuments.push(...upserted);
     this.tracer.onStepEnd();
+  }
+
+  /**
+   * Renew the summary document if it has changed.
+   *
+   * A new summary document will be generated.
+   * If the summary has changed in MD5 hashcode, the old summary document will be removed from the local database,
+   * and will be pushed into the toDelete list for removing from the remote vectorstore.
+   * After that, the new summary document will be pushed into the toIndexed list for being indexed lately.
+   *
+   * @param status The index sync status.
+   * @param index The collection index.
+   */
+  private async renewSummaryDocumentIfChanged(status: IndexSyncStatus, index: CollectionIndexWithAll) {
+    const summaryFilename = index.id + '/SUMMARY.md';
+    let { summaryDocument, documents } = status.all.reduce(
+      (acc, document) => {
+        if (acc.summaryDocument == undefined && document.filename == summaryFilename) {
+          acc.summaryDocument = document;
+        } else {
+          acc.documents.push(document);
+        }
+        return acc;
+      },
+      { summaryDocument: undefined, documents: [] } as { summaryDocument?: Document; documents: Document[] },
+    );
+
+    // generate a new summary and its MD5 hashcode
+    const summary = await summarizeCollection(documents);
+    const summaryMD5Hashcode = await useHash().hashStrInMd5(summary);
+
+    if (summaryDocument) {
+      // there is an existing summary document
+      if (summaryMD5Hashcode == summaryDocument.md5Hash) {
+        // the summary has not changed, no need to update.
+        return;
+      }
+
+      // remove the outdated summary from the local-store/database
+      await this.tauriCommands.deleteDocument(summaryDocument.id);
+      // add to the toDeleted list to be deleted from the remote-store/vectorstore
+      status.toDeleted.push(summaryDocument.id);
+      status.toIndexed = status.toIndexed.filter((document) => document.filename != summaryFilename);
+      status.all = status.all.filter((document) => document.filename != summaryFilename);
+    }
+
+    // create the updated/new summary as a new document
+    const createSummaryDocument = {
+      File: {
+        filename: summaryFilename,
+        content: Array.from(new TextEncoder().encode(summary)),
+      },
+    } as CreateDocumentData;
+    summaryDocument = await this.tauriCommands.getOrCreateDocument(createSummaryDocument);
+    await this.tauriCommands.addDocumentsToCollection(index.collectionId, [summaryDocument.id]);
+    status.all.push(summaryDocument);
+    status.toIndexed.push(summaryDocument);
   }
 
   /**

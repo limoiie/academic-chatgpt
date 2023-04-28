@@ -62,12 +62,13 @@ export async function summarizeCollection(allDocumentsInCollection: Document[]) 
 
   const content = metadataList
     .map((metadata, i) => {
-      const { filename, ...rest } = metadata;
+      const { filename, ..._ } = metadata;
       return `- Document ${i + 1}: ${filename}`;
     })
     .join('\n');
 
   return `# Documents Collection Summary
+
 This collection consists of ${allDocumentsInCollection.length} documents:
 ${content}`;
 }
