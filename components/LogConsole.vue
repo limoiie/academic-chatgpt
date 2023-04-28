@@ -2,7 +2,7 @@
   <a-list class="log-console" :data-source="logs">
     <!--suppress VueUnrecognizedSlot -->
     <template #renderItem="{ item }">
-      <a-list-item>
+      <a-list-item class="bg-[#fafafa] dark:bg-[#1a1a1a] hover:bg-[#e6f7ff] dark:hover:bg-[#080e13]">
         <p :class="{ [item.level]: item.level }">{{ item.message }}</p>
         <p class="w-32 text-end col-span-1 whitespace-nowrap">[{{ (item.timestamp as Date).toLocaleTimeString() }}]</p>
       </a-list-item>
@@ -39,16 +39,12 @@ function scrollToConsoleEnd() {
 
   .ant-list-items
     padding: 8px
-    background: #fafafa
     border-radius: 4px
 
   li
     &.ant-list-item
       padding: 0
       border: 0 !important
-
-    &.ant-list-item:hover
-      background: #e6f7ff
 
     p
       margin: 0

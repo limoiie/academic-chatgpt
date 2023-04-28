@@ -17,16 +17,32 @@
           </template>
           Remove
         </a-button>
-        <a-button v-if="!hasSelected" :loading="isLoading" class="ant-btn-with-icon" @click="reloadDocuments">
+        <a-button v-if="!hasSelected" :loading="isLoading" shape="circle" @click="reloadDocuments">
           <template #icon>
             <ReloadOutlined />
           </template>
-          Refresh
         </a-button>
-        <a-tooltip
-          :title="indexSyncStatus?.clean ? 'Synced!' : `Sync changes: ${syncStatusBrief}.`"
-          :color="indexSyncStatus?.clean ? 'green' : 'orange'"
-        >
+        <a-popover :color="indexSyncStatus?.clean ? 'green' : 'orange'">
+          <template #content>
+            <a-space>
+              {{ indexSyncStatus?.clean ? 'Synced!' : `Sync changes: ${syncStatusBrief}.` }}
+              <a-tooltip title="Reload sync status" mouse-enter-delay="1">
+                <a-button
+                  v-if="!hasSelected"
+                  :loading="isComputingSync"
+                  :disabled="isAdding || isLoading"
+                  :type="'dashed'"
+                  shape="circle"
+                  @click="recomputeIndexSyncStatus"
+                >
+                  <template #icon>
+                    <DiffOutlined />
+                  </template>
+                </a-button>
+              </a-tooltip>
+            </a-space>
+          </template>
+
           <a-button
             v-if="!hasSelected"
             :loading="isSyncing || isComputingSync"
@@ -39,21 +55,7 @@
               <CloudSyncOutlined />
             </template>
           </a-button>
-        </a-tooltip>
-        <a-tooltip title="Reload sync status">
-          <a-button
-            v-if="!hasSelected"
-            :loading="isComputingSync"
-            :disabled="isAdding || isLoading"
-            :type="'dashed'"
-            shape="circle"
-            @click="recomputeIndexSyncStatus"
-          >
-            <template #icon>
-              <DiffOutlined />
-            </template>
-          </a-button>
-        </a-tooltip>
+        </a-popover>
       </a-space>
       <a-table
         :data-source="uiDocuments"
