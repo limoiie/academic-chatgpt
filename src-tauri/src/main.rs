@@ -8,7 +8,7 @@ extern crate dotenv;
 
 use tauri::Manager;
 
-use app::commands::db;
+use app::commands::{db, fs};
 
 const DB_NAME: &str = "dev.db";
 
@@ -64,6 +64,7 @@ fn register_invoke_handlers(
         db::documents::get_documents_by_collection_id,
         db::documents::get_or_create_document,
         db::documents::add_documents,
+        db::documents::delete_document,
         db::collections_on_documents::delete_collection_on_documents,
         db::collections_on_documents::delete_documents_in_collection,
         db::collections_on_documents::add_documents_to_collection,
@@ -114,7 +115,8 @@ fn register_invoke_handlers(
         db::sessions::get_sessions_by_index_id,
         db::sessions::get_sessions,
         db::sessions::create_session,
-        db::sessions::update_session
+        db::sessions::update_session,
+        fs::hash_str_in_md5
     ])
 }
 

@@ -11,8 +11,8 @@ generator client {
 }
 
 model DocumentChunk {
-  document  Document  @relation(fields: [documentId], references: [id])
-  splitting Splitting @relation(fields: [splittingId], references: [id])
+  document  Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  splitting Splitting @relation(fields: [splittingId], references: [id], onDelete: Cascade)
   no        Int
   content   String
   meta      String
@@ -37,8 +37,8 @@ model Splitting {
 }
 
 model SplittingsOnDocuments {
-  splitting Splitting @relation(fields: [splittingId], references: [id])
-  document  Document  @relation(fields: [documentId], references: [id])
+  splitting Splitting @relation(fields: [splittingId], references: [id], onDelete: Cascade)
+  document  Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   splittingId Int
   documentId  Int
@@ -68,8 +68,8 @@ model Collection {
 }
 
 model CollectionsOnDocuments {
-  collection Collection @relation(fields: [collectionId], references: [id])
-  document   Document   @relation(fields: [documentId], references: [id])
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  document   Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   collectionId Int
   documentId   Int
@@ -149,8 +149,8 @@ model IndexProfile {
 model CollectionIndex {
   id         String       @id @default(uuid())
   name       String
-  collection Collection   @relation(fields: [collectionId], references: [id])
-  index      IndexProfile @relation(fields: [indexId], references: [id])
+  collection Collection   @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  index      IndexProfile @relation(fields: [indexId], references: [id], onDelete: Cascade)
 
   collectionId Int
   indexId      Int
@@ -163,8 +163,8 @@ model CollectionIndex {
 
 model CollectionIndexOnDocument {
   id       Int             @id @default(autoincrement())
-  index    CollectionIndex @relation(fields: [indexId], references: [id])
-  document Document        @relation(fields: [documentId], references: [id])
+  index    CollectionIndex @relation(fields: [indexId], references: [id], onDelete: Cascade)
+  document Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   indexId    String
   documentId Int
@@ -175,7 +175,7 @@ model CollectionIndexOnDocument {
 model Session {
   id      Int             @id @default(autoincrement())
   name    String
-  index   CollectionIndex @relation(fields: [indexId], references: [id])
+  index   CollectionIndex @relation(fields: [indexId], references: [id], onDelete: Cascade)
   history String
 
   indexId String

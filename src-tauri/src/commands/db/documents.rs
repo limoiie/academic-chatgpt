@@ -91,6 +91,7 @@ pub async fn get_or_create_document(
         .await?)
 }
 
+/// Create documents and store them in `app_local_data_dir/upload` folder.
 // noinspection RsWrongGenericArgumentsNumber
 #[tauri::command]
 #[specta::specta]
@@ -105,6 +106,19 @@ pub async fn add_documents(
         docs.push(doc);
     }
     Ok(docs)
+}
+
+/// Delete a document and remove it from `app_local_data_dir/upload` folder.
+#[tauri::command]
+#[specta::specta]
+pub async fn delete_document(db: DbState<'_>, id: i32) -> crate::Result<()> {
+    let doc = db
+        .document()
+        .delete(document::id::equals(id))
+        .exec()
+        .await?;
+    tokio::fs::remove_file(doc.filepath).await?;
+    Ok(())
 }
 
 async fn prepare_upload_folder(config: &tauri::Config) -> std::io::Result<std::path::PathBuf> {

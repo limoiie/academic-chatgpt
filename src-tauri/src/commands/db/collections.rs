@@ -1,8 +1,7 @@
 use serde::Deserialize;
 use specta::Type;
 
-use crate::commands::db::documents::CreateDocumentData;
-use crate::commands::db::{collection_indexes, collections_on_documents, documents, DbState};
+use crate::commands::db::{documents, DbState};
 use crate::prisma::{collection, document};
 
 collection::include!(collection_with_indexes { indexes });
@@ -13,16 +12,6 @@ pub async fn delete_collection_by_id(
     db: DbState<'_>,
     collection_id: i32,
 ) -> crate::Result<collection::Data> {
-    collections_on_documents::delete_collection_on_documents(db.clone(), collection_id).await?;
-    collection_indexes::delete_collection_indexes_by_id(
-        db.clone(),
-        collection_indexes::get_collection_indexes_by_collection_id(db.clone(), collection_id)
-            .await?
-            .into_iter()
-            .map(|p| p.id)
-            .collect(),
-    )
-    .await?;
     Ok(db
         .collection()
         .delete(collection::id::equals(collection_id))
@@ -65,7 +54,7 @@ pub async fn get_collections(db: DbState<'_>) -> crate::Result<Vec<collection::D
 #[derive(Deserialize, Type)]
 pub struct CreateCollectionData {
     name: String,
-    documents: Vec<CreateDocumentData>,
+    documents: Vec<documents::CreateDocumentData>,
 }
 
 // noinspection RsWrongGenericArgumentsNumber

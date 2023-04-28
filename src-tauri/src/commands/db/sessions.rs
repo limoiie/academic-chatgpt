@@ -60,7 +60,7 @@ pub async fn get_sessions_by_index_id(
 }
 
 #[derive(Deserialize, Type)]
-pub struct CreateSessionsData {
+pub struct CreateSessionData {
     name: String,
     #[serde(rename = "indexId")]
     index_id: String,
@@ -71,7 +71,7 @@ pub struct CreateSessionsData {
 #[specta::specta]
 pub async fn create_session(
     db: DbState<'_>,
-    data: CreateSessionsData,
+    data: CreateSessionData,
 ) -> crate::Result<session::Data> {
     Ok(db
         .session()
@@ -86,7 +86,7 @@ pub async fn create_session(
 }
 
 #[derive(Deserialize, Type)]
-pub struct UpdateSessionsData {
+pub struct UpdateSessionData {
     id: i32,
     name: Option<String>,
     history: Option<String>,
@@ -96,7 +96,7 @@ pub struct UpdateSessionsData {
 #[specta::specta]
 pub async fn update_session(
     db: DbState<'_>,
-    data: UpdateSessionsData,
+    data: UpdateSessionData,
 ) -> crate::Result<session::Data> {
     Ok(db
         .session()
