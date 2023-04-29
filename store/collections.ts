@@ -240,23 +240,23 @@ export const useCollectionStore = defineStore('collections', () => {
   /**
    * Get the active index of a collection by collection id.
    */
-  async function getActiveIndexByCollectionId(collectionid: number) {
-    const existingActiveIndexId = preferences.activeIndexIdByCollectionId.get(collectionid);
+  async function getActiveIndexByCollectionId(collectionId: number) {
+    const existingActiveIndexId = preferences.activeIndexIdByCollectionId.get(collectionId);
     const activeIndexId = existingActiveIndexId?.value;
     if (activeIndexId) {
-      const activeIndex = getCollectionIndexesByCollectionId(collectionid)?.find((c) => c.id == activeIndexId);
+      const activeIndex = getCollectionIndexesByCollectionId(collectionId)?.find((c) => c.id == activeIndexId);
       if (activeIndex) return activeIndex;
     }
 
     // fallback to first index
-    const fallbackActiveIndex = getCollectionIndexesByCollectionId(collectionid)?.[0];
+    const fallbackActiveIndex = getCollectionIndexesByCollectionId(collectionId)?.[0];
     if (!fallbackActiveIndex) {
       return fallbackActiveIndex;
     }
     if (existingActiveIndexId) {
       existingActiveIndexId.value = fallbackActiveIndex.id;
     } else {
-      preferences.activeIndexIdByCollectionId.set(collectionid, ref(fallbackActiveIndex.id));
+      preferences.activeIndexIdByCollectionId.set(collectionId, ref(fallbackActiveIndex.id));
     }
     await storeCacheToTauriStore();
     return fallbackActiveIndex;

@@ -63,13 +63,13 @@ pub struct CreateVectorDbClientData {
 pub async fn create_vector_db_client(
     db: DbState<'_>,
     data: CreateVectorDbClientData,
-) -> crate::Result<VectorDbConfigExData> {
+) -> crate::Result<VectorDbClientExData> {
     let info = serde_json::to_string(&data.info)?;
-    db.vector_db_config()
+    db.vector_db_client()
         .create(data.name, data.r#type, info, vec![])
         .exec()
         .await
-        .map(VectorDbConfigExData::from_data)?
+        .map(VectorDbClientExData::from_data)?
 }
 
 #[tauri::command]

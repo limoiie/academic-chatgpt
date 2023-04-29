@@ -1,10 +1,12 @@
 <template>
   <div>
-    <a-button v-if="IN_TAURI" class="ant-btn-with-icon" :loading="loading" @click="openFileSelectionDialogInTauri">
-      <slot name="icon">
-        <UploadOutlined />
-      </slot>
-      <slot name="text"> Upload</slot>
+    <a-button v-if="IN_TAURI" shape="circle" :loading="loading" @click="openFileSelectionDialogInTauri">
+      <template #icon>
+        <slot name="icon">
+          <UploadOutlined />
+        </slot>
+      </template>
+      <slot name="text" />
     </a-button>
     <a-upload
       v-else
@@ -13,11 +15,11 @@
       :directory="options?.directory || false"
       :show-upload-list="false"
     >
-      <a-button class="ant-btn-with-icon" :loading="loading">
+      <a-button :loading="loading">
         <slot name="icon">
           <UploadOutlined />
         </slot>
-        <slot name="text"> Upload</slot>
+        <slot name="text" />
       </a-button>
     </a-upload>
   </div>

@@ -1,30 +1,27 @@
 <template>
   <a-space class="w-full" direction="vertical">
+    <CreateIndexProfileDrawer v-model:visible="isCreatingIndex" @on-create="onCreated" />
+
+    <!-- control buttons bar -->
     <a-space>
-      <a-button v-if="!hasSelected" class="ant-btn-with-icon" @click="add">
+      <a-button v-if="!hasSelected" shape="circle" @click="openCreatingDrawer">
         <template #icon>
-          <PlusCircleOutlined />
+          <PlusOutlined />
         </template>
-        Add
       </a-button>
-      <a-button v-if="hasSelected" class="ant-btn-with-icon" @click="removeSelected" danger>
+      <a-button v-if="hasSelected" shape="circle" @click="removeSelected" danger>
         <template #icon>
           <ClearOutlined />
         </template>
-        Remove
       </a-button>
-      <a-button
-        v-if="!hasSelected"
-        :loading="loading"
-        class="ant-btn-with-icon"
-        @click="collectionStore.loadIndexesFromDatabase"
-      >
+      <a-button v-if="!hasSelected" :loading="loading" shape="circle" @click="collectionStore.loadIndexesFromDatabase">
         <template #icon>
           <ReloadOutlined />
         </template>
-        Refresh
       </a-button>
     </a-space>
+
+    <!-- index profile table -->
     <a-table
       :data-source="indexesUiData"
       :columns="columns || []"
@@ -49,7 +46,7 @@
 
             <a-button size="small" shape="circle" @click="remove(record.id)" danger>
               <template #icon>
-                <DeleteOutlined />
+                <ClearOutlined />
               </template>
             </a-button>
           </a-space>
@@ -61,17 +58,12 @@
 
 <script setup lang="ts">
 import { useRoute } from '#app';
-import {
-  ClearOutlined,
-  CommentOutlined,
-  DeleteOutlined,
-  PlusCircleOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons-vue';
+import { ClearOutlined, CommentOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import { message, TableColumnsType, TableColumnType } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { stringify } from 'yaml';
+import CreateIndexProfileDrawer from '~/components/CreateIndexProfile.vue';
 import { CollectionIndexWithAll } from '~/plugins/tauri/bindings';
 import { useCollectionStore } from '~/store/collections';
 
@@ -119,6 +111,7 @@ const collectionId = parseInt(route.params['id'] as string);
 const { $tauriCommands } = useNuxtApp();
 
 const loading = ref<boolean>(false);
+const isCreatingIndex = ref<boolean>(false);
 const selectedRawKeys = ref<string[]>([]);
 const hasSelected = computed(() => selectedRawKeys.value.length != 0);
 
@@ -162,8 +155,12 @@ async function open(id: number) {
   navigateTo(targetIndexPageUrl);
 }
 
-async function add() {
-  message.warn('Not implemented yet');
+async function openCreatingDrawer() {
+  isCreatingIndex.value = true;
+}
+
+async function onCreated() {
+  isCreatingIndex.value = false;
   await collectionStore.reloadCollectionById(collectionId);
 }
 
@@ -182,6 +179,7 @@ async function removeSelected() {
 }
 
 async function removeIndexProfiles(indexProfileIds: string[]) {
+  // todo: just clear, not delete
   if (indexProfileIds.length > 0) {
     const deleted = await $tauriCommands.deleteCollectionIndexesById(indexProfileIds);
     if (deleted != indexProfileIds.length) {

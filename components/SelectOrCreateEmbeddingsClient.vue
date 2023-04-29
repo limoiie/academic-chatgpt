@@ -4,7 +4,8 @@
     :options="availableClientsUiData || []"
     v-model:value="selectedId"
     v-model:creating="isCreating"
-    @ok="onCreate"
+    v-model:previewing="isPreviewing"
+    @create="onCreate"
     title="New Embeddings Client"
   >
     <template #createForm>
@@ -22,34 +23,50 @@
           <a-select v-model:value="formState.type" :options="allClientTypes"></a-select>
         </a-form-item>
       </a-form>
+
+      <!-- Embedding meta -->
+      <!--  - openai -->
       <a-form v-if="formState.type == 'openai'" :model="formState.info" :label-col="{ span: 4 }">
         <a-form-item label="Api Key" name="apiKey" :rules="[{ required: true }]">
           <a-input v-model:value="formState.info.apiKey" />
         </a-form-item>
       </a-form>
+      <!--  - otherwise, alert -->
+      <a-alert v-else message="Not supported yet" type="warning" show-icon style="margin-bottom: 1rem" />
+    </template>
+
+    <template #preview>
+      <p class="whitespace-pre-wrap">
+        {{ stringify(value) }}
+      </p>
     </template>
   </SelectOrCreate>
 </template>
 
 <script setup lang="ts">
 import { message } from 'ant-design-vue';
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
+import { stringify } from 'yaml';
 import { EmbeddingsClientExData } from '~/plugins/tauri/bindings';
 
-const { id = null, value } = defineProps<{ id?: number; value: EmbeddingsClientExData | undefined }>();
+const { id = null, value } = defineProps<{
+  /**
+   * The id of the selected embedding client. If not set, the first client will be selected by default
+   */
+  id?: number;
+  /**
+   * The value of the selected embeddings client
+   */
+  value: EmbeddingsClientExData | undefined;
+}>();
 const emits = defineEmits(['update:id', 'update:value']);
 
 const { $tauriCommands } = useNuxtApp();
 
 const selectedId = ref<number | null>(id);
-watch(selectedId, async (newId) => {
-  emits('update:id', newId);
-  const value = availableClients.value?.find((client) => client.id == newId);
-  emits('update:value', value);
-});
-
 const isLoading = ref<boolean>(false);
 const isCreating = ref<boolean>(false);
+const isPreviewing = ref<boolean>(false);
 
 const allClientTypes = ref([
   {
@@ -58,54 +75,77 @@ const allClientTypes = ref([
   },
 ]);
 
-function dbDataToUi(config: EmbeddingsClientExData) {
-  return {
-    value: config.id,
-    label: config.name,
-  };
-}
-
-const formState = ref<CreateEmbeddingsClientFormState>({
+/**
+ * Form data for creating a new embedding client.
+ *
+ * @typedef {Object} CreateEmbeddingsClientFormState
+ */
+const formState = reactive<CreateEmbeddingsClientFormState>({
   type: 'openai',
   name: '',
   info: {},
 });
 
-const { data: availableClients } = useAsyncData('availableEmbeddingsClients', async () => {
-  isLoading.value = true;
-  let clients: EmbeddingsClientExData[] = [];
-  try {
-    clients = await $tauriCommands.getEmbeddingsClients();
-    selectedId.value = selectedId.value || clients[0]?.id;
-  } catch (e) {
-    message.error('Failed to load Embeddings configs');
-  }
-  isLoading.value = false;
-  return clients;
+/**
+ * Load available embeddings clients from the database.
+ *
+ * Also set the first client as the selected one if no client is selected yet.
+ */
+const { data: availableClients } = useAsyncData('availableEmbeddingsClients', () => {
+  return Promise.resolve((isLoading.value = true))
+    .then(async () => {
+      const clients = await $tauriCommands.getEmbeddingsClients();
+      selectedId.value = selectedId.value || clients[0]?.id;
+      return clients;
+    })
+    .catch((e) => {
+      message.error(`Failed to load available embeddings clients: ${errToString(e)}`);
+      return null;
+    })
+    .finally(() => (isLoading.value = false));
 });
 const availableClientsUiData = computed(() => availableClients.value?.map(dbDataToUi));
 
-async function onCreate() {
-  await nextTick(async () => {
-    if (formState.value) {
+/**
+ * Notify the selected client changed when the id or the available clients change.
+ */
+watch([selectedId, availableClients], ([newClientId, clients]) => {
+  emits('update:id', newClientId);
+  emits(
+    'update:value',
+    clients?.find((client) => client.id == newClientId),
+  );
+});
+
+function onCreate() {
+  return Promise.resolve()
+    .then(async () => {
       // todo: validate
 
       // update db
       const newDbConf = await $tauriCommands.createEmbeddingsClient({
-        type: formState.value.type,
-        name: formState.value.name,
-        info: formState.value.info,
+        type: formState.type,
+        name: formState.name,
+        info: formState.info,
       });
 
       // update ui
       availableClients.value = [newDbConf, ...(availableClients.value || [])];
       selectedId.value = newDbConf.id;
+    })
+    .then(() => {
+      message.info(`New ${formState.name} Embeddings Client added!`);
+    })
+    .catch((e) => {
+      message.error(`Failed to create new embeddings client: ${errToString(e)}`);
+    })
+    .finally(() => (isCreating.value = false));
+}
 
-      // notify
-      message.info(`New ${formState.value.name} Embeddings Client added!`);
-    }
-
-    isCreating.value = false;
-  });
+function dbDataToUi(config: EmbeddingsClientExData) {
+  return {
+    value: config.id,
+    label: config.name,
+  };
 }
 </script>

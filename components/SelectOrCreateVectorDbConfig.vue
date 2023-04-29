@@ -1,66 +1,75 @@
 <template>
   <SelectOrCreate
-    :loading="isLoadingConfigs"
-    :options="availableConfigsUiData || []"
-    v-model:value="selectedConfigId"
-    v-model:creating="isCreatingConfig"
+    :loading="isLoading"
+    :options="availableUiDataConfigs || []"
+    v-model:value="selectedId"
+    v-model:creating="isCreating"
+    v-model:previewing="isPreviewing"
     @ok="onCreate"
     title="New Vector Db Config"
   >
     <template #createForm>
-      <a-form :model="formState">
-        <!-- Config Name -->
-        <a-form-item
-          label="Name"
-          name="name"
-          :rules="[{ required: true, message: 'Please choose an unique name for this config!' }]"
-        >
+      <a-form :model="formState" :label-col="{ span: 8 }">
+        <!-- Config name -->
+        <a-form-item label="Name" name="name" :rules="[{ required: true, message: 'Already exists' }]">
           <a-input v-model:value="formState.name" />
         </a-form-item>
-        <!-- Index Client -->
-        <a-form-item label="Client" name="clientType" :rules="[{ required: true }]">
-          <div class="border px-2 pb-2">
-            <a-tabs v-model:activeKey="formState.clientType">
-              <!-- Pinecone panel -->
-              <a-tab-pane key="pinecone" tab="Pinecone">
-                <a-form :model="formState.meta">
-                  <a-form-item label="Api Key" name="apiKey" :rules="[{ required: true }]">
-                    <a-input v-model:value="formState.meta.apiKey" />
-                  </a-form-item>
-                  <a-form-item label="Environment" name="environment" :rules="[{ required: true }]">
-                    <a-input v-model:value="formState.meta.environment" />
-                  </a-form-item>
-                  <a-form-item label="Index Name" name="indexName" :rules="[{ required: true }]">
-                    <a-input v-model:value="formState.meta.indexName" />
-                  </a-form-item>
-                  <a-tooltip>
-                    <template #title>OpenAI only supports 1536 so far</template>
-                    <a-form-item label="Embedding Dim" name="dimension" :rules="[{ required: true }]">
-                      <a-input-number v-model:value="formState.meta.dimension" :default-value="1536" />
-                    </a-form-item>
-                  </a-tooltip>
-                  <a-form-item label="Similarity Metric" name="metric" :rules="[{ required: true }]">
-                    <a-select v-model:value="formState.meta.metric" :options="pineconeMetrics" />
-                  </a-form-item>
-                </a-form>
-              </a-tab-pane>
-            </a-tabs>
-          </div>
+
+        <!-- Client type -->
+        <a-form-item label="Client Type">
+          <span class="ant-form-text">{{ clientType }}</span>
         </a-form-item>
       </a-form>
+
+      <!-- Config details -->
+      <!--  - pinecone -->
+      <a-form v-if="clientType == 'pinecone'" :model="formState.meta" :label-col="{ span: 8 }">
+        <a-tooltip>
+          <template #title>OpenAI only supports 1536 so far</template>
+          <a-form-item label="Embedding Dim" name="dimension" :rules="[{ required: true }]">
+            <a-input-number v-model:value="formState.meta.dimension" :default-value="1536" />
+          </a-form-item>
+        </a-tooltip>
+        <a-form-item label="Similarity Metric" name="metric" :rules="[{ required: true }]">
+          <a-select v-model:value="formState.meta.metric" :options="pineconeMetrics" />
+        </a-form-item>
+      </a-form>
+      <!--  - otherwise, alert -->
+      <a-alert v-else message="Not supported yet" type="warning" show-icon style="margin-bottom: 1rem" />
+    </template>
+
+    <template #preview>
+      <p class="whitespace-pre-wrap">
+        {{ stringify(value) }}
+      </p>
     </template>
   </SelectOrCreate>
 </template>
 
 <script setup lang="ts">
 import { message } from 'ant-design-vue';
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
+import { stringify } from 'yaml';
 import { VectorDbConfigExData } from '~/plugins/tauri/bindings';
 
-const isLoadingConfigs = ref(false);
-const isCreatingConfig = ref(false);
-
-const { id = null, value } = defineProps<{ id?: number; value: VectorDbConfigExData | undefined }>();
+const {
+  id = null,
+  clientType = null,
+  value,
+} = defineProps<{
+  /**
+   * The id of the selected config.
+   */
+  id?: number;
+  /**
+   * The client type.
+   */
+  clientType?: string;
+  /**
+   * The selected config.
+   */
+  value: VectorDbConfigExData | undefined;
+}>();
 const emits = defineEmits(['update:id', 'update:value']);
 
 const { $tauriCommands } = useNuxtApp();
@@ -72,8 +81,16 @@ const pineconeMetrics = [
   },
 ];
 
-const formState = ref<CreateVectorDbConfigFormState>({
-  clientType: 'pinecone',
+const selectedId = ref<number | null>(id);
+const isLoading = ref(false);
+const isCreating = ref(false);
+const isPreviewing = ref(false);
+
+/**
+ * The form state for creating a new vector db config.
+ */
+const formState = reactive<CreateVectorDbConfigFormState>({
+  clientType: clientType || 'pinecone',
   name: '',
   meta: {
     metric: 'cosine',
@@ -81,55 +98,65 @@ const formState = ref<CreateVectorDbConfigFormState>({
   },
 });
 
-const selectedConfigId = ref<number | null>(id);
-watch(selectedConfigId, (newConfigId) => {
-  emits('update:id', newConfigId);
-  const value = availableConfigs.value?.find((config) => config.id == newConfigId);
-  emits('update:value', value);
+/**
+ * Load available vectorstore configs from the database.
+ */
+const { data: availableConfigs } = useAsyncData('availableVectorDbConfigs', () => {
+  return Promise.resolve((isLoading.value = true))
+    .then(async () => {
+      const data: VectorDbConfigExData[] = await $tauriCommands.getVectorDbConfigs();
+      selectedId.value = selectedId.value || data[0]?.id;
+      return data;
+    })
+    .catch((e) => {
+      message.error(`Failed to load index configs: ${errToString(e)}`);
+    })
+    .finally(() => {
+      isLoading.value = false;
+    });
 });
+const availableUiDataConfigs = computed(() => availableConfigs.value?.map(dbDataToUi));
+
+/**
+ * Notify the selected config has changed if id or the available configs change.
+ */
+watch([selectedId, availableConfigs], ([newConfigId, configs]) => {
+  emits('update:id', newConfigId);
+  emits(
+    'update:value',
+    configs?.find((config) => config.id == newConfigId),
+  );
+});
+
+function onCreate() {
+  return Promise.resolve()
+    .then(async () => {
+      // todo: validate
+
+      // update db
+      const newDbConf = await $tauriCommands.createVectorDbConfig({
+        clientType: formState.clientType,
+        name: formState.name,
+        meta: formState.meta,
+      });
+
+      // update ui
+      selectedId.value = newDbConf.id;
+      availableConfigs.value = [newDbConf, ...(availableConfigs.value || [])];
+    })
+    .then(() => {
+      message.info(`New ${formState.name} Vector Db Config Created!`);
+    })
+    .catch((e) => {
+      message.error(`Failed to create new vector db config: ${errToString(e)}`);
+    })
+    .finally(() => (isCreating.value = false));
+}
 
 function dbDataToUi(config: VectorDbConfigExData) {
   return {
     value: config.id,
     label: config.name,
   };
-}
-
-const { data: availableConfigs } = useAsyncData('availableVectorDbConfigs', async () => {
-  isLoadingConfigs.value = true;
-  let data: VectorDbConfigExData[] = [];
-  try {
-    data = await $tauriCommands.getVectorDbConfigs();
-    selectedConfigId.value = selectedConfigId.value || data[0]?.id;
-  } catch (e) {
-    message.error('Failed to load index configs');
-  }
-  isLoadingConfigs.value = false;
-  return data;
-});
-const availableConfigsUiData = computed(() => availableConfigs.value?.map(dbDataToUi));
-
-async function onCreate() {
-  await nextTick(async () => {
-    if (formState.value) {
-      // todo: validate
-
-      // update db
-      const newDbConf = await $tauriCommands.createVectorDbConfig({
-        clientType: formState.value.clientType,
-        name: formState.value.name,
-        meta: formState.value.meta,
-      });
-
-      // update ui
-      selectedConfigId.value = newDbConf.id;
-      availableConfigs.value = [newDbConf, ...(availableConfigs.value || [])];
-
-      // notify
-      message.info(`New ${formState.value.name} Vector Db Config Created!`);
-    }
-
-    isCreatingConfig.value = false;
-  });
 }
 </script>
