@@ -34,12 +34,12 @@ const { data, error } = useAsyncData(`indexDataOfCollection${collectionId}Index$
     .then(() => collectionStore.load())
     .then(async () => {
       const collection = await collectionStore.getCollection(collectionId);
-      const index = collectionStore.getCollectionIndexById(collectionId, indexId);
+      const index = await collectionStore.getCollectionIndexById(collectionId, indexId);
       if (!collection) {
-        throw new Error(`No such collection ${collectionId}`);
+        return Promise.reject(`No such collection ${collectionId}`);
       }
       if (!index) {
-        throw new Error(`No such index ${indexId} for collection ${collectionId}`);
+        return Promise.reject(`No such index ${indexId} for collection ${collectionId}`);
       }
       return { collection, index };
     })

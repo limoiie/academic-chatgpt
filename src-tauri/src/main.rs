@@ -60,6 +60,7 @@ fn register_invoke_handlers(
 ) -> tauri::Builder<tauri::Wry> {
     tauri_builder.invoke_handler(tauri::generate_handler![
         db::splittings::get_or_create_splitting,
+        db::splittings::get_or_create_splitting_id,
         db::documents::get_documents,
         db::documents::get_documents_by_collection_id,
         db::documents::get_or_create_document,
@@ -106,6 +107,7 @@ fn register_invoke_handlers(
         db::collection_indexes::delete_collection_indexes_by_id,
         db::collection_indexes::get_collection_indexes_by_collection_id,
         db::collection_indexes::get_collection_indexes_by_collection_id_with_all,
+        db::collection_indexes::get_collection_index_by_collection_id_profile_id_with_all,
         db::collection_indexes::get_collection_index_by_id,
         db::collection_indexes::create_collection_index,
         db::collection_indexes::upsert_documents_in_collection_index,
@@ -189,7 +191,10 @@ async fn prepare_prisma_db(app: &tauri::App<tauri::Wry>) {
     };
 
     #[cfg(debug_assertions)]
-    db._db_push().await.expect("error while pushing db");
+    db._db_push()
+        .accept_data_loss()
+        .await
+        .expect("error while pushing db");
     #[cfg(not(debug_assertions))]
     db._migrate_deploy()
         .await

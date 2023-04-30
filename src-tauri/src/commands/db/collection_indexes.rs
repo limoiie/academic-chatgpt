@@ -72,6 +72,24 @@ pub async fn get_collection_indexes_by_collection_id_with_all(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn get_collection_index_by_collection_id_profile_id_with_all(
+    db: DbState<'_>,
+    collection_id: i32,
+    index_profile_id: i32,
+) -> crate::Result<Option<collection_index_with_all::Data>> {
+    Ok(db
+        .collection_index()
+        .find_unique(collection_index::collection_id_index_id(
+            collection_id,
+            index_profile_id,
+        ))
+        .include(collection_index_with_all::include())
+        .exec()
+        .await?)
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn get_collection_index_by_id(
     db: DbState<'_>,
     collection_index_id: String,

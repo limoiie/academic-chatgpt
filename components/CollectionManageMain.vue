@@ -1,13 +1,11 @@
 <template>
-  <a-space class="w-full" direction="vertical">
+  <a-space v-if="index" class="w-full" direction="vertical">
     <a-modal title="Adding..." :visible="isAdding" :closable="false">
       <TraceBar :tracer-status="addTracer" />
     </a-modal>
-
     <a-modal title="Syncing..." :visible="isSyncing" :closable="false" @cancel="() => (isSyncing = false)">
       <TraceBar :tracer-status="indexTracer" />
     </a-modal>
-
     <a-space class="w-full" direction="vertical">
       <a-space>
         <file-selector v-if="!hasSelected" :options="openOptions" @select="addDocuments"></file-selector>
@@ -26,7 +24,7 @@
           <template #content>
             <a-space>
               {{ indexSyncStatus?.clean ? 'Synced!' : `Sync changes: ${syncStatusBrief}.` }}
-              <a-tooltip title="Reload sync status" mouse-enter-delay="1">
+              <a-tooltip title="Reload sync status" :mouse-enter-delay="1">
                 <a-button
                   v-if="!hasSelected"
                   :loading="isComputingSync"
@@ -85,16 +83,17 @@
       </a-table>
     </a-space>
   </a-space>
+  <a-result v-else title="No index selected">
+    <template #subTitle>You may need to select an existing index or create a new one in the indexes tab.</template>
+  </a-result>
 </template>
 
 <script setup lang="ts">
 import { CloudSyncOutlined, DeleteOutlined, DiffOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import { message, TableColumnType } from 'ant-design-vue';
 import { basename } from 'pathe';
-import { storeToRefs } from 'pinia';
-import { ref } from 'vue';
+import { ref, toRefs } from 'vue';
 import { CollectionIndexWithAll, Document } from '~/plugins/tauri/bindings';
-import { useCollectionStore } from '~/store/collections';
 import { IndexSyncStatus } from '~/utils/indexSyncStatus';
 import { NestedStepTracer } from '~/utils/tracer';
 
@@ -136,9 +135,8 @@ interface DocumentUiData {
   md5: string;
 }
 
-const props = defineProps<{ id: number; indexId: string | undefined }>();
-const { id } = props;
-const indexId = toRef(props, 'indexId');
+const props = defineProps<{ id: number; index: CollectionIndexWithAll | undefined }>();
+const { id, index } = toRefs(props);
 
 const { $tauriCommands } = useNuxtApp();
 
@@ -165,7 +163,7 @@ const selectedDocumentIds = ref<number[]>([]);
 const hasSelected = computed(() => selectedDocumentIds.value.length != 0);
 const { data: documents, refresh: reloadDocuments } = useAsyncData(`documentsOfCollection#${id}`, async () => {
   return await Promise.resolve((isLoading.value = true))
-    .then(() => $tauriCommands.getDocumentsByCollectionId(id))
+    .then(() => $tauriCommands.getDocumentsByCollectionId(id.value))
     .catch((e) => {
       message.error(`Failed to load documents: ${errToString(e)}`);
       return null;
@@ -186,22 +184,6 @@ const uiDocuments = computed(() => {
   );
 });
 
-/// collectionIndex and related status
-const collectionStore = useCollectionStore();
-const { collectionIndexes } = storeToRefs(collectionStore);
-const index = computed(() => {
-  if (indexId.value == null) {
-    // message.warn('No index profile selected for this collection. Please select one in the collection manage page.');
-    return undefined;
-  }
-  const indexProfiles = collectionIndexes.value.get(id);
-  if (!indexProfiles) {
-    // message.warn('No index profile for this collection. Please add in the collection manage > indexes page.');
-    return undefined;
-  }
-  return indexProfiles.find((p) => p.id == indexId.value);
-});
-
 /// index synchronizer and related status
 const indexSyncStatus = ref<IndexSyncStatus>();
 watch([index, documents], (changed) => {
@@ -213,13 +195,6 @@ const syncStatusBrief = computed(() => {
   return `🚀+${indexSyncStatus.value?.toIndexed.length}, -${indexSyncStatus.value?.toDeleted.length}`;
 });
 
-await Promise.resolve((isLoading.value = true))
-  .then(() => collectionStore.load())
-  .catch((e) => {
-    message.error(`Failed to collection: ${errToString(e)}`);
-  })
-  .finally(() => (isLoading.value = false));
-
 /**
  * Add the selected documents into the collection.
  */
@@ -229,8 +204,8 @@ async function addDocuments(selected: File[] | string[] | null) {
   }
 
   /**
-   * Add documents to collection by inserting into database
-   * After all, reload the documents list.
+   * Add documents to the collection by inserting into database
+   * After all, reload the document list.
    *
    * @param files The file objects or paths of the documents to add
    */
@@ -267,7 +242,7 @@ async function addDocuments(selected: File[] | string[] | null) {
         .finally(() => addTracer.onStepEnd());
     }
 
-    return await $tauriCommands.addDocumentsToCollection(id, documentIds).then(async (added) => {
+    return await $tauriCommands.addDocumentsToCollection(id.value, documentIds).then(async (added) => {
       addTracer.log('Reloading...');
       await reloadDocuments();
       return added;
@@ -309,7 +284,7 @@ async function removeSelectedDocuments() {
  * Remove documents from the collection.
  */
 async function removeDocuments(keys: number[]) {
-  const deleted = await $tauriCommands.deleteDocumentsInCollection(id, keys);
+  const deleted = await $tauriCommands.deleteDocumentsInCollection(id.value, keys);
   documents.value = documents.value?.filter((e) => !keys.includes(e.id)) || null;
   message.info(`Deleted ${deleted} document(s)!`);
   return deleted;

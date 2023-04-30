@@ -1,6 +1,6 @@
 <template>
   <a-space class="w-full" direction="vertical">
-    <CreateIndexProfileDrawer v-model:visible="isCreatingIndex" @on-create="onCreated" />
+    <CreateIndexProfileDrawer v-model:visible="isCreatingIndex" @on-created="onCreated" />
 
     <!-- control buttons bar -->
     <a-space>
@@ -14,7 +14,7 @@
           <ClearOutlined />
         </template>
       </a-button>
-      <a-button v-if="!hasSelected" :loading="loading" shape="circle" @click="collectionStore.loadIndexesFromDatabase">
+      <a-button v-if="!hasSelected" :loading="loading" shape="circle" @click="reload">
         <template #icon>
           <ReloadOutlined />
         </template>
@@ -60,12 +60,10 @@
 import { useRoute } from '#app';
 import { ClearOutlined, CommentOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import { message, TableColumnsType, TableColumnType } from 'ant-design-vue';
-import { storeToRefs } from 'pinia';
-import { ref } from 'vue';
+import { ref, toRefs } from 'vue';
 import { stringify } from 'yaml';
 import CreateIndexProfileDrawer from '~/components/CreateIndexProfile.vue';
 import { CollectionIndexWithAll } from '~/plugins/tauri/bindings';
-import { useCollectionStore } from '~/store/collections';
 
 const columns = ref<TableColumnsType>([
   {
@@ -104,28 +102,6 @@ const columns = ref<TableColumnsType>([
   },
 ]);
 
-const route = useRoute();
-const collectionStore = useCollectionStore();
-const collectionId = parseInt(route.params['id'] as string);
-
-const { $tauriCommands } = useNuxtApp();
-
-const loading = ref<boolean>(false);
-const isCreatingIndex = ref<boolean>(false);
-const selectedRawKeys = ref<string[]>([]);
-const hasSelected = computed(() => selectedRawKeys.value.length != 0);
-
-const { collectionIndexes } = storeToRefs(collectionStore);
-const indexes = computed(() => {
-  return collectionIndexes.value.get(collectionId) || [];
-});
-
-const indexesUiData = computed(() => indexes.value.map(dbDataToUi));
-
-await Promise.resolve((loading.value = true))
-  .then(() => collectionStore.loadIndexesFromDatabase())
-  .finally(() => (loading.value = false));
-
 interface IndexProfileUiData {
   id: string;
   indexId: number;
@@ -135,6 +111,58 @@ interface IndexProfileUiData {
   embeddingsConfig: string;
   vectorDbConfig: string;
   origin: CollectionIndexWithAll;
+}
+
+const { $tauriCommands } = useNuxtApp();
+
+const loading = ref<boolean>(false);
+const isCreatingIndex = ref<boolean>(false);
+const selectedRawKeys = ref<string[]>([]);
+const hasSelected = computed(() => selectedRawKeys.value.length != 0);
+
+const props = defineProps<{
+  indexes: CollectionIndexWithAll[];
+  reload?: () => Promise<void>;
+}>();
+const { indexes, reload = () => {} } = toRefs(props);
+const indexesUiData = computed(() => indexes.value.map(dbDataToUi));
+
+const route = useRoute();
+const collectionId = parseInt(route.params['id'] as string);
+
+async function open(id: number) {
+  const targetIndexPageUrl = route.path.replace(/\/manage$/, `/indexes/${id}`);
+  navigateTo(targetIndexPageUrl);
+}
+
+async function openCreatingDrawer() {
+  isCreatingIndex.value = true;
+}
+
+async function onCreated() {
+  isCreatingIndex.value = false;
+}
+
+async function remove(id: string) {
+  await removeIndexProfiles([id]);
+}
+
+async function removeSelected() {
+  const selected = selectedRawKeys.value;
+  if (selected.length > 0) {
+    await removeIndexProfiles(selected);
+    selectedRawKeys.value = [];
+  }
+}
+
+async function removeIndexProfiles(indexProfileIds: string[]) {
+  // todo: just clear, not delete
+  if (indexProfileIds.length > 0) {
+    const deleted = await $tauriCommands.deleteCollectionIndexesById(indexProfileIds);
+    if (deleted != indexProfileIds.length) {
+      message.warn(`Failed to delete: ${indexProfileIds.length} to delete, only ${deleted} deleted`);
+    }
+  }
 }
 
 function dbDataToUi(indexProfile: CollectionIndexWithAll) {
@@ -148,44 +176,6 @@ function dbDataToUi(indexProfile: CollectionIndexWithAll) {
     vectorDbConfig: indexProfile.index.vectorDbConfig.name,
     origin: indexProfile,
   } as IndexProfileUiData;
-}
-
-async function open(id: number) {
-  const targetIndexPageUrl = route.path.replace(/\/manage$/, `/indexes/${id}`);
-  navigateTo(targetIndexPageUrl);
-}
-
-async function openCreatingDrawer() {
-  isCreatingIndex.value = true;
-}
-
-async function onCreated() {
-  isCreatingIndex.value = false;
-  await collectionStore.reloadCollectionById(collectionId);
-}
-
-async function remove(id: string) {
-  await removeIndexProfiles([id]);
-  await collectionStore.reloadCollectionById(collectionId);
-}
-
-async function removeSelected() {
-  const selected = selectedRawKeys.value;
-  if (selected.length > 0) {
-    await removeIndexProfiles(selected);
-    selectedRawKeys.value = [];
-  }
-  await collectionStore.reloadCollectionById(collectionId);
-}
-
-async function removeIndexProfiles(indexProfileIds: string[]) {
-  // todo: just clear, not delete
-  if (indexProfileIds.length > 0) {
-    const deleted = await $tauriCommands.deleteCollectionIndexesById(indexProfileIds);
-    if (deleted != indexProfileIds.length) {
-      message.warn(`Failed to delete: ${indexProfileIds.length} to delete, only ${deleted} deleted`);
-    }
-  }
 }
 
 function onSelectionChanged(selected: string[]) {

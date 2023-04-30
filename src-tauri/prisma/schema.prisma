@@ -158,7 +158,7 @@ model CollectionIndex {
   sessions         Session[]
   indexedDocuments CollectionIndexOnDocument[]
 
-  @@unique([collectionId, name])
+  @@unique([collectionId, indexId])
 }
 
 model CollectionIndexOnDocument {

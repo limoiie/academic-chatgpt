@@ -1,9 +1,14 @@
-import { message } from 'ant-design-vue';
-import { defineStore } from 'pinia';
-import { Ref } from 'vue';
-import { Collection, CollectionIndexWithAll, IndexProfileWithAll } from '~/plugins/tauri/bindings';
+import { defineStore, storeToRefs } from 'pinia';
+import { ref, Ref, WatchStopHandle } from 'vue';
+import {
+  Collection,
+  CollectionIndexWithAll,
+  createCollectionIndex,
+  IndexProfileWithAll,
+} from '~/plugins/tauri/bindings';
+import { useIndexProfileStore } from '~/store/indexProfiles';
+import { useSessionStore } from '~/store/sessions';
 import { deleteIndexFromVectorstore } from '~/utils/vectorstores';
-import { useSessionStore } from "~/store/sessions";
 
 interface CollectionPreference {
   /**
@@ -52,12 +57,8 @@ export const useCollectionStore = defineStore('collections', () => {
    */
   const collectionNames = computed(() => collections.value.map((c) => c.name));
 
-  /**
-   * All indexes of all collections by collection id.
-   */
-  const collectionIndexes = ref<Map<number, CollectionIndexWithAll[]>>(new Map());
-
   const sessionStore = useSessionStore();
+  const indexProfileStore = useIndexProfileStore();
 
   const route = useRoute();
   watch(route, async () => {
@@ -68,10 +69,13 @@ export const useCollectionStore = defineStore('collections', () => {
    * Load collections and related state from cache and database if not loaded.
    */
   async function load() {
+    await sessionStore.load();
+    await indexProfileStore.load();
+
     if (!loaded.value) {
       await loadCollectionsFromDatabase();
-      await loadIndexesFromDatabase();
       await loadCacheFromTauriStore();
+
       loaded.value = true;
     }
   }
@@ -108,18 +112,6 @@ export const useCollectionStore = defineStore('collections', () => {
    */
   async function loadCollectionsFromDatabase() {
     collections.value = (await $tauriCommands.getCollections()) || [];
-  }
-
-  /**
-   * Load all the indexes from the database.
-   */
-  async function loadIndexesFromDatabase() {
-    const map = new Map();
-    for (const collection of collections.value) {
-      const indexes = await $tauriCommands.getCollectionIndexesByCollectionIdWithAll(collection.id);
-      map.set(collection.id, indexes);
-    }
-    collectionIndexes.value = map;
   }
 
   /**
@@ -168,9 +160,6 @@ export const useCollectionStore = defineStore('collections', () => {
         collections.value = [...collections.value.slice(0, k), ...collections.value.slice(k + 1)];
       }
     }
-
-    const indexes = await $tauriCommands.getCollectionIndexesByCollectionIdWithAll(id);
-    collectionIndexes.value.set(id, indexes);
   }
 
   /**
@@ -190,21 +179,10 @@ export const useCollectionStore = defineStore('collections', () => {
     if (i == -1) return { deleted: undefined, fallback: undefined };
 
     // remove indexes from remote vectorstore
-    const indexes = collectionIndexes.value.get(collectionId) || [];
-    for (const index of indexes) {
-      await deleteIndexFromVectorstore(index.index.vectorDbClient, index.index.vectorDbConfig, index.id).catch((e) =>
-        message.warn(
-          `Failed to delete index from vectorstore: ${errToString(e)}.` +
-            `If the vectorstore from pinecone, it is safe to ignore.`,
-        ),
-      );
-    }
-
-    // remove sessions and related data from the cache
-    await sessionStore.deleteSessionsFromCacheByIndexes(indexes);
+    const indexes = await $tauriCommands.getCollectionIndexesByCollectionIdWithAll(collectionId);
+    await deleteCollectionIndexes(indexes);
 
     // delete indexes and related data from the cache
-    collectionIndexes.value.delete(collectionId);
     const activeIndexId = preferences.activeIndexIdByCollectionId.get(collectionId);
     if (activeIndexId) {
       preferences.activeIndexIdByCollectionId.delete(collectionId);
@@ -212,10 +190,10 @@ export const useCollectionStore = defineStore('collections', () => {
     }
     await storeCacheToTauriStore();
 
-    // remove the collection with related indexes and session from the local database
+    // remove the collection with all related indexes and sessions from the local database
     await $tauriCommands.deleteCollectionById(collectionId);
     const deleted = collections.value[i];
-    collections.value = [...collections.value.slice(0, i), ...collections.value.slice(i + 1)];
+    collections.value = collections.value.filter((c) => c.id != collectionId);
 
     // set fallback collection if the active collection is the deleted one.
     const fallback =
@@ -223,42 +201,118 @@ export const useCollectionStore = defineStore('collections', () => {
     return { deleted, fallback };
   }
 
-  /**
-   * Get the index of a collection by id.
-   */
-  function getCollectionIndexById(collectionId: number, indexProfileId: number) {
-    return getCollectionIndexesByCollectionId(collectionId)?.find((c) => c.indexId == indexProfileId);
+  function useCollectionIndexes(collectionId: number) {
+    const indexes: Ref<CollectionIndexWithAll[]> = ref([]);
+    const { indexProfiles } = storeToRefs(indexProfileStore);
+
+    const activeIndexId = getActiveIndexIdByCollectionId(collectionId);
+    const activeIndex = computed(() => indexes.value.find((i) => i.id == activeIndexId.value));
+
+    const handle: WatchStopHandle = watch(
+      [indexProfiles],
+      async () => {
+        await syncCollectionIndexesWithIndexProfiles();
+      },
+      {
+        immediate: true,
+      },
+    );
+
+    onUnmounted(() => {
+      handle?.();
+    });
+
+    /**
+     * Sync the indexes of this collection with the index profiles.
+     *
+     * Maintain the one-to-one mapping between the indexes of this collection and the index profiles:
+     * - if there is an index profile but no index for this collection, a new index will be created.
+     * - if an index profile is deleted, the corresponding index of this collection will be deleted.
+     */
+    async function syncCollectionIndexesWithIndexProfiles() {
+      const currIndexes = await $tauriCommands.getCollectionIndexesByCollectionIdWithAll(collectionId);
+
+      // create the missing indexes
+      const toCreated = indexProfiles.value.filter((indexProfile) => {
+        return !currIndexes.find((index) => {
+          return index.indexId == indexProfile.id;
+        });
+      });
+      for (const indexProfile of toCreated) {
+        await createCollectionIndex({
+          name: indexProfile.name,
+          collectionId: collectionId,
+          indexId: indexProfile.id,
+        });
+      }
+
+      // delete indexes for those index profiles have gone
+      const toDeleted = currIndexes.filter((index) => {
+        return !indexProfiles.value.find((indexProfile) => {
+          return indexProfile.id == index.indexId;
+        });
+      });
+      await deleteCollectionIndexes(toDeleted);
+
+      indexes.value = currIndexes;
+      if (toCreated.length != 0 || toDeleted.length != 0) {
+        indexes.value = await $tauriCommands.getCollectionIndexesByCollectionIdWithAll(collectionId);
+      }
+    }
+
+    return {
+      indexes,
+      activeIndexId,
+      activeIndex,
+      refresh: syncCollectionIndexesWithIndexProfiles,
+    };
   }
 
   /**
-   * Get all the indexes of a collection by collection id.
+   * Delete the given collection indexes.
+   *
+   * Deletion includes:
+   * - remove the indexes from the remote vectorstore;
+   * - remove the sessions and related data of the indexes from the cache;
+   * - remove the indexes from the local database.
    */
-  function getCollectionIndexesByCollectionId(collectionId: number) {
-    return collectionIndexes.value.get(collectionId);
+  async function deleteCollectionIndexes(indexes: CollectionIndexWithAll[]) {
+    for (const index of indexes) {
+      // remove index from remote vectorstore
+      await deleteIndexFromVectorstore(index.index.vectorDbClient, index.index.vectorDbConfig, index.id);
+    }
+
+    // remove sessions and related data of this index from the cache
+    await sessionStore.deleteSessionsFromCacheByIndexes(indexes);
+
+    // remove index from the local database
+    await $tauriCommands.deleteCollectionIndexesById(indexes.map((index) => index.id));
+  }
+
+  /**
+   * Get the index of a collection by id.
+   */
+  async function getCollectionIndexById(collectionId: number, indexProfileId: number) {
+    return await $tauriCommands.getCollectionIndexByCollectionIdProfileIdWithAll(collectionId, indexProfileId);
   }
 
   /**
    * Get the active index of a collection by collection id.
    */
   async function getActiveIndexByCollectionId(collectionId: number) {
-    const existingActiveIndexId = preferences.activeIndexIdByCollectionId.get(collectionId);
-    const activeIndexId = existingActiveIndexId?.value;
-    if (activeIndexId) {
-      const activeIndex = getCollectionIndexesByCollectionId(collectionId)?.find((c) => c.id == activeIndexId);
+    const indexes = await $tauriCommands.getCollectionIndexesByCollectionIdWithAll(collectionId);
+    const activeIndexId = getActiveIndexIdByCollectionId(collectionId);
+    if (activeIndexId.value) {
+      const activeIndex = indexes?.find((c) => c.id == activeIndexId.value);
       if (activeIndex) return activeIndex;
     }
 
     // fallback to first index
-    const fallbackActiveIndex = getCollectionIndexesByCollectionId(collectionId)?.[0];
-    if (!fallbackActiveIndex) {
-      return fallbackActiveIndex;
+    const fallbackActiveIndex = indexes?.at(0);
+    if (fallbackActiveIndex) {
+      activeIndexId.value = fallbackActiveIndex.id;
     }
-    if (existingActiveIndexId) {
-      existingActiveIndexId.value = fallbackActiveIndex.id;
-    } else {
-      preferences.activeIndexIdByCollectionId.set(collectionId, ref(fallbackActiveIndex.id));
-    }
-    await storeCacheToTauriStore();
+
     return fallbackActiveIndex;
   }
 
@@ -267,15 +321,20 @@ export const useCollectionStore = defineStore('collections', () => {
    *
    * @param collectionId ID of the collection
    */
-  async function getActiveIndexIdByCollectionId(collectionId: number) {
-    return (await getActiveIndexByCollectionId(collectionId))?.id;
+  function getActiveIndexIdByCollectionId(collectionId: number) {
+    let activeIndexId = preferences.activeIndexIdByCollectionId.get(collectionId);
+    if (!activeIndexId) {
+      activeIndexId = ref<string | undefined>(undefined);
+      preferences.activeIndexIdByCollectionId.set(collectionId, activeIndexId);
+    }
+    return activeIndexId;
   }
 
   /**
    * Set active collection by index in the array of collections.
    *
    * If no collection left, set the active collection to null.
-   * If already active, return undefined.
+   * If already active, return is undefined.
    * Otherwise, return the active collection.
    *
    * @param no the index of the collection in collections to be set as active
@@ -294,7 +353,6 @@ export const useCollectionStore = defineStore('collections', () => {
     }
 
     preferences.activeCollectionId.value = activeCollection.id;
-    await storeCacheToTauriStore();
     return activeCollection;
   }
 
@@ -307,7 +365,6 @@ export const useCollectionStore = defineStore('collections', () => {
       const collectionId = Number(paramId);
       if (preferences.activeCollectionId.value != collectionId) {
         preferences.activeCollectionId.value = collectionId;
-        await storeCacheToTauriStore();
       }
     }
   }
@@ -316,30 +373,37 @@ export const useCollectionStore = defineStore('collections', () => {
     collections,
     collectionNames,
     activeCollectionId: preferences.activeCollectionId,
-    collectionIndexes,
     load,
+    storeCacheToTauriStore,
     getCollection,
     createCollection,
     reloadCollectionById,
     deleteCollectionById,
-    loadIndexesFromDatabase,
+    useCollectionIndexes,
     getCollectionIndexById,
     getActiveIndexByCollectionId,
     getActiveIndexIdByCollectionId,
   };
 });
 
-function toPersistent(cache: CollectionPreference) {
+function toPersistent(preference: CollectionPreference) {
   return {
-    activeCollectionId: cache.activeCollectionId.value,
-    activeIndexIdByCollectionId: [...cache.activeIndexIdByCollectionId.entries()].map(([collectionId, indexId]) => [
-      collectionId,
-      indexId.value,
-    ]),
+    activeCollectionId: preference.activeCollectionId.value,
+    activeIndexIdByCollectionId: [...preference.activeIndexIdByCollectionId.entries()].map(
+      ([collectionId, indexId]) => [collectionId, indexId.value],
+    ),
   } as PersistentCollectionPreference;
 }
 
-function fromPersistent(cache: CollectionPreference, stored: PersistentCollectionPreference) {
-  cache.activeCollectionId.value = stored.activeCollectionId;
-  cache.activeIndexIdByCollectionId = new Map(stored.activeIndexIdByCollectionId.map(([k, v]) => [k, ref(v)]));
+function fromPersistent(preference: CollectionPreference, stored: PersistentCollectionPreference) {
+  preference.activeCollectionId.value = stored.activeCollectionId;
+  for (const [key, value] of stored.activeIndexIdByCollectionId) {
+    let activeIndex = preference.activeIndexIdByCollectionId.get(key);
+    if (!activeIndex) {
+      activeIndex = ref<string | undefined>(value);
+      preference.activeIndexIdByCollectionId.set(key, activeIndex);
+    } else {
+      activeIndex.value = value;
+    }
+  }
 }

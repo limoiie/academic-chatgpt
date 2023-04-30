@@ -54,28 +54,33 @@
           />
         </a-form-item>
       </a-form>
-
-      <a-button type="primary" @click="create" :loading="isChildCreating" :disabled="!isFormValid">Create</a-button>
     </a-space>
+
+    <template #extra>
+      <a-button type="primary" @click="create" :loading="isCreating" :disabled="!isFormValid">Create</a-button>
+    </template>
   </a-drawer>
 </template>
 
 <script lang="ts" setup>
+import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
 import { defineEmits, reactive, ref } from 'vue';
 import {
   EmbeddingsClientExData,
   EmbeddingsConfigExData,
+  getOrCreateSplitting,
   VectorDbClientExData,
   VectorDbConfigExData,
 } from '~/plugins/tauri/bindings';
 import { useIndexProfileStore } from '~/store/indexProfiles';
 
-const isChildCreating = ref(false);
-const emits = defineEmits(['onCreate']);
+const emits = defineEmits(['onCreated']);
 const { visible } = defineProps<{
   visible: boolean;
 }>();
+
+const isCreating = ref(false);
 
 const indexProfileStore = useIndexProfileStore();
 const { indexProfileNames } = storeToRefs(indexProfileStore);
@@ -126,7 +131,31 @@ const isFormValid = computed(() => {
 });
 
 function create() {
-  //   todo: create the index
+  return Promise.resolve((isCreating.value = true))
+    .then(async () => {
+      const splitting = await getOrCreateSplitting({
+        chunkSize: formState.chunkSize,
+        chunkOverlap: formState.chunkOverlap,
+      });
+
+      return await indexProfileStore.addIndexProfile(
+        splitting.id,
+        formState.embeddingsClient!,
+        formState.embeddingsConfig!,
+        formState.vectorDbClient!,
+        formState.vectorDbConfig!,
+        formState.name,
+      );
+    })
+    .then((indexProfile) => {
+      emits('onCreated', indexProfile);
+    })
+    .catch((e) => {
+      message.error(`Failed to create index profile: ${errToString(e)}`);
+    })
+    .finally(() => {
+      isCreating.value = false;
+    });
 }
 </script>
 

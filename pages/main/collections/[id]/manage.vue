@@ -17,7 +17,7 @@
           </a-button>
           <a-input
             ref="viewCollectionName"
-            v-model:value="formState.name"
+            v-model:value="collectionName"
             :bordered="false"
             @pressEnter="tryUpdateCollectionName"
             placeholder="Collection Name"
@@ -26,10 +26,11 @@
       </template>
 
       <template #extra>
-        <a-tooltip title="Active Index Profile" placement="left">
+        <a-tooltip title="Active Index Profile" :mouse-enter-delay="1">
           <a-select
-            :value="formState.activeIndexId"
-            :options="indexes || []"
+            v-if="indexes && indexes.length > 0"
+            v-model:value="activeIndexId"
+            :options="indexes"
             :field-names="{ label: 'name', value: 'id', options: 'options' }"
           />
         </a-tooltip>
@@ -44,10 +45,10 @@
     <a-layout-content class="mx-6">
       <a-tabs v-model:activeKey="activeTab">
         <a-tab-pane key="documents" tab="Documents">
-          <CollectionManageMain :id="id" :index-id="formState.activeIndexId || ''" />
+          <CollectionManageMain :id="id" :index="activeIndex" />
         </a-tab-pane>
         <a-tab-pane key="indexes" tab="Indexes" force-render>
-          <CollectionManageIndexes />
+          <CollectionManageIndexes :indexes="indexes" :reload="refreshIndexes" />
         </a-tab-pane>
       </a-tabs>
     </a-layout-content>
@@ -58,76 +59,61 @@
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
-import { reactive, ref } from 'vue';
-import CollectionManageIndexes from '~/components/CollectionManageIndexes.vue';
+import { computed, ref } from 'vue';
 import { useConfirmDeleteCollection } from '~/composables/useConfirmDeleteCollection';
 import { useCollectionStore } from '~/store/collections';
+
+const { $tauriCommands } = useNuxtApp();
+
+const viewCollectionName = ref<any | null>(null);
+
+const isUpdatingName = ref<boolean>(false);
+const collectionName = ref('');
+const isCollectionNameChanged = computed(() => {
+  return collection.value?.name != collectionName.value;
+});
 
 const route = useRoute();
 const id = parseInt(route.params['id'] as string);
 const activeTab = ref<'documents' | 'indexes'>('documents');
 
-const { $tauriCommands } = useNuxtApp();
-
 const collectionStore = useCollectionStore();
-const { collections, collectionIndexes, collectionNames } = storeToRefs(collectionStore);
+const { collections, collectionNames } = storeToRefs(collectionStore);
 const collection = computed(() => {
   const collection = collections.value.find((e) => e.id == id);
-  if (!collection) return null;
-  formState.name = collection.name;
+  if (collection) {
+    collectionName.value = collection.name;
+  }
   return collection;
 });
-const indexes = computed(() => {
-  const indexes = collectionIndexes.value.get(id)?.map((e) => {
-    return {
-      id: e.id,
-      name: e.name,
-      indexProfile: e.index,
-    };
-  });
-  if (!indexes) return null;
-  return indexes;
-});
 
-const isUpdatingName = ref<boolean>(false);
-const isCollectionNameChanged = computed(() => {
-  return collection.value?.name != formState.name;
-});
-const viewCollectionName = ref<any | null>(null);
-onMounted(() => {
+const { indexes, activeIndex, activeIndexId, refresh: refreshIndexes } = collectionStore.useCollectionIndexes(id);
+
+onMounted(async () => {
   viewCollectionName.value.focus();
+
+  await Promise.resolve()
+    .then(() => collectionStore.load())
+    .catch((e) => {
+      message.error(`Failed to load collection: ${errToString(e)}`);
+    });
 });
 
-interface FormState {
-  name: string;
-  activeIndexId: string | undefined;
-}
-
-const formState = reactive<FormState>({
-  name: '',
-  activeIndexId: undefined,
+onUnmounted(async () => {
+  await collectionStore.storeCacheToTauriStore();
 });
-
-await Promise.resolve()
-  .then(() => collectionStore.load())
-  .then(async () => {
-    formState.activeIndexId = await collectionStore.getActiveIndexIdByCollectionId(id);
-  })
-  .catch((e) => {
-    message.error(`Failed to load collection: ${errToString(e)}`);
-  });
 
 /**
  * Update collection name and reload the collection.
  */
 async function tryUpdateCollectionName() {
-  if (collectionNames.value.includes(formState.name)) {
+  if (collectionNames.value.includes(collectionName.value)) {
     message.error('Failed to update name: already existing!');
     return;
   }
 
   await Promise.resolve((isUpdatingName.value = true))
-    .then(() => $tauriCommands.updateCollectionName(id, formState.name))
+    .then(() => $tauriCommands.updateCollectionName(id, collectionName.value))
     .then(async (data) => {
       await collectionStore.reloadCollectionById(id);
       message.info(`Updated name as '${data.name}'`);

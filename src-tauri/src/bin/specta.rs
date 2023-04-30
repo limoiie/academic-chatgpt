@@ -23,6 +23,7 @@ fn generate_tauri_specta_bindings<P: AsRef<std::path::Path>>(
     tauri_specta::ts::export(
         specta::collect_types![
             db::splittings::get_or_create_splitting,
+            db::splittings::get_or_create_splitting_id,
             db::documents::get_documents,
             db::documents::get_documents_by_collection_id,
             db::documents::get_or_create_document,
@@ -69,6 +70,7 @@ fn generate_tauri_specta_bindings<P: AsRef<std::path::Path>>(
             db::collection_indexes::delete_collection_indexes_by_id,
             db::collection_indexes::get_collection_indexes_by_collection_id,
             db::collection_indexes::get_collection_indexes_by_collection_id_with_all,
+            db::collection_indexes::get_collection_index_by_collection_id_profile_id_with_all,
             db::collection_indexes::get_collection_index_by_id,
             db::collection_indexes::create_collection_index,
             db::collection_indexes::upsert_documents_in_collection_index,

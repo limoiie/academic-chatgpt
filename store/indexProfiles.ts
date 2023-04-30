@@ -38,7 +38,7 @@ export const useIndexProfileStore = defineStore('indexProfiles', () => {
   /**
    * Load index profiles and related state from cache and database if not loaded.
    *
-   * @param force If true, force to load index profiles from database.
+   * @param force If true, force to load index profiles from the database.
    */
   async function load(force: boolean = false) {
     if (force || !loaded.value) {
@@ -97,9 +97,27 @@ export const useIndexProfileStore = defineStore('indexProfiles', () => {
       return;
     }
 
+    await addIndexProfile(
+      defaultIndexProfile?.splittingId || -1,
+      embeddingsClient,
+      embeddingsConfig,
+      vectorDbClient,
+      vectorDbConfig,
+      name,
+    );
+  }
+
+  async function addIndexProfile(
+    splittingId: number,
+    embeddingsClient: EmbeddingsClientExData,
+    embeddingsConfig: EmbeddingsConfigExData,
+    vectorDbClient: VectorDbClientExData,
+    vectorDbConfig: VectorDbConfigExData,
+    name: string = '',
+  ) {
     const data = {
-      name: name || defaultIndexProfile?.name || '',
-      splittingId: defaultIndexProfile?.splittingId || -1,
+      name: name || '',
+      splittingId: splittingId,
       embeddingsClientId: embeddingsClient.id,
       embeddingsConfigId: embeddingsConfig.id,
       vectorDbClientId: vectorDbClient.id,
@@ -110,6 +128,7 @@ export const useIndexProfileStore = defineStore('indexProfiles', () => {
     const newIndexProfile = await $tauriCommands.createIndexProfileWithAll(data);
     indexProfiles.value.push(newIndexProfile);
     preference.defaultIndexProfileId.value = newIndexProfile.id;
+    return newIndexProfile;
   }
 
   /**
@@ -157,6 +176,7 @@ export const useIndexProfileStore = defineStore('indexProfiles', () => {
     load,
     storeCacheToTauriStore,
     upsertDefaultIndexProfile,
+    addIndexProfile,
   };
 });
 
@@ -167,5 +187,5 @@ function toPersistent(store: IndexProfilesPreference): PersistentIndexProfilesPr
 }
 
 function fromPersistent(cache: IndexProfilesPreference, store: PersistentIndexProfilesPreference | null) {
-    cache.defaultIndexProfileId.value = store?.defaultIndexProfileId
+  cache.defaultIndexProfileId.value = store?.defaultIndexProfileId;
 }

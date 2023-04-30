@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::commands::db::vector_db_configs::VectorDbConfigExData;
 use crate::commands::db::DbState;
 use crate::prisma::vector_db_client;
 
