@@ -175,7 +175,7 @@ export class Indexer {
    * @param index The collection index.
    */
   private async renewSummaryDocumentIfChanged(status: IndexSyncStatus, index: CollectionIndexWithAll) {
-    const summaryFilename = index.id + '/SUMMARY.md';
+    const summaryFilename = `collection#${index.collectionId}/SUMMARY.md`;
     let { summaryDocument, documents } = status.all.reduce(
       (acc, document) => {
         if (acc.summaryDocument == undefined && document.filename == summaryFilename) {
