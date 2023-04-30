@@ -7,10 +7,10 @@
           {{ value.username }}
         </slot>
       </div>
-      <div class="w-[calc(100%-56px)]">
-        <!-- 56px is the width of avator -->
+      <div class="w-[calc(100%-56px)] flex flex-col gap-4">
+        <!-- 56px is the width of avatar -->
         <div v-show="rendered" v-html="rendered" />
-        <div v-if="answering" class="mt-2! flex flex-row items-baseline gap-3">
+        <div v-if="answering" class="flex flex-row items-baseline gap-3">
           <a-spin size="small" />
           <a-button shape="circle" size="small" type="primary" @click="stopAnswering">
             <template #icon>
@@ -18,6 +18,12 @@
             </template>
           </a-button>
         </div>
+        <a-collapse :bordered="false">
+          <a-collapse-panel v-for="doc of value.meta?.sourceDocuments || []" header="Reference">
+            <!--suppress TypeScriptUnresolvedReference -->
+            <p class="whitespace-pre-wrap">{{ doc.pageContent }}</p>
+          </a-collapse-panel>
+        </a-collapse>
       </div>
     </div>
 

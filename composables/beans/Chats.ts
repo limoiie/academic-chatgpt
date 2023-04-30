@@ -108,6 +108,7 @@ export class UiChatDialogue {
   async answerChainValues(result: ChainValues) {
     this.answering = undefined;
     this.chosenAnswer.message.text = result.text;
+    this.chosenAnswer.meta = result;
   }
 
   async failedToAnswer(error: string) {

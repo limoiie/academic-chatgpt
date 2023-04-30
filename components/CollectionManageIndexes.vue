@@ -1,6 +1,9 @@
 <template>
   <a-space class="w-full" direction="vertical">
-    <CreateIndexProfileDrawer v-model:visible="isCreatingIndex" @on-created="onCreated" />
+    <CreateIndexProfile v-model:visible="creating" @on-created="onCreated" />
+    <a-drawer v-model:visible="previewing" title="Preview index settings">
+      <PreviewCollectionIndex :index="indexPreviewing" />
+    </a-drawer>
 
     <!-- control buttons bar -->
     <a-space>
@@ -31,16 +34,18 @@
       :loading="loading"
       @resizeColumn="handleResizeColumn"
     >
-      <template #expandedRowRender="{ record }">
-        <pre class="m-0">{{ stringify(record.origin) }}</pre>
-      </template>
-
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
           <a-space>
             <a-button size="small" shape="circle" @click="open(record.indexId)">
               <template #icon>
                 <CommentOutlined />
+              </template>
+            </a-button>
+
+            <a-button size="small" shape="circle" @click="preview(record)">
+              <template #icon>
+                <FundViewOutlined />
               </template>
             </a-button>
 
@@ -58,18 +63,16 @@
 
 <script setup lang="ts">
 import { useRoute } from '#app';
-import { ClearOutlined, CommentOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue';
+import { ClearOutlined, CommentOutlined, FundViewOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import { message, TableColumnsType, TableColumnType } from 'ant-design-vue';
 import { ref, toRefs } from 'vue';
-import { stringify } from 'yaml';
-import CreateIndexProfileDrawer from '~/components/CreateIndexProfile.vue';
 import { CollectionIndexWithAll } from '~/plugins/tauri/bindings';
 
 const columns = ref<TableColumnsType>([
   {
     title: 'Name',
     dataIndex: 'name',
-    width: 100,
+    width: 160,
     fixed: 'left' as 'left',
     resizable: true,
   },
@@ -97,7 +100,7 @@ const columns = ref<TableColumnsType>([
   {
     title: 'Action',
     key: 'action',
-    width: 80,
+    width: 120,
     fixed: 'right' as 'right',
   },
 ]);
@@ -116,7 +119,10 @@ interface IndexProfileUiData {
 const { $tauriCommands } = useNuxtApp();
 
 const loading = ref<boolean>(false);
-const isCreatingIndex = ref<boolean>(false);
+const creating = ref<boolean>(false);
+const previewing = ref<boolean>(false);
+const indexPreviewing = ref<CollectionIndexWithAll | undefined>(undefined);
+
 const selectedRawKeys = ref<string[]>([]);
 const hasSelected = computed(() => selectedRawKeys.value.length != 0);
 
@@ -130,21 +136,26 @@ const indexesUiData = computed(() => indexes.value.map(dbDataToUi));
 const route = useRoute();
 const collectionId = parseInt(route.params['id'] as string);
 
+async function openCreatingDrawer() {
+  creating.value = true;
+}
+
+async function onCreated() {
+  creating.value = false;
+}
+
 async function open(id: number) {
   const targetIndexPageUrl = route.path.replace(/\/manage$/, `/indexes/${id}`);
   navigateTo(targetIndexPageUrl);
 }
 
-async function openCreatingDrawer() {
-  isCreatingIndex.value = true;
-}
-
-async function onCreated() {
-  isCreatingIndex.value = false;
-}
-
 async function remove(id: string) {
   await removeIndexProfiles([id]);
+}
+
+async function preview(record: CollectionIndexWithAll) {
+  previewing.value = true;
+  indexPreviewing.value = record;
 }
 
 async function removeSelected() {

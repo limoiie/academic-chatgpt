@@ -19,13 +19,13 @@
             </template>
           </a-button>
         </a-tooltip>
-        <a-tooltip title="Completion Model" placement="bottom">
+        <a-tooltip title="Completion Model">
           <a-select
             v-model:value="sessionProfile.completionConfig.meta.model"
             :options="allCompletionModelOptions"
           ></a-select>
         </a-tooltip>
-        <a-tooltip title="Chat Mode" placement="bottom">
+        <a-tooltip title="Chat Mode">
           <a-select v-model:value="sessionProfile.completionChainMode" :options="availableChainModeOptions"></a-select>
         </a-tooltip>
       </a-space>

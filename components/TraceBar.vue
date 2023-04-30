@@ -36,7 +36,7 @@ function toggleShowDetails() {
 }
 </script>
 
-<style lang="sass">
+<style lang="sass" scoped>
 .ant-collapse
   .ant-collapse-item
     .ant-collapse-header
