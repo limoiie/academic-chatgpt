@@ -51,7 +51,11 @@ button.ant-btn-with-icon {
   align-items: baseline !important;
 }
 
-button {
+button.ant-btn-loading {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+
   .ant-btn-loading-icon {
     display: flex !important;
     justify-content: center !important;
