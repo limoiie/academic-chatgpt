@@ -254,18 +254,24 @@ function onEditSession(targetSessionId: number | MouseEvent, action: string) {
  * Create a new session and allocate a new tab for it.
  */
 async function addSession() {
-  if (!chatSessions.value) {
-    return;
-  }
+  await Promise.resolve()
+    .then(async () => {
+      if (!chatSessions.value) {
+        return;
+      }
 
-  // noinspection TypeScriptValidateJSTypes
-  const chatSession = await $tauriCommands.createSession({
-    indexId: index.id,
-    name: uniqueName('Chat', sessionNames.value),
-    history: '{}',
-  });
-  chatSessions.value = [...(chatSessions.value || []), chatSession];
-  activeSessionId.value = chatSession.id;
+      // noinspection TypeScriptValidateJSTypes
+      const chatSession = await $tauriCommands.createSession({
+        indexId: index.id,
+        name: uniqueName('Chat', sessionNames.value),
+        history: '{}',
+      });
+      chatSessions.value = [...(chatSessions.value || []), chatSession];
+      activeSessionId.value = chatSession.id;
+    })
+    .catch((e) => {
+      message.error(`Failed to create session: ${errToString(e)}`);
+    });
 }
 
 /**

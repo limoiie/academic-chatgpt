@@ -51,6 +51,13 @@ button.ant-btn-with-icon {
   align-items: baseline !important;
 }
 
+button {
+  .ant-btn-loading-icon {
+    display: flex !important;
+    justify-content: center !important;
+  }
+}
+
 .ant-message-custom-content {
   display: flex !important;
   align-items: baseline !important;

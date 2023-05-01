@@ -247,11 +247,9 @@ export const useCollectionStore = defineStore('collections', () => {
       }
 
       // delete indexes for those index profiles have gone
-      const toDeleted = currIndexes.filter((index) => {
-        return !indexProfiles.value.find((indexProfile) => {
-          return indexProfile.id == index.indexId;
-        });
-      });
+      const toDeleted = currIndexes.filter(
+        (index) => !indexProfiles.value.find((indexProfile) => indexProfile.id == index.indexId),
+      );
       await deleteCollectionIndexes(toDeleted);
 
       indexes.value = currIndexes;
@@ -260,11 +258,18 @@ export const useCollectionStore = defineStore('collections', () => {
       }
     }
 
+    async function clearIndexes(indexIds: string[]) {
+      const indexesToRemove = indexes.value.filter((index) => indexIds.includes(index.id));
+      await clearCollectionIndexes(indexesToRemove);
+      return indexesToRemove;
+    }
+
     return {
       indexes,
       activeIndexId,
       activeIndex,
       refresh: syncCollectionIndexesWithIndexProfiles,
+      clear: clearIndexes,
     };
   }
 
@@ -277,16 +282,28 @@ export const useCollectionStore = defineStore('collections', () => {
    * - remove the indexes from the local database.
    */
   async function deleteCollectionIndexes(indexes: CollectionIndexWithAll[]) {
-    for (const index of indexes) {
-      // remove index from remote vectorstore
-      await deleteIndexFromVectorstore(index.index.vectorDbClient, index.index.vectorDbConfig, index.id);
-    }
-
-    // remove sessions and related data of this index from the cache
-    await sessionStore.deleteSessionsFromCacheByIndexes(indexes);
+    // remove indexes and related data from remote vectorstore and cache
+    await clearCollectionIndexes(indexes);
 
     // remove index from the local database
     await $tauriCommands.deleteCollectionIndexesById(indexes.map((index) => index.id));
+  }
+
+  /**
+   * Clear the given collection indexes.
+   *
+   * Clearing includes:
+   * - remove the indexes from the remote vectorstore;
+   * - remove the sessions and related data of the indexes from the cache;
+   */
+  async function clearCollectionIndexes(indexes: CollectionIndexWithAll[]) {
+    for (const index of indexes) {
+      // remove index from remote vectorstore
+      await deleteIndexFromVectorstore(index.index.vectorDbClient, index.index.vectorDbConfig, index.id);
+
+      // remove sessions and related data of this index from the cache
+      await sessionStore.deleteSessionsByIndex(index);
+    }
   }
 
   /**

@@ -165,6 +165,16 @@ export const useSessionStore = defineStore('sessions', () => {
   }
 
   /**
+   * Delete all the sessions of the given index from the database and the cache.
+   *
+   * @param index The index whose sessions are going to be removed.
+   */
+  async function deleteSessionsByIndex(index: CollectionIndexWithAll) {
+    await deleteSessionsFromCacheByIndex(index);
+    await $tauriCommands.deleteSessionsByIndexId(index.id);
+  }
+
+  /**
    * Delete the session from the cache and database.
    *
    * @param sessionId
@@ -195,6 +205,7 @@ export const useSessionStore = defineStore('sessions', () => {
     getActiveSessionId,
     getSessionProfile,
     deleteSession,
+    deleteSessionsByIndex,
     deleteSessionsFromCacheByIndexes,
   };
 });

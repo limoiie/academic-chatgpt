@@ -12,7 +12,7 @@
           <PlusOutlined />
         </template>
       </a-button>
-      <a-button v-if="hasSelected" shape="circle" @click="removeSelected" danger>
+      <a-button v-if="hasSelected" shape="circle" @click="removeSelectedCollectionIndex" :loading="clearing" danger>
         <template #icon>
           <ClearOutlined />
         </template>
@@ -36,25 +36,31 @@
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <a-space>
-            <a-button size="small" shape="circle" @click="open(record.indexId)">
+          <div class="flex flex-row gap-2">
+            <a-button size="small" shape="circle" @click="chatWithCollectionIndex(record.indexId)">
               <template #icon>
                 <CommentOutlined />
               </template>
             </a-button>
 
-            <a-button size="small" shape="circle" @click="preview(record)">
+            <a-button size="small" shape="circle" @click="previewCollectionIndex(record)">
               <template #icon>
                 <FundViewOutlined />
               </template>
             </a-button>
 
-            <a-button size="small" shape="circle" @click="remove(record.id)" danger>
+            <a-button
+              size="small"
+              shape="circle"
+              @click="removeCollectionIndex(record.id)"
+              :loading="toCleared.includes(record.id)"
+              danger
+            >
               <template #icon>
                 <ClearOutlined />
               </template>
             </a-button>
-          </a-space>
+          </div>
         </template>
       </template>
     </a-table>
@@ -119,18 +125,23 @@ interface IndexProfileUiData {
 const { $tauriCommands } = useNuxtApp();
 
 const loading = ref<boolean>(false);
+const clearing = ref<boolean>(false);
 const creating = ref<boolean>(false);
 const previewing = ref<boolean>(false);
 const indexPreviewing = ref<CollectionIndexWithAll | undefined>(undefined);
 
+const toCleared = ref<string[]>([]);
 const selectedRawKeys = ref<string[]>([]);
 const hasSelected = computed(() => selectedRawKeys.value.length != 0);
 
 const props = defineProps<{
   indexes: CollectionIndexWithAll[];
   reload?: () => Promise<void>;
+  remove?: (ids: string[]) => Promise<void>;
 }>();
-const { indexes, reload = () => {} } = toRefs(props);
+
+const { reload = () => {}, remove = (_: string[]) => {} } = props;
+const { indexes } = toRefs(props);
 const indexesUiData = computed(() => indexes.value.map(dbDataToUi));
 
 const route = useRoute();
@@ -144,36 +155,39 @@ async function onCreated() {
   creating.value = false;
 }
 
-async function open(id: number) {
+async function chatWithCollectionIndex(id: number) {
   const targetIndexPageUrl = route.path.replace(/\/manage$/, `/indexes/${id}`);
   navigateTo(targetIndexPageUrl);
 }
 
-async function remove(id: string) {
-  await removeIndexProfiles([id]);
-}
-
-async function preview(record: CollectionIndexWithAll) {
+async function previewCollectionIndex(record: CollectionIndexWithAll) {
   previewing.value = true;
   indexPreviewing.value = record;
 }
 
-async function removeSelected() {
-  const selected = selectedRawKeys.value;
-  if (selected.length > 0) {
-    await removeIndexProfiles(selected);
-    selectedRawKeys.value = [];
-  }
+async function removeCollectionIndex(id: string) {
+  await clearIndexes([id]);
 }
 
-async function removeIndexProfiles(indexProfileIds: string[]) {
-  // todo: just clear, not delete
-  if (indexProfileIds.length > 0) {
-    const deleted = await $tauriCommands.deleteCollectionIndexesById(indexProfileIds);
-    if (deleted != indexProfileIds.length) {
-      message.warn(`Failed to delete: ${indexProfileIds.length} to delete, only ${deleted} deleted`);
-    }
-  }
+async function removeSelectedCollectionIndex() {
+  const selected = selectedRawKeys.value;
+  await clearIndexes(selected);
+  selectedRawKeys.value = [];
+}
+
+async function clearIndexes(indexIds: string[]) {
+  clearing.value = true;
+  toCleared.value = indexIds;
+
+  return Promise.resolve()
+    .then(() => remove(indexIds))
+    .catch((e) => {
+      message.error(`Failed to remove collection index: ${errToString(e)}`);
+    })
+    .finally(() => {
+      clearing.value = false;
+      toCleared.value = [];
+    });
 }
 
 function dbDataToUi(indexProfile: CollectionIndexWithAll) {

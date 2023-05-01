@@ -1,6 +1,5 @@
 <template>
-  <a-space class="w-full" direction="vertical">
-    <!--<p class="whitespace-nowrap overflow-scroll">Working on {{ workingOn }}...</p>-->
+  <a-space id="trace-bar"  class="w-full" direction="vertical">
     <a-progress :percent="percentage" status="normal" />
     <a-space class="flex flex-row items-baseline!">
       <a-button :type="showDetails == 1 ? 'primary' : 'dashed'" size="small" shape="circle" @click="toggleShowDetails">
@@ -9,7 +8,7 @@
           <UpCircleOutlined v-else />
         </template>
       </a-button>
-      <p class="whitespace-nowrap overflow-scroll">{{ title }}</p>
+      <div class="whitespace-nowrap overflow-scroll">{{ title }}</div>
     </a-space>
 
     <a-collapse v-model:activeKey="showDetails" ghost>
@@ -36,13 +35,14 @@ function toggleShowDetails() {
 }
 </script>
 
-<style lang="sass" scoped>
-.ant-collapse
-  .ant-collapse-item
-    .ant-collapse-header
-      padding: 0
+<style lang="sass">
+#trace-bar
+  .ant-collapse
+    .ant-collapse-item
+      .ant-collapse-header
+        padding: 0
 
-.ant-collapse-content
-  .ant-collapse-content-box
-    padding: 0 !important
+  .ant-collapse-content
+    .ant-collapse-content-box
+      padding: 0 !important
 </style>

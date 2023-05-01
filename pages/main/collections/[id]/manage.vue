@@ -48,7 +48,7 @@
           <CollectionManageMain :id="id" :index="activeIndex" />
         </a-tab-pane>
         <a-tab-pane key="indexes" tab="Indexes" force-render>
-          <CollectionManageIndexes :indexes="indexes" :reload="refreshIndexes" />
+          <CollectionManageIndexes :indexes="indexes" :reload="refreshIndexes" :remove="clearCollectionIndexes" />
         </a-tab-pane>
       </a-tabs>
     </a-layout-content>
@@ -87,7 +87,13 @@ const collection = computed(() => {
   return collection;
 });
 
-const { indexes, activeIndex, activeIndexId, refresh: refreshIndexes } = collectionStore.useCollectionIndexes(id);
+const {
+  indexes,
+  activeIndex,
+  activeIndexId,
+  refresh: refreshIndexes,
+  clear: clearIndexes,
+} = collectionStore.useCollectionIndexes(id);
 
 onMounted(async () => {
   viewCollectionName.value.focus();
@@ -133,6 +139,18 @@ async function tryUpdateCollectionName() {
  */
 async function deleteCollection(e: Event | undefined = undefined) {
   await useConfirmDeleteCollection(id, e);
+}
+
+async function clearCollectionIndexes(indexIds: string[]) {
+  message.loading('Clearing indexes...', 1);
+  await Promise.resolve()
+    .then(() => clearIndexes(indexIds))
+    .then(async (cleared) => {
+      message.success(`Cleared ${cleared.length} indexes`);
+    })
+    .catch((e) => {
+      message.error(`Failed to clear indexes: ${errToString(e)}`);
+    });
 }
 
 function navigateToIndexes() {

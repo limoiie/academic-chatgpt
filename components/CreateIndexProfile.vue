@@ -2,7 +2,7 @@
   <a-drawer
     title="Createing new index profile"
     :visible="visible"
-    @update:visible="emits('update:visible')"
+    @update:visible="(st) => emits('update:visible', st)"
     width="480"
   >
     <a-space class="w-full" direction="vertical">
@@ -75,7 +75,7 @@ import {
 } from '~/plugins/tauri/bindings';
 import { useIndexProfileStore } from '~/store/indexProfiles';
 
-const emits = defineEmits(['onCreated']);
+const emits = defineEmits(['onCreated', 'update:visible']);
 const { visible } = defineProps<{
   visible: boolean;
 }>();
