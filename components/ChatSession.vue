@@ -26,7 +26,16 @@
           ></a-select>
         </a-tooltip>
         <a-tooltip title="Chat Mode">
-          <a-select v-model:value="sessionProfile.completionChainMode" :options="availableChainModeOptions"></a-select>
+          <a-select v-model:value="sessionProfile.completionChainMode">
+            <a-select-option
+              v-for="{ label, value, tag } of availableChainModeOptions"
+              :value="value"
+              :label="label"
+            >
+              <a-tag v-if="tag" color="blue">{{ tag }} </a-tag>
+              {{ label }}
+            </a-select-option>
+          </a-select>
         </a-tooltip>
       </a-space>
       <div class="w-full h-2 z-10 bg-gradient-to-t from-white dark:from-[#1f1f1f]" />
@@ -143,10 +152,7 @@ const questionHistoryOptions = ref<string[] | undefined>(undefined);
 const questionCursor = ref(-1);
 
 const availableChainModeOptions = computed(() => {
-  const modes = allCompletionChainModes[sessionProfile.value.completionConfig.client] || [];
-  return modes.map((m) => {
-    return { label: m, value: m };
-  });
+  return allCompletionChainModes[sessionProfile.value.completionConfig.client] || [];
 });
 const allCompletionModelOptions = computed(() => {
   const models = allCompletionModels[sessionProfile.value.completionConfig.client] || [];
@@ -406,4 +412,9 @@ function equipHistoryQuestion(e: KeyboardEvent, offset: number) {
 // center the clear icon in the input
 .ant-input-clear-icon
   top: 13px !important
+
+.ant-select-selection-item
+  display: flex
+  flex-direction: row
+  align-items: center
 </style>

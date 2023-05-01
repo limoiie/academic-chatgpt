@@ -106,6 +106,13 @@ export type OpenAICompletionChainModeType = 'RephraseHistory' | 'WithoutHistory'
 
 export type CompletionChainModeType = OpenAICompletionChainModeType;
 
-export const allCompletionChainModes: { [client: string]: CompletionChainModeType[] } = {
-  openai: ['RephraseHistory', 'WithoutHistory', 'ChatCompletion', 'Completion'] as OpenAICompletionChainModeType[],
+export const allCompletionChainModes: {
+  [client: string]: { value: CompletionChainModeType; label: string; tag?: string }[];
+} = {
+  openai: [
+    { value: 'RephraseHistory', label: 'With History', tag: 'InnerDoc' },
+    { value: 'WithoutHistory', label: 'History-less', tag: 'InnerDoc' },
+    { value: 'ChatCompletion', label: 'With History', tag: 'Classic' },
+    { value: 'Completion', label: 'History-less', tag: 'Classic' },
+  ],
 };
