@@ -10,15 +10,4 @@ export class MarkdownTextLoader extends TextLoader {
     const docs = await this.load();
     return splitter.splitDocuments(docs);
   }
-
-  async extractMeta(): Promise<Record<string, any>> {
-    const { text, metadata } = await this.open();
-    return {
-      ...metadata,
-      type: 'md',
-      md: {
-        length: text.length,
-      },
-    };
-  }
 }

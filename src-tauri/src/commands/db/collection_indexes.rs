@@ -10,6 +10,7 @@ collection_index::include!(collection_index_with_all {
     index: include {
         embeddings_client embeddings_config vector_db_client vector_db_config splitting
     }
+    collection
     indexed_documents
 });
 

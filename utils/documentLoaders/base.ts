@@ -1,5 +1,6 @@
 import { Document } from 'langchain/docstore';
 import { RecursiveCharacterTextSplitter, TextSplitter } from 'langchain/text_splitter';
+import { Splitting } from "~/plugins/tauri/bindings";
 
 export abstract class BaseDocumentLoader {
   async loadAndSplit(splitter: TextSplitter = new RecursiveCharacterTextSplitter()) {
@@ -8,6 +9,8 @@ export abstract class BaseDocumentLoader {
   }
 
   abstract load(): Promise<Document[]>;
+}
 
-  abstract extractMeta(): Promise<Record<string, any>>;
+export abstract class DocumentLoader {
+  abstract loadAndSplit(filepathOrBlob: string | Blob, splitting: Splitting, ext?: string): Promise<Document[]>;
 }

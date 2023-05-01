@@ -94,6 +94,8 @@ import { message, TableColumnType } from 'ant-design-vue';
 import { basename } from 'pathe';
 import { ref, toRefs } from 'vue';
 import { CollectionIndexWithAll, Document } from '~/plugins/tauri/bindings';
+import { BasicCollectionSummarizer } from '~/utils/collectionSummarizers/basic';
+import { BasicDocumentLoader } from '~/utils/documentLoaders/factory';
 import { IndexSyncStatus } from '~/utils/indexSyncStatus';
 import { NestedStepTracer } from '~/utils/tracer';
 
@@ -147,6 +149,8 @@ const isSyncing = ref<boolean>(false);
 
 const indexTracer = new NestedStepTracer();
 const addTracer = new NestedStepTracer();
+const documentLoader = new BasicDocumentLoader();
+const collectionSummarizer = new BasicCollectionSummarizer();
 
 const openOptions = {
   multiple: true,
@@ -343,7 +347,7 @@ async function syncIndex() {
   await Promise.resolve((isSyncing.value = true))
     .then(async () => {
       indexTracer.start();
-      const indexer = await Indexer.create(collectionIndex, indexTracer);
+      const indexer = await Indexer.create(collectionIndex, indexTracer, documentLoader, collectionSummarizer);
       return await indexer.sync(syncStatus, collectionIndex);
     })
     .then(({ deleted, indexed }) => {

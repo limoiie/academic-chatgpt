@@ -10,8 +10,9 @@ import {
   DocumentChunk,
   Splitting,
 } from '~/plugins/tauri/bindings';
+import { CollectionSummarizer } from '~/utils/collectionSummarizers/base';
 import { dbDocumentChunk2Ui, uiDocumentChunks2Db } from '~/utils/db';
-import { loadAndSplitDocument, summarizeCollection } from '~/utils/documentLoaders';
+import { DocumentLoader } from '~/utils/documentLoaders/base';
 import { IndexSyncStatus } from '~/utils/indexSyncStatus';
 import { asyncFilter } from '~/utils/itertools';
 import { Tracer } from '~/utils/tracer';
@@ -26,12 +27,19 @@ export class Indexer {
     public embeddingsConfigId: number,
     public splitting: Splitting,
     public tracer: Tracer,
+    public loader: DocumentLoader,
+    public summarizer: CollectionSummarizer,
   ) {
     const { $tauriCommands } = useNuxtApp();
     this.tauriCommands = $tauriCommands;
   }
 
-  static async create(collectionIndex: CollectionIndexWithAll, tracer: Tracer) {
+  static async create(
+    collectionIndex: CollectionIndexWithAll,
+    tracer: Tracer,
+    loader: DocumentLoader,
+    summarizer: CollectionSummarizer,
+  ) {
     const namespace = collectionIndex.id;
     const embeddings = await createEmbeddings(
       collectionIndex.index.embeddingsClient,
@@ -49,6 +57,8 @@ export class Indexer {
       collectionIndex.index.embeddingsConfigId,
       collectionIndex.index.splitting,
       tracer,
+      loader,
+      summarizer,
     );
   }
 
@@ -189,7 +199,7 @@ export class Indexer {
     );
 
     // generate a new summary and its MD5 hashcode
-    const summary = await summarizeCollection(documents);
+    const summary = await this.summarizer.summarize(status.index.collection, documents);
     const summaryMD5Hashcode = await useHash().hashStrInMd5(summary);
 
     if (summaryDocument) {
@@ -301,7 +311,7 @@ export class Indexer {
    * Split document into chunks, and store them into the database.
    */
   private async splitChunksIntoDb(document: Document) {
-    const rawChunks = await loadAndSplitDocument(document.filepath, this.splitting, extname(document.filename));
+    const rawChunks = await this.loader.loadAndSplit(document.filepath, this.splitting, extname(document.filename));
     return await this.tauriCommands.createChunksByDocument({
       chunks: rawChunks.map(uiDocumentChunks2Db),
       documentId: document.id,

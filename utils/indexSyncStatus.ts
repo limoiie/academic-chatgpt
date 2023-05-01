@@ -1,4 +1,4 @@
-import { CollectionIndexWithAll, Document } from '~/plugins/tauri/bindings';
+import { Collection, CollectionIndexWithAll, Document } from "~/plugins/tauri/bindings";
 
 export class IndexSyncStatus {
   constructor(
@@ -14,6 +14,10 @@ export class IndexSyncStatus {
      * List of all documents.
      */
     public all: Document[],
+    /**
+     * The collection to which the index belongs.
+     */
+    public index: CollectionIndexWithAll,
   ) {}
 
   /**
@@ -39,6 +43,6 @@ export class IndexSyncStatus {
       return true;
     });
     const toDeleted = [...indexed];
-    return new IndexSyncStatus(toDeleted, toIndexed, documents);
+    return new IndexSyncStatus(toDeleted, toIndexed, documents, index);
   }
 }
