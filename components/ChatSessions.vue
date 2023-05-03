@@ -89,7 +89,7 @@
           </template>
 
           <!--suppress TypeScriptUnresolvedReference -->
-          <ChatSession :collection-index="index" :session="session.origin" :session-profile="session.profile" />
+          <ChatSession :index="index" :session="session.origin" :session-profile="session.profile" />
         </a-tab-pane>
       </a-tabs>
     </a-layout>
@@ -107,15 +107,16 @@ import {
   PlusCircleOutlined,
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
-import { reactive } from 'vue';
+import { reactive, ref, toRefs } from 'vue';
 import { Collection, CollectionIndexWithAll } from '~/plugins/tauri/bindings';
 import { useSessionStore } from '~/store/sessions';
 import { uniqueName } from '~/utils/strings';
 
-const { collection, index } = defineProps<{
+const props = defineProps<{
   collection: Collection;
   index: CollectionIndexWithAll;
 }>();
+const { collection, index } = toRefs(props);
 
 const isLoading = ref<boolean>(false);
 const isUpdatingName = ref<boolean>(false);
@@ -123,8 +124,8 @@ const isSessionNameChanged = ref<boolean>(false);
 const showTabBar = ref<boolean>(true);
 const showTabBarOnLeft = ref<boolean>(false);
 
-const collectionId = index.collectionId;
-const indexId = index.indexId;
+const collectionId = index.value.collectionId;
+const indexId = index.value.indexId;
 
 const { $tauriCommands } = useNuxtApp();
 
@@ -133,7 +134,7 @@ const { data: chatSessions } = useAsyncData(`sessionsDataOfCollection#${collecti
   return await Promise.resolve((isLoading.value = true))
     .then(async () => await sessionStore.load())
     .then(async () => {
-      return await $tauriCommands.getSessionsByIndexId(index.id);
+      return await $tauriCommands.getSessionsByIndexId(index.value.id);
     })
     .catch((e) => {
       message.error(`Failed to load index profile: ${e}, jump to manage page.`);
@@ -262,7 +263,7 @@ async function addSession() {
 
       // noinspection TypeScriptValidateJSTypes
       const chatSession = await $tauriCommands.createSession({
-        indexId: index.id,
+        indexId: index.value.id,
         name: uniqueName('Chat', sessionNames.value),
         history: '{}',
       });

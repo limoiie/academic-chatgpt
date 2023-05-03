@@ -1,8 +1,12 @@
 <template>
   <a-input-group compact>
     <a-tooltip :visible="!isApiKeyPristine && apiKeyError != ''" :title="apiKeyError" color="red">
-      <a-input-password v-model:value="config.meta.apiKey" class="w-64!" placeholder="Api Key"
-        :on-blur="markApiKeyAsDirty" />
+      <a-input-password
+        v-model:value="config.meta.apiKey"
+        class="w-64!"
+        placeholder="Api Key"
+        :on-blur="markApiKeyAsDirty"
+      />
     </a-tooltip>
     <a-select v-model:value="config.meta.model" :options="modelOptions[config.client]" />
   </a-input-group>
@@ -10,6 +14,7 @@
 
 <script setup lang="ts">
 import { Configuration, OpenAIApi } from 'openai';
+import { ref, toRefs } from 'vue';
 import { allCompletionOpenAIModels } from '~/types';
 
 const apiKeyError = ref('');
@@ -39,7 +44,7 @@ watch(
   },
 );
 
-const isApiKeyPristine = ref(config.value.meta.apiKey === '');
+const isApiKeyPristine = ref<boolean>(!config.value.meta.apiKey);
 
 const modelOptions = {
   openai: allCompletionOpenAIModels.map((model) => {
@@ -49,10 +54,7 @@ const modelOptions = {
 
 async function validate() {
   emits('update:valid', false);
-  if (
-    !validateApiKeyForm(config.value.meta.apiKey || '') ||
-    !validateModelForm(config.value.meta.model || '')
-  ) {
+  if (!validateApiKeyForm(config.value.meta.apiKey || '') || !validateModelForm(config.value.meta.model || '')) {
     return;
   }
 

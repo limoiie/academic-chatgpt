@@ -27,12 +27,8 @@
         </a-tooltip>
         <a-tooltip title="Chat Mode">
           <a-select v-model:value="sessionProfile.completionChainMode">
-            <a-select-option
-              v-for="{ label, value, tag } of availableChainModeOptions"
-              :value="value"
-              :label="label"
-            >
-              <a-tag v-if="tag" color="blue">{{ tag }} </a-tag>
+            <a-select-option v-for="{ label, value, tag } of availableChainModeOptions" :value="value" :label="label">
+              <a-tag v-if="tag" color="blue">{{ tag }}</a-tag>
               {{ label }}
             </a-select-option>
           </a-select>
@@ -81,7 +77,7 @@ import { Embeddings } from 'langchain/embeddings';
 import { SystemChatMessage } from 'langchain/schema';
 import { VectorStore } from 'langchain/vectorstores';
 import { storeToRefs } from 'pinia';
-import { ref, toRef } from 'vue';
+import { ref, toRefs } from 'vue';
 import { UiChatConversation, UiChatDialogue } from '~/composables/beans/Chats';
 import { useKeyRespectKeymap } from '~/composables/useKeyRespectKeymap';
 import { useScrollOverflow } from '~/composables/useScrollOverflow';
@@ -98,7 +94,7 @@ const props = defineProps<{
    * The collection index that will be used to search for context when chatting
    * in this session.
    */
-  collectionIndex: CollectionIndexWithAll;
+  index: CollectionIndexWithAll;
   /**
    * The session data from the database, including conversation history, etc.
    */
@@ -109,8 +105,8 @@ const props = defineProps<{
    */
   sessionProfile: SessionProfile;
 }>();
-const { collectionIndex, session } = props;
-const sessionProfile = toRef(props, 'sessionProfile');
+const { session } = props;
+const { index, sessionProfile } = toRefs(props);
 
 const { $tauriCommands } = useNuxtApp();
 
@@ -181,17 +177,17 @@ interface Context {
 }
 
 const { data: context } = useAsyncData(`contextOfSession#${session.id}`, async () => {
-  const namespace = collectionIndex.id;
+  const namespace = index.value.id;
   const embeddings = await createEmbeddings(
-    collectionIndex.index.embeddingsClient,
-    collectionIndex.index.embeddingsConfig,
+    index.value.index.embeddingsClient,
+    index.value.index.embeddingsConfig,
   ).catch((e: any) => {
     message.error(`Failed to create embeddings: ${e.toString()}`);
     throw e;
   });
   const vectorstore = await createVectorstore(
-    collectionIndex.index.vectorDbClient,
-    collectionIndex.index.vectorDbConfig,
+    index.value.index.vectorDbClient,
+    index.value.index.vectorDbConfig,
     embeddings,
     namespace,
   ).catch((e: any) => {
@@ -200,7 +196,7 @@ const { data: context } = useAsyncData(`contextOfSession#${session.id}`, async (
   });
 
   return {
-    collectionIndex,
+    collectionIndex: index.value,
     vectorstore,
     embeddings,
   } as Context;

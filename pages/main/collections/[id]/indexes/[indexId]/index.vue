@@ -18,7 +18,6 @@
 
 <script setup lang="ts">
 import { useAsyncData } from '#app';
-import ChatSessions from '~/components/ChatSessions.vue';
 import { useCollectionStore } from '~/store/collections';
 
 const isLoading = ref<boolean>(false);
@@ -29,7 +28,7 @@ const collectionId = parseInt(route.params['id'] as string);
 const indexId = parseInt(route.params['indexId'] as string);
 
 const collectionStore = useCollectionStore();
-const { data, error } = useAsyncData(`indexDataOfCollection${collectionId}Index${indexId}`, async () => {
+const { data, error } = useAsyncData(`indexDataOfCollection#${collectionId}Index#${indexId}`, async () => {
   return await Promise.resolve((isLoading.value = true))
     .then(() => collectionStore.load())
     .then(async () => {

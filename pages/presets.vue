@@ -15,10 +15,7 @@
               <InfoCircleTwoTone />
             </a-popover>
           </div>
-          <a-input
-            v-model:value="appSettings.username"
-            placeholder="Username"
-          />
+          <a-input v-model:value="appSettings.username" placeholder="Username" />
         </a-space>
         <!--<a-divider orientation="left" orientation-margin="0">AI</a-divider>-->
         <a-space>
@@ -87,12 +84,12 @@
 import { InfoCircleTwoTone } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { storeToRefs } from 'pinia';
+import { useAppSettingsStore } from '~/store/appSettingsStore';
 import { useDefaultCompleteStore } from '~/store/defaultComplete';
 import { useDefaultEmbeddingsStore } from '~/store/defaultEmbeddings';
 import { useDefaultVectorDbStore } from '~/store/defaultVectorDb';
 import { useIndexProfileStore } from '~/store/indexProfiles';
 import { errToString } from '~/utils/strings';
-import { useAppSettingsStore } from "~/store/appSettingsStore";
 
 const isPersisting = ref<boolean>(false);
 const isValidating = ref<number>(0);
@@ -140,7 +137,7 @@ watch(
     // sync the client type of default config with the default client
     defaultEmbeddingsConfig.value.clientType = defaultCompleteConfig.value.client;
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 );
 // Propagate the change of default vector database client so that the user can
 // provide only a little necessary information
@@ -153,9 +150,7 @@ watch(
     // sync the client type of default config with the default client
     defaultVectorDbConfig.value.clientType = defaultVectorDbClient.value.type;
   },
-  {
-    immediate: true,
-  },
+  { immediate: true, deep: true },
 );
 
 function updateCompletionValid(valid: boolean) {
