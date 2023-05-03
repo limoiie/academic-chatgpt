@@ -80,11 +80,4 @@ function onStopAnswering(item: UiChatDialogue) {
 .chat-entry
   justify-content: center !important
   transition-duration: 300ms
-
-.chat-entry:hover
-  background-color: #e6f7ff
-
-.dark
-  .chat-entry:hover
-    background-color: #080e13
 </style>

@@ -10,6 +10,7 @@
       <div class="w-[calc(100%-56px)] flex flex-col gap-4">
         <!-- 56px is the width of avatar -->
         <div v-show="rendered" v-html="rendered" />
+        <!--<div><pre>{{ value.message.text }}</pre></div>-->
         <div v-if="answering" class="flex flex-row items-baseline gap-3">
           <a-spin size="small" />
           <a-button shape="circle" size="small" type="primary" @click="stopAnswering">

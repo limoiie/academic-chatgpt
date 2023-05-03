@@ -5,7 +5,7 @@ import { marked } from 'marked';
 // noinspection JSUnusedGlobalSymbols
 export default defineNuxtPlugin((_nuxtApp) => {
   marked.setOptions({
-    renderer: new marked.Renderer(),
+    renderer: new CustomRenderer(),
     highlight: function (code, lang) {
       const language = hljs.getLanguage(lang) ? lang : 'plaintext';
       return hljs.highlight(code, { language }).value;
@@ -28,3 +28,9 @@ export default defineNuxtPlugin((_nuxtApp) => {
     },
   };
 });
+
+class CustomRenderer extends marked.Renderer {
+  code(code: string, language: string | undefined, escaped: boolean) {
+    return super.code(code, language || 'plaintext', escaped);
+  }
+}

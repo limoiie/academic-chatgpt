@@ -1,7 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 // noinspection JSUnusedGlobalSymbols
 export default defineNuxtConfig({
-  css: ['highlight.js/styles/atom-one-dark.css'],
+  css: ['highlight.js/styles/atom-one-dark.css', '@/assets/scss/app.scss'],
   modules: ['@nuxt/content', '@nuxt/ui', '@nuxtjs/tailwindcss', '@pinia/nuxt', '@/modules/antd', '@vueuse/nuxt'],
   plugins: ['@/plugins/antd', '@/plugins/localstore', '@/plugins/markdownd', '@/plugins/pdfjs', '@/plugins/tauri'],
   runtimeConfig: {
